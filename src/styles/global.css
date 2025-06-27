@@ -1,0 +1,236 @@
+/* Global Styles */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+
+    --font-family-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --border-radius: 0.5rem;
+    --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+/* Theme support */
+[data-theme="dark"] {
+    --bs-body-bg: #1a1a1a;
+    --bs-body-color: #ffffff;
+    --bs-tertiary-bg: #2d2d2d;
+}
+
+/* Base styles */
+body {
+    font-family: var(--font-family-sans-serif);
+    line-height: 1.6;
+}
+
+/* Custom Bootstrap overrides */
+.btn {
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--box-shadow-lg);
+    transform: translateY(-2px);
+}
+
+/* Home page specific styles */
+.home-page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #495057 100%);
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+}
+
+.features-section .card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.features-section .card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-5px);
+}
+
+/* Navigation styles */
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Form styles */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-control.is-valid {
+    border-color: var(--success-color);
+}
+
+.form-control.is-invalid {
+    border-color: var(--danger-color);
+}
+
+/* Dashboard styles */
+.dashboard-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-left: 4px solid var(--primary-color);
+}
+
+.stats-card {
+    text-align: center;
+    padding: 2rem;
+}
+
+.stats-card .display-4 {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+/* Event card styles */
+.event-card {
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+.event-card .card-img-top {
+    transition: transform 0.3s ease;
+}
+
+.event-card:hover .card-img-top {
+    transform: scale(1.05);
+}
+
+/* Loading animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: 50vh;
+        text-align: center;
+    }
+
+    .hero-section h1 {
+        font-size: 2.5rem;
+    }
+
+    .features-section .card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #0a58ca;
+}
+
+/* Print styles */
+@media print {
+
+    .navbar,
+    .footer,
+    .btn,
+    .alert {
+        display: none !important;
+    }
+
+    .container {
+        max-width: 100% !important;
+    }
+}
+
+/* Accessibility improvements */
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Focus indicators */
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card {
+        border: 2px solid var(--dark-color);
+    }
+
+    .btn {
+        border-width: 2px;
+    }
+}
