@@ -1,7 +1,6 @@
-import React, { createContext, useState } from 'react';
+import React, { useState } from 'react';
 import { createTheme } from '@mui/material/styles';
-
-export const ThemeContext = createContext();
+import { ThemeContext } from './theme-context.js';
 
 export const CustomThemeProvider = ({ children }) => {
     const [darkMode, setDarkMode] = useState(true); // Start with dark mode as default
