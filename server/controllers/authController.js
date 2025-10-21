@@ -267,23 +267,8 @@ import Organizer from "../models/organizer.js"; // Assuming Organizer is a Mongo
 import { setUser } from '../services/auth.js';
 
 class authController {
-  async loadSignUpPage(req, res) {
-    res.render("base", {
-      title: "Sign-up",
-      content: "sign-up",
-      showLogin: true,
-      showSignup: false,
-    });
-  }
-
-  async loadLoginPage(req, res) {
-    res.render("base", {
-      title: "Login",
-      content: "login",
-      showLogin: false,
-      showSignup: true,
-    });
-  }
+  // loadSignUpPage and loadLoginPage methods removed
+  // React frontend handles these UI pages
 
   async userSignUp(req, res) {
     const { email, name, password1, password2 } = req.body;
@@ -408,45 +393,85 @@ class authController {
 
   async orgLogin(req, res) {
     if (!req.session.userId) {
-      return res.redirect("/login");
+      return res.status(401).json({
+        success: false,
+        message: "Please log in to continue.",
+        isAuthenticated: false
+      });
     }
 
     try {
       const user = await User.findById(req.session.userId);
       if (!user) {
-        return res.redirect("/login");
+        return res.status(401).json({
+          success: false,
+          message: "User not found. Please log in again.",
+          isAuthenticated: false
+        });
       }
 
       const organizer = await Organizer.findOne({ userId: user._id });
       if (organizer) {
-        return res.redirect("/organizer/dashboard");
+        // User is already an organizer
+        return res.status(200).json({
+          success: true,
+          message: "User is already an organizer.",
+          isOrganizer: true,
+          data: {
+            organizerId: organizer._id,
+            organizationName: organizer.organizationName,
+            verified: organizer.verified
+          }
+        });
       }
 
       // User is authenticated but not an organizer
-      res.render("base", {
-        title: "Host with us",
-        content: "host_with_us",
-        showLogin: false,
-        showSignup: false,
+      return res.status(200).json({
+        success: true,
+        message: "User is authenticated but not an organizer.",
+        isOrganizer: false,
+        data: {
+          userId: user._id,
+          name: user.name,
+          email: user.email
+        }
       });
     } catch (error) {
       console.error("Error checking organizer status:", error);
-      res.status(500).send("An error occurred.");
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while checking organizer status."
+      });
     }
   }
 
   async orgRegistration(req, res) {
     if (!req.session.userId) {
-      return res.redirect("/login");
+      return res.status(401).json({
+        success: false,
+        message: "Please log in to register as an organizer."
+      });
     }
 
     const { orgName, description, mobile } = req.body;
 
     if (!orgName || !mobile) {
-      return res.status(400).send("Organization name and contact number are required.");
+      return res.status(400).json({
+        success: false,
+        message: "Organization name and contact number are required."
+      });
     }
 
     try {
+      // Check if user is already an organizer
+      const existingOrganizer = await Organizer.findOne({ userId: req.session.userId });
+      if (existingOrganizer) {
+        return res.status(400).json({
+          success: false,
+          message: "You are already registered as an organizer."
+        });
+      }
+
       const newOrganizer = new Organizer({
         userId: req.session.userId,
         organizationName: orgName,
@@ -455,10 +480,22 @@ class authController {
       });
       await newOrganizer.save();
 
-      res.redirect("/organizer/dashboard");
+      return res.status(201).json({
+        success: true,
+        message: "Successfully registered as an organizer!",
+        data: {
+          organizerId: newOrganizer._id,
+          organizationName: newOrganizer.organizationName,
+          contactNo: newOrganizer.contactNo,
+          verified: newOrganizer.verified || false
+        }
+      });
     } catch (error) {
       console.error("Error saving organizer details:", error);
-      res.status(500).send("An error occurred.");
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while registering as an organizer."
+      });
     }
   }
   async logout(req, res) {
