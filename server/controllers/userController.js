@@ -11,9 +11,12 @@ class userController {
             } else if (req.session.userId) {
                 userId = req.session.userId;
             } else {
-                // No authenticated user, redirect to login page
-                console.log('No authenticated user found, redirecting to login');
-                return res.redirect('/login');
+                // No authenticated user, return 401
+                console.log('No authenticated user found');
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
             }
 
             // Find user by ID (excluding password hash)
@@ -25,17 +28,23 @@ class userController {
             try {
                 // If userId exists, try to find the user
                 if (userId) {
-                    user = await User.findById(userId).select('name').lean();
+                    user = await User.findById(userId).select('name email').lean();
                 }
             } catch (error) {
                 console.error('Error finding user:', error);
-                return res.redirect('/login');
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error finding user'
+                });
             }
 
-            // If user not found, redirect to login
+            // If user not found, return 404
             if (!user) {
                 console.error('User not found in database');
-                return res.redirect('/login');
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
             }
             // Get user's bookings/registrations
             const registrations = await Registration.find({ userId })
@@ -86,15 +95,11 @@ class userController {
                     status = 'completed';
                 }
 
-                // Format date for display
-                const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-                const timeOptions = { hour: 'numeric', minute: 'numeric' };
-
                 return {
                     id: eventData.latestRegistrationId, // Use the latest registration ID
                     title: event.title,
-                    date: startDate.toLocaleDateString('en-US', dateOptions),
-                    time: startDate.toLocaleTimeString('en-US', timeOptions),
+                    startDateTime: event.startDateTime,
+                    endDateTime: event.endDateTime,
                     venue: event.venue,
                     ticketType: 'Standard', // Assuming a default if not available
                     price: event.ticketPrice,
@@ -104,17 +109,31 @@ class userController {
                 };
             });
 
-            // Render dashboard with user data and bookings
-            res.render('user_dashboard.ejs', {
-                user: {
-                    name: user.name,
-                    username: user.name.replace(/\s+/g, '').toLowerCase()
-                },
-                bookings: userBookings
+            // Return JSON response
+            return res.status(200).json({
+                success: true,
+                data: {
+                    user: {
+                        name: user.name,
+                        email: user.email,
+                        username: user.name.replace(/\s+/g, '').toLowerCase()
+                    },
+                    bookings: userBookings,
+                    stats: {
+                        totalBookings: userBookings.length,
+                        upcomingEvents: userBookings.filter(b => b.status === 'upcoming').length,
+                        completedEvents: userBookings.filter(b => b.status === 'completed').length,
+                        cancelledEvents: userBookings.filter(b => b.status === 'cancelled').length
+                    }
+                }
             });
         } catch (error) {
             console.error('Error loading dashboard:', error);
-            return res.redirect('/login');
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to load dashboard',
+                error: error.message
+            });
         }
     }
 
@@ -618,28 +637,6 @@ class userController {
                 message: 'Failed to retrieve saved events',
                 error: error.message
             });
-        }
-    }
-
-    async deleteSavedEvent(req, res) {
-        try {
-            const { eventId } = req.body; // The event ID to be deleted
-            const userId = req.session.userId; // Assuming the user is authenticated
-
-            // Check if the saved event exists for the user
-            const savedEvent = await SavedEvent.findOne({ userId, eventId });
-
-            if (!savedEvent) {
-                return res.status(404).send('Saved event not found.');
-            }
-
-            // Delete the saved event
-            await SavedEvent.deleteOne({ userId, eventId });
-
-            res.send('Saved event deleted successfully!');
-        } catch (error) {
-            console.error('Error deleting saved event:', error);
-            res.status(500).send('An error occurred while deleting the saved event.');
         }
     }
 
