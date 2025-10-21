@@ -1,0 +1,629 @@
+@import url('https://fonts.googleapis.com/css2?family=Parkinsans:wght@300..800&display=swap');
+
+:root {
+    --primary-color: #8a2be2;
+    --primary-light: #9d50bb;
+    --secondary-color: #6a0dad;
+    --accent-color: #ff3e6c;
+    --accent-hover: #ff6b8a;
+    --dark-bg: #121212;
+    --dark-card: #1a1a1a;
+    --light-text: #ffffff;
+    --muted-text: #b0b0b0;
+    --glass-bg: rgba(26, 26, 26, 0.4);
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    --hover-shadow: 0 15px 40px rgba(138, 43, 226, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --gradient-primary: linear-gradient(135deg, #8a2be2, #9d50bb);
+    --gradient-accent: linear-gradient(135deg, #ff3e6c, #ff8e53);
+    --gradient-dark: linear-gradient(135deg, #232526, #414345);
+}
+
+/* Animated Background Elements */
+.gradient-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.5;
+    z-index: -1;
+}
+
+.blob-1 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, var(--primary-color), transparent 70%);
+    top: -200px;
+    right: 5%;
+    animation: float-slow 20s ease-in-out infinite;
+}
+
+.blob-2 {
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, var(--accent-color), transparent 70%);
+    bottom: 10%;
+    left: -150px;
+    animation: float-slow 18s ease-in-out infinite reverse;
+}
+
+.blob-3 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, var(--secondary-color), transparent 70%);
+    top: 40%;
+    right: -100px;
+    animation: float-slow 22s ease-in-out infinite;
+}
+
+@keyframes float-slow {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0.5; }
+    25% { transform: translate(30px, -20px) rotate(2deg); opacity: 0.6; }
+    50% { transform: translate(10px, 10px) rotate(0deg); opacity: 0.7; }
+    75% { transform: translate(-20px, 30px) rotate(-2deg); opacity: 0.6; }
+    100% { transform: translate(0, 0) rotate(0deg); opacity: 0.5; }
+}
+
+/* Main Container Styles */
+.event-page-container {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 80px);
+    padding: 60px 20px;
+    margin-top: 80px; /* Account for navbar */
+    display: flex;
+    justify-content: center;
+    z-index: 1;
+}
+
+/* Fix for the padding under navbar */
+body.background-container {
+    padding-top: 0; /* Remove extra padding if already accounted for in margin-top */
+}
+
+.event-page-container {
+    font-family: 'Parkinsans', sans-serif;
+}
+
+.event-container {
+    max-width: 1200px;
+    width: 100%;
+    background: transparent;
+    position: relative;
+    z-index: 2;
+    overflow: hidden;
+}
+
+/* Event Header Section */
+.event-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 50px;
+    position: relative;
+    padding: 40px;
+    background: transparent;
+    margin-bottom: 0;
+}
+
+.event-image {
+    flex: 1;
+    min-width: 350px;
+    max-width: 500px;
+    height: 450px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    position: relative;
+    transform: perspective(1000px) rotateY(2deg);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.event-image::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent 70%, rgba(0,0,0,0.7) 100%);
+    z-index: 1;
+}
+
+.event-image:hover {
+    transform: perspective(1000px) rotateY(0deg) scale(1.02);
+    box-shadow: var(--hover-shadow);
+}
+
+.event-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.7s ease;
+}
+
+.event-image:hover img {
+    transform: scale(1.05);
+}
+
+.event-info {
+    flex: 1;
+    min-width: 350px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px 0;
+}
+
+.event-info h1 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--light-text);
+    font-size: 4em;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    background: var(--gradient-primary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    font-family: 'Parkinsans', sans-serif;
+}
+
+.event-category {
+    display: inline-block;
+    background: var(--gradient-primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 0.95em;
+    font-weight: 600;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 15px rgba(138, 43, 226, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.event-detail {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px 0;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.event-detail:hover {
+    transform: translateX(5px);
+    border-bottom: 1px solid var(--accent-color);
+}
+
+.event-detail i {
+    margin-right: 20px;
+    color: var(--accent-color);
+    font-size: 1.3em;
+    width: 24px;
+    height: 24px;
+    text-align: center;
+    filter: drop-shadow(0 0 5px rgba(255, 62, 108, 0.5));
+}
+
+.event-detail-text {
+    color: var(--light-text);
+    font-size: 1.1em;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    font-family: 'Parkinsans', sans-serif;
+}
+
+.event-detail-text strong {
+    font-weight: 600;
+    color: var(--primary-light);
+    margin-right: 5px;
+}
+
+.event-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.register-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: linear-gradient(to right, var(--accent-color), #ff6b6b);
+    color: white;
+    padding: 16px 28px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1.1em;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4);
+    font-family: 'Parkinsans', sans-serif;
+}
+
+.register-btn:hover {
+    background: linear-gradient(to right, #ff6b6b, var(--accent-color));
+    transform: translateY(-3px);
+    box-shadow: 0 7px 20px rgba(244, 63, 94, 0.5);
+}
+
+.register-btn.disabled {
+    background: linear-gradient(to right, #555, #777);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.register-btn.disabled:hover {
+    transform: none;
+}
+
+.share-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    padding: 16px 25px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.1em;
+    border: 1px solid var(--glass-border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Parkinsans', sans-serif;
+}
+
+.share-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px);
+}
+
+.event-content {
+    margin-top: 50px;
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+    padding-top: 20px;
+    position: relative;
+}
+
+.event-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 5%;
+    right: 5%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
+.event-section {
+    padding: 30px;
+    background: rgba(18, 18, 18, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    transition: transform 0.3s ease;
+}
+
+@keyframes subtle-glow {
+    0% { box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); }
+    50% { box-shadow: 0 15px 40px rgba(138, 43, 226, 0.2); }
+    100% { box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); }
+}
+
+.event-section:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+    animation: subtle-glow 3s infinite ease-in-out;
+}
+
+.event-section h2 {
+    color: var(--light-text);
+    margin-top: 0;
+    margin-bottom: 25px;
+    font-size: 2.5em;
+    font-weight: 700;
+    position: relative;
+    padding-bottom: 15px;
+    display: inline-block;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    font-family: 'Parkinsans', sans-serif;
+}
+
+.event-section h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--gradient-accent);
+    border-radius: 3px;
+    animation: gradient-shift 3s infinite alternate;
+}
+
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+.event-description p {
+    color: var(--muted-text);
+    line-height: 1.9;
+    font-size: 1.1em;
+    text-align: justify;
+    letter-spacing: 0.2px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    position: relative;
+    padding: 0 5px;
+}
+
+.related-events-section {
+    margin-top: 0;
+    background: transparent;
+}
+
+/* Cards for related events - Specific to event page */
+.event-container .cards-container {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 10px 0;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) rgba(255, 255, 255, 0.1);
+}
+
+.event-container .cards-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.event-container .cards-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.event-container .cards-container::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 4px;
+}
+
+.event-container .category-card {
+    min-width: 220px;
+    max-width: 220px;
+    height: 280px;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    transition: all 0.4s ease;
+}
+
+.event-container .category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.8) 100%);
+    z-index: 1;
+}
+
+.event-container .category-card:hover {
+    transform: translateY(-10px) scale(1.03);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: var(--accent-color);
+}
+
+.event-container .category-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+}
+
+.event-container .category-card:hover img {
+    transform: scale(1.1);
+}
+
+.event-container .category-card p {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 20px 15px;
+    color: var(--light-text);
+    font-weight: 600;
+    z-index: 2;
+    transition: all 0.3s ease;
+    text-align: center;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    padding-top: 40px;
+}
+
+.event-container .category-card:hover p {
+    padding-bottom: 25px;
+    color: var(--accent-hover);
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+}
+
+@media (max-width: 768px) {
+    .event-header {
+        flex-direction: column;
+    }
+    
+    .event-image, .event-info {
+        width: 100%;
+    }
+      .event-image {
+        height: 300px;
+        transform: none;
+    }
+    
+    .event-image:hover {
+        transform: none;
+    }
+    
+    .event-info h1 {
+        font-size: 2.5em;
+    }
+    
+    .event-buttons {
+        flex-direction: column;
+    }
+    
+    .event-detail {
+        padding: 12px 15px;
+    }
+    
+    .event-section {
+        padding: 25px;
+    }
+    
+    .event-content {
+        gap: 30px;
+    }
+    
+    .event-section h2 {
+        font-size: 1.7em;
+    }
+    
+    .category-card {
+        min-width: 180px;
+        height: 240px;
+    }
+}
+
+@media (max-width: 480px) {
+    .event-page-container {
+        padding: 40px 10px;
+    }
+    
+    .event-header {
+        padding: 25px 20px;
+    }
+    
+    .event-content {
+        padding: 40px 20px;
+    }
+    
+    .event-info h1 {
+        font-size: 2.2em;
+    }
+    
+    .event-detail i {
+        margin-right: 15px;
+        font-size: 1.2em;
+    }
+    
+    .event-image {
+        height: 250px;
+    }
+    
+    .category-card {
+        min-width: 160px;
+        height: 200px;
+    }
+}
+
+/* Save Button Styling */
+.save-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    padding: 16px 25px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.1em;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+    font-family: 'Parkinsans', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.save-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.save-btn:hover::before {
+    left: 100%;
+}
+
+.save-btn:hover {
+    background: linear-gradient(135deg, var(--primary-light), var(--secondary-color));
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 7px 20px rgba(138, 43, 226, 0.6);
+}
+
+.save-btn:active {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 0 4px 10px rgba(138, 43, 226, 0.4);
+}
+
+.save-btn.saving {
+    background: linear-gradient(135deg, #666, #888);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0.7;
+}
+
+.save-btn.saved {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    cursor: default;
+}
+
+.save-btn.saved:hover {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5);
+}
+
+.save-btn i {
+    font-size: 1.1em;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+    transition: transform 0.3s ease;
+}
+
+.save-btn:hover i {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.save-btn.saved i {
+    transform: scale(1.1);
+    color: #fff;
+}

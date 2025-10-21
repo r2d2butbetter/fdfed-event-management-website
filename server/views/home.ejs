@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <link rel="stylesheet" href="css/common.css">  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/home.css">
+  <link rel="stylesheet" href="/css/footer.css">
+  <link rel="stylesheet" href="/css/pagination.css">
+  <title>NIGHTLIFE - Home</title>
+  <script src="/js/home.js" defer></script>
+</head>
+
+<body class="background-container">
+
+  <%- include('partials/navbar') %>
+
+    <div class="hero">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1>WELCOME TO</h1><img class="hero-logo" src="images/Logo.png" alt="NIGHTLIFE Logo"
+            style="width: 150px; margin-bottom: 20px;">
+          <p>Your ultimate solution for seamless event management. Plan, organize, and execute events with ease and
+            efficiency.</p>
+          <p>Discover the best nightlife events happening around you. Join us and make unforgettable memories.</p>
+          <br>
+          <a href="/sign-up"><button class="glow-button">Get Started</button></a>
+        </div>
+
+        <div class="faq-accordion">
+          <h3>Why Choose Us?</h3>
+          <div class="accordion">
+            <div class="accordion-item">
+              <div class="accordion-header">How secure is the payment system?</div>
+              <div class="accordion-content">
+                <p>Our payment system uses industry-standard encryption and secure protocols to ensure your financial
+                  information remains safe at all times.</p>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <div class="accordion-header">Can I get a refund if an event is cancelled?</div>
+              <div class="accordion-content">
+                <p>Yes, we offer full refunds for events that are cancelled by the organizer. Your satisfaction is our
+                  priority.</p>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <div class="accordion-header">What makes NIGHTLIFE different?</div>
+              <div class="accordion-content">
+                <p>NIGHTLIFE offers an all-in-one platform for event discovery, planning, and attendance, with unique
+                  local experiences you won't find elsewhere.</p>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <div class="accordion-header">How do I host my own event?</div>
+              <div class="accordion-content">
+                <p>Simply sign up as an organizer, complete your profile, and use our intuitive event creation tools to
+                  set up and promote your event in minutes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <img class="hero-image" src="images/hero_img2.png" alt="Hero Image">
+    </div>
+
+    <div class="heading-content">
+      <h2>Browse By Category</h2>
+      <p>Select one of the categories of events you're looking to attend.</p>
+    </div>
+
+    <!-- <div class="search-container">
+      <div class="search-box">
+        <input class="input" placeholder="Search" required="" type="text">
+        <span class="input-border"></span>
+      </div>
+
+      <div class="search-box">
+        <input class="input" placeholder="Search by location" required="" type="text">
+        <span class="input-border"></span>
+      </div>
+    </div> -->
+
+    <div class="cards-container">
+      <div class="category-card" onclick="window.location.href = '/concert'">
+        <img src="/images/concerts.png" alt="concert Icon">
+        <p>Concert</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/exhibition'">
+        <img src="images/exhibition.png" alt="exhibition Icon">
+        <p>Exhibitions</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/tedx'">
+        <img src="images/tedx.jpg" alt="TEDx Icon">
+        <p>TEDx</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/health-camp'">
+        <img src="/images/health-camp.jpg" alt="Health-camp icon">
+        <p>Health Camps</p>
+      </div>
+    </div>
+
+    <!-- <div class="heading-content">
+      <h2>Browse All events</h2>
+      <p>Here's a list of all events for you to choose from!</p>
+    </div>
+
+    <div class="search-container">
+      <div class="search-box">
+        <input class="input" placeholder="Search" required="" type="text">
+        <span class="input-border"></span>
+      </div>
+
+      <div class="search-box">
+        <input class="input" placeholder="Search by location" required="" type="text">
+        <span class="input-border"></span>
+      </div>
+    </div>
+
+    <div class="cards-container">
+      <div class="category-card" onclick="window.location.href = '/concert'">
+        <img src="images/concerts.png" alt="concert Icon">
+        <p>Concert</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/exhibition'">
+        <img src="images/exhibition.png" alt="exhibition Icon">
+        <p>Exhibitions</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/tedx'">
+        <img src="images/tedx.jpg" alt="TEDx Icon">
+        <p>TEDx</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/health-camp'">
+        <img src="images/health-camp.jpg" alt="Health-camp icon">
+        <p>Health Camps</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/health-camp'">
+        <img src="images/health-camp.jpg" alt="Health-camp icon">
+        <p>Health Camps</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/health-camp'">
+        <img src="images/exhibition.png" alt="Health-camp icon">
+        <p>Health Camps</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/health-camp'">
+        <img src="images/tedx.jpg" alt="Health-camp icon">
+        <p>Health Camps</p>
+      </div>
+      <div class="category-card" onclick="window.location.href = '/health-camp'">
+        <img src="images/tedx.jpg" alt="Health-camp icon">
+        <p>Health Camps</p>
+      </div>
+    </div>
+
+    <div style="height: 20px;"></div> -->
+
+    <div class="heading-content">
+      <h2>Browse All Events</h2>
+      <p>Here's a list of all events for you to choose from!</p>
+    </div>
+      <div class="search-container">
+      <form method="GET" action="/">
+        <div class="search-box">
+          <input
+            class="input"
+            name="title"
+            placeholder="Search by event title"
+            value="<%= titleQuery || '' %>"
+            type="text"
+          />
+          <span class="input-border"></span>
+        </div>
+    
+        <div class="search-box">
+          <input
+            class="input"
+            name="venue"
+            placeholder="Search by venue"
+            value="<%= venueQuery || '' %>"
+            type="text"
+          />
+          <span class="input-border"></span>
+        </div>
+        
+        <div class="search-box">
+          <select class="input" name="category">
+            <option value="">All Categories</option>
+            <option value="Concerts" <%= categoryQuery === 'Concerts' ? 'selected' : '' %>>Concerts</option>
+            <option value="Exhibitions" <%= categoryQuery === 'Exhibitions' ? 'selected' : '' %>>Exhibitions</option>
+            <option value="TEDx" <%= categoryQuery === 'TEDx' ? 'selected' : '' %>>TEDx</option>
+            <option value="Health Camps" <%= categoryQuery === 'Health Camps' ? 'selected' : '' %>>Health Camps</option>
+          </select>
+          <span class="input-border"></span>        </div>
+      </form>
+    </div>
+    
+    <div class="cards-container" id="event-list">
+  <!-- Events loaded dynamically here -->
+    </div>
+
+      <div class="pagination">
+      <ul class="pagination-list">
+        <!-- <% if (typeof currentPage !== 'undefined' && typeof totalPages !== 'undefined') { %>
+          <% if (hasPrevPage) { %>
+            <li><a href="/?page=<%= prevPage %><%= titleQuery ? '&title=' + titleQuery : '' %><%= venueQuery ? '&venue=' + venueQuery : '' %><%= categoryQuery ? '&category=' + categoryQuery : '' %>">«</a></li>
+          <% } else { %>
+            <li class="disabled"><span>«</span></li>
+          <% } %>
+          
+          <% for (let i = 1; i <= totalPages; i++) { %>
+            <li class="<%= i === currentPage ? 'active' : '' %>">
+              <a href="/?page=<%= i %><%= titleQuery ? '&title=' + titleQuery : '' %><%= venueQuery ? '&venue=' + venueQuery : '' %><%= categoryQuery ? '&category=' + categoryQuery : '' %>"><%= i %></a>
+            </li>
+          <% } %>
+          
+          <% if (hasNextPage) { %>
+            <li><a href="/?page=<%= nextPage %><%= titleQuery ? '&title=' + titleQuery : '' %><%= venueQuery ? '&venue=' + venueQuery : '' %><%= categoryQuery ? '&category=' + categoryQuery : '' %>">»</a></li>
+          <% } else { %>
+            <li class="disabled"><span>»</span></li>
+          <% } %>
+        <% } %> -->
+        <!-- Pagination buttons will be generated by JS -->
+      </ul>
+    </div>
+      <%- include('partials/footer') %>
+</body>
+
+</html>

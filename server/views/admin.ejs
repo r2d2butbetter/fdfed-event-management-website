@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Include navbar -->
+    <%- include('partials/navbar') %>
+
+        <div class="dashboard-container">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+
+            <!-- Dashboard content -->
+            <div class="dashboard-content">
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <div class="user-info">
+                        <div class="profile-image">
+                            <img src="/images/guest.png" alt="Admin Profile">
+                        </div>
+                        <h3>Admin Panel</h3>
+                        <p>System Administrator</p>
+                    </div>
+
+                    <nav class="sidebar-nav">
+                        <ul>
+                            <li class="active" data-section="dashboard">
+                                <i class="fas fa-chart-line"></i> Dashboard
+                            </li>
+                            <li data-section="users">
+                                <i class="fas fa-users"></i> Users
+                            </li>
+                            <li data-section="events">
+                                <i class="fas fa-calendar-alt"></i> Events
+                            </li>
+                            <li data-section="organizers">
+                                <i class="fas fa-user-tie"></i> Organizers
+                            </li>
+                            <li>
+                                <i class="fas fa-sign-out-alt"></i> <a href="/logout">Logout</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div> <!-- Main Content Area -->
+                <div class="main-content"> <!-- Dashboard Overview Section -->
+                    <section id="dashboard" class="dashboard-section active">
+                        <div class="section-header">
+                            <h2>Dashboard Overview</h2>
+                        </div>
+                        <div class="stats-container">
+                            <div class="stat-card">
+                                <h3>Total Users</h3>
+                                <div class="stat-value">
+                                    <%= typeof userCount !=='undefined' ? userCount : 0 %>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <h3>Total Events</h3>
+                                <div class="stat-value">
+                                    <%= typeof eventCount !=='undefined' ? eventCount : 0 %>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <h3>Verified Organizers</h3>
+                                <div class="stat-value">
+                                    <%= typeof verifiedOrganizerCount !=='undefined' ? verifiedOrganizerCount : 0 %>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <h3>Total Organizers</h3>
+                                <div class="stat-value">
+                                    <%= typeof organizerCount !=='undefined' ? organizerCount : 0 %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Visualization Charts -->
+                        <div class="table-container">
+                            <h3>Monthly Event Statistics</h3>
+                            <div class="chart-container">
+                                <canvas id="monthlyEventsChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <h3>Organizer Verification Status</h3>
+                            <div class="chart-container">
+                                <canvas id="organizerVerificationChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="stats-container">
+                            <div class="table-container">
+                                <h3>Event Categories</h3>
+                                <div class="chart-container">
+                                    <canvas id="eventCategoriesChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="table-container">
+                                <h3>Revenue Analysis</h3>
+                                <div class="chart-container">
+                                    <canvas id="revenueChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="table-container">
+                            <div class="section-header">
+                                <h2>Recent Events</h2>
+                            </div>
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Event Name</th>
+                                        <th>Organizer</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (typeof recentEvents !=='undefined' && recentEvents.length> 0) { %>
+                                        <% recentEvents.forEach(event=> { %> <tr>
+                                                <td>
+                                                    <%= event.title %>
+                                                </td>
+                                                <td>
+                                                    <%= event.organizerId ? event.organizerId.organizationName
+                                                        : 'Unknown' %>
+                                                </td>
+                                                <td>
+                                                    <%= new Date(event.startDateTime).toLocaleDateString() %>
+                                                </td>
+                                                <td>
+                                                    <span
+                                                        class="status-badge <%= event.status === 'start_selling' ? 'status-verified' : 'status-pending' %>">
+                                                        <%= event.status==='start_selling' ? 'Active' : 'Pending' %>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                                                <% } else { %>
+                                                    <tr>
+                                                        <td colspan="4" style="text-align: center;">No events found</td>
+                                                    </tr>
+                                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Users Section -->
+                    <section id="users" class="dashboard-section">
+                        <div class="section-header">
+                            <h2>All Users</h2>
+                            <div class="search-box">
+                                <input type="text" id="user-search" placeholder="Search users...">
+                                <button type="button" class="btn-primary">Search</button>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>User ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>001</td>
+                                        <td>John Doe</td>
+                                        <td>john@example.com</td>
+                                        <td>User</td>
+                                        <td>
+                                            <button class="btn btn-secondary">Edit</button>
+                                            <button class="btn btn-danger">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>002</td>
+                                        <td>Jane Smith</td>
+                                        <td>jane@example.com</td>
+                                        <td>Organizer</td>
+                                        <td>
+                                            <button class="btn btn-secondary">Edit</button>
+                                            <button class="btn btn-danger">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>003</td>
+                                        <td>Alex Johnson</td>
+                                        <td>alex@example.com</td>
+                                        <td>User</td>
+                                        <td>
+                                            <button class="btn btn-secondary">Edit</button>
+                                            <button class="btn btn-danger">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>004</td>
+                                        <td>Sarah Williams</td>
+                                        <td>sarah@example.com</td>
+                                        <td>Organizer</td>
+                                        <td>
+                                            <button class="btn btn-secondary">Edit</button>
+                                            <button class="btn btn-danger">Delete</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Events Section -->
+                    <section id="events" class="dashboard-section">
+                        <div class="section-header">
+                            <h2>All Events</h2>
+                            <div class="search-box">
+                                <input type="text" id="event-search" placeholder="Search events...">
+                                <button type="button" class="btn-primary">Search</button>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Event ID</th>
+                                        <th>Event Name</th>
+                                        <th>Organizer</th>
+                                        <th>Date</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>E001</td>
+                                        <td>Tech Conference 2025</td>
+                                        <td>TechCorp Inc.</td>
+                                        <td>May 15, 2025</td>
+                                        <td>San Francisco</td>
+                                        <td><span class="status-badge status-verified">Active</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary">View</button>
+                                            <button class="btn btn-danger">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>E002</td>
+                                        <td>Music Festival</td>
+                                        <td>SoundWave Productions</td>
+                                        <td>June 5, 2025</td>
+                                        <td>Los Angeles</td>
+                                        <td><span class="status-badge status-verified">Active</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary">View</button>
+                                            <button class="btn btn-danger">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>E003</td>
+                                        <td>Art Exhibition</td>
+                                        <td>Creative Minds</td>
+                                        <td>May 30, 2025</td>
+                                        <td>New York</td>
+                                        <td><span class="status-badge status-pending">Pending</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary">View</button>
+                                            <button class="btn btn-danger">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>E004</td>
+                                        <td>Business Workshop</td>
+                                        <td>Business Elevate</td>
+                                        <td>May 22, 2025</td>
+                                        <td>Chicago</td>
+                                        <td><span class="status-badge status-verified">Active</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary">View</button>
+                                            <button class="btn btn-danger">Delete</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Organizers Section -->
+                    <section id="organizers" class="dashboard-section">
+                        <div class="section-header">
+                            <h2>Organizers Management</h2>
+                            <div class="search-box">
+                                <input type="text" id="organizer-search" placeholder="Search organizers...">
+                                <button type="button" class="btn-primary">Search</button>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Organization Name</th>
+                                        <th>Contact Person</th>
+                                        <th>Contact Number</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>ORG001</td>
+                                        <td>TechCorp Inc.</td>
+                                        <td>Mark Johnson</td>
+                                        <td>+1 (555) 123-4567</td>
+                                        <td><span class="status-badge status-verified">Verified</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary view-organizer"
+                                                data-id="ORG001">View</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>ORG002</td>
+                                        <td>SoundWave Productions</td>
+                                        <td>Lisa Chen</td>
+                                        <td>+1 (555) 987-6543</td>
+                                        <td><span class="status-badge status-verified">Verified</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary view-organizer"
+                                                data-id="ORG002">View</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>ORG003</td>
+                                        <td>Creative Minds</td>
+                                        <td>Robert Williams</td>
+                                        <td>+1 (555) 456-7890</td>
+                                        <td><span class="status-badge status-pending">Pending</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary view-organizer"
+                                                data-id="ORG003">View</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>ORG004</td>
+                                        <td>Business Elevate</td>
+                                        <td>Amanda Garcia</td>
+                                        <td>+1 (555) 234-5678</td>
+                                        <td><span class="status-badge status-pending">Pending</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary view-organizer"
+                                                data-id="ORG004">View</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organizer Details Modal -->
+        <div id="organizerModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Organizer Details</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="organizer-details">
+                    <dl>
+                        <dt>Organization Name</dt>
+                        <dd id="org-name">Creative Minds</dd>
+
+                        <dt>Contact Person</dt>
+                        <dd id="org-contact">Robert Williams</dd>
+
+                        <dt>Contact Number</dt>
+                        <dd id="org-phone">+1 (555) 456-7890</dd>
+
+                        <dt>Email</dt>
+                        <dd id="org-email">robert@creativeminds.com</dd>
+
+                        <dt>Description</dt>
+                        <dd id="org-description">Creative Minds is a collective of artists and designers who organize
+                            exhibitions, workshops, and collaborative art projects. We specialize in interactive art
+                            installations and community engagement through creative expression.</dd>
+                    </dl>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-success" id="verifyOrganizer">Verify Organizer</button>
+                    <button class="btn btn-danger" id="rejectOrganizer">Reject</button>
+                    <button class="btn btn-secondary" id="closeModal">Close</button>
+                </div>
+            </div>
+        </div>
+        <script src="/js/validation-utils.js"></script>
+        <script src="/js/admin-validation.js"></script>
+        <script src="/js/navbar.js"></script>
+        <script src="/js/admin.js"></script>
+
+</body>
+
+</html>

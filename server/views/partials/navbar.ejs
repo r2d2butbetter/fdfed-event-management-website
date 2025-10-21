@@ -1,0 +1,45 @@
+<div class="header">
+  <div class="navbar">
+    <div class="logo">
+      <a href="/"><img src="/images/logo.png" alt="Logo"></a>
+    </div>
+
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <div class="dropdown">
+        <a href="#" class="dropbtn">Categories</a>
+        <div class="dropdown-content">
+          <a href="/concert">Concerts</a>
+          <a href="/exhibition">Exhibitions</a>
+          <a href="/tedx">TEDx</a>
+          <a href="/health-camp">Health Camps</a>
+        </div>
+      </div>
+      <a href="/contact">Contact Us</a>
+      <a href="/organizer-login">Host with Us</a>
+    </div>
+
+    <!-- <div class="dark-mode-toggle">
+      TODO: Add toggle icon
+    </div> -->
+
+    <div class="right-side">
+      <% if (isAuth) { %>      <div class="profile-pic">
+        <div class="dropdown">
+          <img src="/images/guest.png" alt="Profile Picture">
+        <div class="dropdown-content">
+          <a href="/user/dashboard">Dashboard</a>
+          <a href="/logout">Logout</a>   
+        </div>
+      </div>
+      </div>
+      <% } else { %>
+      <div class="button-set">
+        <button class="btn btn-signup" onclick="window.location.href = '/sign-up'">Sign Up</button>
+        <button class="btn btn-login" onclick="window.location.href = '/login'">Log in</button>
+      </div>
+      <% } %>
+    </div>
+
+  </div>
+</div>

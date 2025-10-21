@@ -1,0 +1,232 @@
+@import url('https://fonts.googleapis.com/css2?family=Parkinsans:wght@300..800&display=swap');
+
+.header {
+    font-family: 'Parkinsans', sans-serif;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-width: 100%;
+    z-index: 1000;
+    background-color: #0b0b0b;
+}
+
+/* Navbar container styling */
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 30px;
+    background-color: #0b0b0b;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+body {
+    padding-top: 80px;
+}
+
+.logo img {
+    height: 40px;
+    width: auto;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #b7b7b7;
+    font-weight: 500;
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    position: relative;
+    display: inline-block;
+}
+
+.nav-links a:hover {
+    color: #9353D3;
+    background-color: rgba(147, 83, 211, 0.05);
+}
+
+.nav-links a:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: #9353D3;
+    transition: all 0.3s ease;
+}
+
+.nav-links a:hover:after {
+    width: 100%;
+}
+
+/* Dropdown styling */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #fff;
+    min-width: 180px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 8px 0;
+    z-index: 1;
+    transition: all 0.3s ease;
+    transform: translateY(10px);
+}
+
+/* Special positioning for profile picture dropdown to prevent it from going off-screen */
+.profile-pic .dropdown-content {
+    left: auto;
+    right: 0;
+}
+
+.dropdown:hover .dropdown-content {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(5px);
+}
+
+.dropdown-content a {
+    display: block;
+    padding: 10px 20px;
+    color: #333;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.dropdown-content a:hover {
+    background-color: rgba(147, 83, 211, 0.1);
+    color: #9353D3;
+}
+
+.dropdown-content a:after {
+    display: none;
+}
+
+.dropbtn {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.dropbtn:after {
+    content: '▼';
+    font-size: 10px;
+    margin-left: 5px;
+    transition: transform 0.3s ease;
+}
+
+/* Ensure the dropbtn underline matches other nav links */
+.nav-links .dropbtn:after {
+    content: '▼';
+    position: static;
+    width: auto;
+    height: auto;
+    background-color: transparent;
+    margin-left: 5px;
+    font-size: 10px;
+    transition: transform 0.3s ease;
+}
+
+.nav-links .dropdown:hover .dropbtn:after {
+    transform: rotate(180deg);
+    width: auto;
+}
+
+/* Properly reset the underline for the Categories link */
+.nav-links .dropbtn:before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: #9353D3;
+    transition: all 0.3s ease;
+}
+
+.nav-links .dropbtn:hover:before {
+    width: calc(100% - 15px); /* Account for the dropdown arrow */
+}
+
+/* Right side elements */
+.right-side {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Button set container styling to ensure proper button display */
+.button-set {
+    display: flex;
+    align-items: center;
+}
+
+.profile-pic img{
+    display: flex;
+    width: 56px;
+    height: 56px;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    border-radius: 9999px;
+}
+
+.navbar .btn {
+    display: inline-flex;
+    height: 48px;
+    padding: 0px 24px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    position: relative;
+    /* Add positioning context */
+    overflow: visible;
+    /* Ensure text doesn't get cut off */
+    font-size: medium;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.navbar .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.navbar .btn-signup {
+    background-color: #9353D3;
+    margin-right: -40px;
+    padding-right: 20px;
+    padding-left: 20px;
+    z-index: 1;
+}
+
+.navbar .btn-login {
+    background-color: rgb(100, 61, 136);
+    padding-left: 40px;
+    /* Add extra padding on left side to account for overlap */
+    z-index: 0;
+}

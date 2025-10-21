@@ -1,0 +1,268 @@
+:root {
+    --gradient-top-position: 20%;
+    --gradient-left-position: 10%;
+    --gradient-rotation: -15deg;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+}
+
+body {
+    color: white;
+    background-color: black;
+}
+
+.contact-container {
+    padding: 50px 0;
+    position: relative;
+    /* Ensure the parent container is positioned */
+}
+
+.contact-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.contact-header h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.contact-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 150px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.form-section {
+    flex: 1;
+    min-width: 300px;
+    padding: 20px;
+}
+
+.form-section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+    color: white;
+}
+
+.contact-section {
+    flex: 1;
+    min-width: 300px;
+    padding: 20px;
+}
+
+.contact-section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.contact-section p {
+    margin-bottom: 15px;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.contact-section a {
+    color: #fdbb2d;
+    text-decoration: none;
+}
+
+.contact-section a:hover {
+    text-decoration: underline;
+}
+
+.social-links {
+    margin-top: 30px;
+    font-size: 1.2rem;
+}
+
+social-links a {
+    margin-right: 10px;
+    color: white;
+    text-decoration: none;
+}
+
+form input,
+form textarea {
+    width: 100%;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+form input::placeholder,
+form textarea::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+form textarea {
+    height: 100px;
+    resize: none;
+}
+.map-box {
+    background-color: #222222;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(100, 61, 136, 0.5);
+    height: 100%;
+
+    width: 100%;
+    max-height: 450px;
+    max-width: 450px;
+
+    position: absolute;
+    pointer-events: none;
+    top: var(--gradient-top-position);
+    left: var(--gradient-left-position);
+    transform: rotate(var(--gradient-rotation));
+    z-index: -1;
+    opacity: 0.8;
+    animation: morphing 10s ease-in-out infinite;
+}
+
+form input:focus,
+form textarea:focus {
+    outline: none;
+    border-color: #d430ff;
+    background: rgba(255, 255, 255, 0.05);
+
+}
+
+form input:hover,
+form textarea:hover {
+    background: var(--input-hovered-color);
+    border-color: rgba(217, 176, 255, 0.8);
+    background: rgba(255, 255, 255, 0.05);
+
+}
+
+form button {
+    padding: 12px 40px;
+    background: #9353d3;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(191, 123, 255, 0.5);
+}
+
+form button:hover {
+    background: rgba(217, 176, 255, 1);
+    color: rgb(100, 61, 136);
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(191, 123, 255, 0.8);
+}
+
+form button:active {
+    transform: translateY(0);
+}
+
+.address-info {
+    margin-top: 30px;
+}
+
+.address-info p {
+    margin-bottom: 10px;
+    color: #fdbb2d;
+}
+
+.decorative-gradiant-1 {
+    position: absolute;
+    /* Change from fixed to absolute */
+    pointer-events: none;
+    /* Adjusted to none for better interaction */
+    top: 25%;
+    left: 60%;
+    width: 400px;
+    height: 500px;
+    background: radial-gradient(ellipse farthest-corner at top left, rgba(176, 103, 249, 0.5) 5%, #000 70%);
+    filter: blur(80px);
+    z-index: -1;
+}
+
+.decorative-gradiant-2 {
+    background: linear-gradient(135deg, rgb(96, 74, 234) 0%, rgba(176, 103, 249, 0.8) 50%, rgba(131, 58, 180, 0.6) 100%);
+    border-radius: 35% 65% 70% 30% / 45% 30% 70% 55%;
+    filter: blur(59px);
+    height: 100%;
+    width: 100%;
+    max-height: 450px;
+    max-width: 450px;
+
+    position: absolute;
+    pointer-events: none;
+    top: var(--gradient-top-position);
+    left: var(--gradient-left-position);
+    transform: rotate(var(--gradient-rotation));
+    z-index: -1;
+    opacity: 0.8;
+    animation: morphing 5s ease-in-out infinite;
+}
+
+@keyframes morphing {
+    0% {
+        border-radius: 35% 65% 70% 30% / 45% 30% 70% 55%;
+    }
+    25% {
+        border-radius: 55% 45% 30% 70% / 60% 40% 60% 40%;
+    }
+    50% {
+        border-radius: 40% 60% 55% 45% / 35% 65% 35% 65%;
+    }
+    75% {
+        border-radius: 60% 40% 35% 65% / 50% 50% 50% 50%;
+    }
+    100% {
+        border-radius: 35% 65% 70% 30% / 45% 30% 70% 55%;
+    }
+}
+
+.map-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 50px auto;
+    padding: 0 20px;
+}
+
+.map-wrapper {
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.map-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+@media (max-width: 768px) {
+    .contact-content {
+        flex-direction: column;
+    }
+
+    .form-section,
+    .contact-section {
+        width: 100%;
+    }
+}

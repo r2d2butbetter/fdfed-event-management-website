@@ -1,0 +1,40 @@
+{
+  "name": "event-management-website",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kvermaaii/event-management-website.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kvermaaii/event-management-website/issues"
+  },
+  "homepage": "https://github.com/kvermaaii/event-management-website#readme",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "connect-mongo": "^5.1.0",
+    "cookie-parse": "^0.4.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "method-override": "^3.0.0",
+    "mongodb": "^6.16.0",
+    "mongoose": "^8.14.1",
+    "multer": "^1.4.5-lts.2",
+    "path": "^0.12.7",
+    "sqlite3": "^5.1.7",
+    "uuid": "^11.1.0"
+  }
+}

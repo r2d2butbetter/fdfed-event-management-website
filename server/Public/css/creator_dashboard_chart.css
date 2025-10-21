@@ -1,0 +1,129 @@
+/* Chart-specific styles for creator dashboard */
+
+.chart-container {
+  background: rgba(30, 30, 30, 0.5);
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  padding: 20px;
+  margin-bottom: 30px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.chart-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--light-text);
+}
+
+.chart-content {
+  height: 300px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+}
+
+.chart-content canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-content.loading {
+  opacity: 0.7;
+}
+
+.chart-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 20, 0.85);
+  color: var(--light-text);
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  z-index: 5;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  border: 1px solid var(--glass-border);
+}
+
+.chart-loading i {
+  margin-right: 8px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.date-range-selector {
+  background: rgba(40, 40, 40, 0.8);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-block;
+  font-size: 0.9rem;
+  margin-right: auto;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-range-selector:hover {
+  background: rgba(60, 60, 60, 0.8);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.date-range-dropdown {
+  background: rgba(40, 40, 40, 0.95);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 10px;
+  width: 200px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.date-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.date-option:hover, .date-option.active {
+  background: rgba(60, 60, 60, 0.8);
+  color: var(--primary-color);
+}
+
+.analytics-filters {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+/* Fix for chart tooltip */
+#chartjs-tooltip {
+  background: rgba(20, 20, 20, 0.9);
+  border-radius: 5px;
+  border: 1px solid var(--glass-border);
+  padding: 8px 12px;
+  color: var(--light-text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  font-size: 0.9rem;
+}

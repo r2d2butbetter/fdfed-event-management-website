@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creator Dashboard | NIGHTLIFE</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/creator_dashboard.css">
+  <link rel="stylesheet" href="/css/carousel-fix.css">
+  <link rel="stylesheet" href="/css/creator_dashboard_chart.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <%- include('partials/navbar') %>
+
+    <!-- Dashboard starts here, directly after navbar -->
+    <div class="dashboard-container">
+      <!-- Gradient blobs for background design -->
+      <div class="gradient-blob blob-1"></div>
+      <div class="gradient-blob blob-2"></div>
+      <div class="gradient-blob blob-3"></div>
+
+      <!-- Dashboard content -->
+      <div class="dashboard-content">
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <div class="user-info">
+            <div class="profile-image">
+              <img src="/images/guest.png" alt="Profile Picture">
+            </div>
+            <h3>
+              <%= user ? user.name : 'Event Creator' %>
+            </h3>
+          </div>
+
+          <nav class="sidebar-nav">
+            <ul>
+              <li class="active" data-section="events">
+                <i class="fas fa-calendar-alt"></i> My Events
+              </li>
+              <li data-section="analytics">
+                <i class="fas fa-chart-pie"></i> Analytics
+              </li>
+              <li data-section="settings">
+                <i class="fas fa-cog"></i> Settings
+              </li>
+              <li>
+                <i class="fas fa-sign-out-alt"></i> <a href="/logout">Logout</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+        <div class="main-content">
+          <section id="events" class="dashboard-section active">
+            <h2>My Events</h2>
+
+            <div class="stats-row">
+              <div class="stat-card">
+                <h3>Total Events</h3>
+                <div class="value">
+                  <%= totalEvents %>
+                </div>
+                <div class="sub-text">
+                  <%= totalactiveEvents %> active events
+                </div>
+              </div>
+              <div class="stat-card">
+                <h3>Revenue</h3>
+                <div class="value">₹<%= totalRevenue.toLocaleString() %>
+                </div>
+
+              </div>
+
+              <div class="stat-card">
+                <h3>Attendees</h3>
+                <div class="value">
+                  <%= totalAttendees %>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- Upcoming Events Carousel -->
+            <h3>Upcoming Events</h3>
+            <div class="event-carousel">
+              <div class="carousel-container">
+                <% if (upcomingEvents && upcomingEvents.length> 0) { %>
+                  <% upcomingEvents.forEach(event=> { %>
+                    <div class="carousel-item">
+                      <div class="event-card">
+                        <h4>
+                          <%= event.title %>
+                        </h4>
+                        <p><i class="fas fa-calendar"></i>
+                          <%= new Date(event.startDateTime).toLocaleDateString() %>
+                        </p>
+                        <p><i class="fas fa-map-marker-alt"></i>
+                          <%= event.venue %>
+                        </p>
+                        <p><i class="fas fa-users"></i>
+                          <%= event.registrations ? event.registrations.length : 0 %> registered
+                        </p>
+                        <p><i class="fas fa-ticket-alt"></i>
+                          <%= event.capacity - (event.registrations ? event.registrations.length : 0) %> remaining
+                        </p>
+                      </div>
+                    </div>
+                    <% }); %>
+                      <% } else { %>
+                        <div class="carousel-item">
+                          <div class="event-card">
+                            <h4>No Active Events</h4>
+                            <p>You don't have any active events at the moment.</p>
+                            <p>Create a new event to get started!</p>
+                          </div>
+                        </div>
+                        <% } %>
+              </div>
+              <button class="carousel-control prev">&#10094;</button>
+              <button class="carousel-control next">&#10095;</button>
+            </div>
+
+            <div class="event-management">
+              <div class="event-management-header">
+                <h3>Event Management</h3>
+                <a href="/events/create-event">
+                  <button class="create-event-btn">
+                    <i class="fas fa-plus"></i> Create Event
+                  </button>
+                </a>
+              </div>
+
+              <div class="event-filters">
+                <button class="filter-btn active" data-filter="all">All Events</button>
+                <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+                <button class="filter-btn" data-filter="ongoing">Ongoing</button>
+                <button class="filter-btn" data-filter="completed">Completed</button>
+                <button class="filter-btn" data-filter="draft">Drafts</button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="event-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Date</th>
+                      <th>Venue</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% events && events.forEach(event=> { %>
+                      <tr>
+                        <td>
+                          <%= event.title %>
+                        </td>
+                        <td>
+                          <%= new Date(event.startDateTime).toLocaleDateString() %>
+                        </td>
+                        <td>
+                          <%= event.venue %>
+                        </td>
+                        <td>
+                          <span
+                            class="status-badge <%= event.status === 'start_selling' ? 'status-upcoming' : 'status-past' %>">
+                            <%= event.status==='start_selling' ? 'Active' : 'Inactive' %>
+                          </span>
+                        </td>
+                        <td>
+                          <div class="action-buttons">
+                            <button type="button" class="edit-btn" data-id="<%= event._id %>"><i
+                                class="fas fa-edit"></i> Edit</button>
+                            <button type="button" class="delete-btn" data-id="<%= event._id %>"><i
+                                class="fas fa-trash"></i> Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                      <% }); %> <!-- Display message if events array is empty -->
+                        <% if (!events || events.length===0) { %>
+                          <tr>
+                            <td colspan="5" style="text-align: center;">
+                              You haven't created any events yet. Use the "Create Event" button above to get started.
+                            </td>
+                          </tr>
+                          <% } %>
+                  </tbody>
+                </table>
+              </div>
+          </section>
+
+          <!-- Analytics Section -->
+          <section id="analytics" class="dashboard-section">
+            <h2>Analytics</h2>
+            <div class="analytics-filters">
+              <!-- <div class="date-range-selector" id="dateRangeSelector">
+              <i class="fas fa-calendar"></i> Last 30 days <i class="fas fa-chevron-down"></i>
+            </div> -->
+              <div class="date-range-dropdown" id="dateRangeDropdown"
+                style="display: none; position: absolute; z-index: 100; background: rgba(40, 40, 40, 0.95); border: 1px solid var(--glass-border); border-radius: 8px; padding: 10px; min-width: 200px; margin-top: 40px;">
+                <div class="date-option" data-range="7">Last 7 days</div>
+                <div class="date-option" data-range="30">Last 30 days</div>
+                <div class="date-option" data-range="90">Last 3 months</div>
+                <div class="date-option" data-range="180">Last 6 months</div>
+                <div class="date-option" data-range="365">Last 12 months</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="chart-header">
+                <div class="chart-title">Ticket Sales</div>
+              </div>
+              <div class="chart-content">
+                <canvas id="ticketSalesChart"></canvas>
+              </div>
+            </div>
+
+            <div class="stats-row">
+              <div class="stat-card">
+                <h3>Top Selling Event</h3>
+                <% if (typeof topSellingEvent !=='undefined' && topSellingEvent) { %>
+                  <div class="value" style="font-size: 1.5em;">
+                    <%= topSellingEvent.title %>
+                  </div>
+                  <div class="sub-text">
+                    <%= topSellingEvent.ticketsSold %> tickets sold
+                  </div>
+                  <% } else { %>
+                    <div class="value">N/A</div>
+                    <div class="sub-text">No sales data</div>
+                    <% } %>
+              </div>
+
+              <div class="stat-card">
+                <h3>Tickets Sold</h3>
+                <div class="value">
+                  <%= typeof totalTicketsSold !=='undefined' ? totalTicketsSold : totalAttendees %>
+                </div>
+              </div>
+              <div class="stat-card">
+                <h3>Avg. Ticket Price</h3>
+                <div class="value">₹<%= typeof avgTicketPrice !=='undefined' ? avgTicketPrice : (events.reduce((sum,
+                    event)=> sum + (event.ticketPrice || 0), 0) / Math.max(events.length, 1)).toFixed(0) %></div>
+                <!-- <div class="trend trend-down">↓ 5% vs last month</div> -->
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="chart-header">
+                <div class="chart-title">Attendance by Event Type</div>
+              </div>
+              <div class="chart-content">
+                <canvas id="eventTypeChart"></canvas>
+              </div>
+            </div>
+          </section>
+
+          <!-- Settings Section -->
+          <section id="settings" class="dashboard-section">
+            <h2>Account Settings</h2>
+
+            <div class="settings-form">
+              <h3>Profile Information</h3>
+              <form id="profile-form" class="profile-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" value="<%= user ? user.name : '' %>">
+                  </div>
+                  <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" value="<%= user ? user.email : '' %>" disabled>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="organization">Organization</label>
+                    <input type="text" id="organization" name="organization"
+                      value="<%= user && user.organization ? user.organization : '' %>">
+                  </div>
+                  <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="text" id="phone" name="phone" value="<%= user && user.phone ? user.phone : '' %>">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="website">Website</label>
+                    <input type="url" id="website" name="website"
+                      value="<%= user && user.website ? user.website : '' %>">
+                  </div>
+                  <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" value="<%= user ? user.username : '' %>" disabled>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="settings-form">
+              <h3>Change Password</h3>
+              <form id="password-form" class="password-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" name="currentPassword">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" name="newPassword">
+                  </div>
+                  <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword">
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+              </form>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+    <%- include('partials/footer') %>
+
+      <script src="/js/validation-utils.js"></script>
+      <script src="/js/creator-validation.js"></script>
+      <script src="/js/creator_dashboard.js"></script>
+      <script src="/js/carousel-fix.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us</title>
+
+    <link rel="stylesheet" href="/css/footer.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/contact.css">
+
+    <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+</head>
+
+<body>
+    <%- include('partials/navbar') %>
+
+        <div class="decorative-gradiant-2"></div>
+        <div class="contact-container">
+            <div class="contact-content">
+                <div class="form-section">
+                    <h2>Want To Reserve?</h2>
+                    <form action="/submit" method="POST">
+                        <input type="text" id="name" name="name" placeholder="Your name*">
+                        <input type="email" id="email" name="email" placeholder="Email*">
+                        <input type="text" id="phone" name="phone" placeholder="Phone number*">
+                        <input type="text" id="subject" name="subject" placeholder="Subject*">
+                        <textarea id="message" name="message" placeholder="Your message"></textarea>
+                        <button type="submit">Submit</button>
+                    </form>
+                </div>
+
+                <div class="decorative-gradiant-1"></div>
+                <div class="contact-section">
+                    <h2>Contact Us</h2>
+                    <p>Fill out the form to attend the most anticipated events in the city and get your tickets for the
+                        best night party today for you and your friends.</p>
+
+                    <div class="address-info">
+                        <p>5655 Central Express way Satyavedu Mandal, Chittoor District, Sri, Andhra Pradesh 517541</p>
+                        <p><a href="tel:+918310236848">+91 8310236848</a></p>
+                        <p><a href="mailto:shriansh.j23@iiits.in">shriansh.j23@iiits.in</a></p>
+                    </div>
+                    <div class="social-links">
+                        <a href="#">FB</a> -
+                        <a href="#">INST</a> -
+                        <a href="#">TW</a>
+                    </div>
+                    <br>
+                    <div class="logo-section">
+                        <img src="/images/logo.png" alt="Company Logo" class="contact-logo">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="map-container">
+            <div id="map" style="width: 100%; height: 500px"></div>
+        </div>
+        <%- include('partials/footer') %>
+</body>
+
+<script src="/js/validation-utils.js"></script>
+<script src="/js/contact-validation.js"></script>
+
+<script>
+    const map = new maplibregl.Map({
+        style: 'https://tiles.openfreemap.org/styles/liberty',
+        center: [80.027276, 13.556538],
+        zoom: 15,
+        container: 'map',
+    })
+</script>
+
+</html>

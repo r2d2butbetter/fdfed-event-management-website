@@ -1,0 +1,38 @@
+<div class="form-container">
+  <form method="POST" action="/host_with_us" class="full-width-form">
+
+    <h1 style="text-align: center;">Apply to be a Creator</h1>
+
+    <div class="form-page">
+      <div class="form-group">
+        <label for="mobile">Mobile Number</label>
+        <input type="text" class="form-control" id="mobile" name="mobile" placeholder="Enter mobile number" />
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea class="form-control" id="description" name="description"
+          placeholder="Tell us about yourself and your events"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="orgName">Organization Name</label>
+        <input type="text" class="form-control" id="orgName" name="orgName"
+          placeholder="Enter your organization name" />
+      </div>
+      <div class="button-group">
+        <button type="submit" class="submit-btn form-submit-btn">Submit</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script src="/js/validation-utils.js"></script>
+<script src="/js/host-validation.js"></script>
+
+<style>
+  .button-group {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    margin-top: 15px;
+  }
+</style>
