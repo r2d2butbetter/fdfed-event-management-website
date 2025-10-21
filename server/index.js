@@ -95,16 +95,18 @@ app.use((req, res, next) => {
 import eventController from './controllers/eventController.js';
 // app.get('/', optionalAuth, eventController.getAllEvents);
 
-// Single event page route
-app.get('/event/:id', optionalAuth, eventController.getEventById);
-
-// app.get('/', (req, res) => {
-//   res.render("home.ejs");
-// })
-
-// Route for Contact Us page
+// Route for Contact Us page - Simple JSON response
 app.get('/contact', optionalAuth, (req, res) => {
-  res.render("contact.ejs");
+  res.json({
+    success: true,
+    data: {
+      contactInfo: {
+        email: 'contact@eventmanagement.com',
+        phone: '+1-234-567-8900',
+        address: '123 Event Street, City, Country'
+      }
+    }
+  });
 })
 
 app.use('/', authRouter);
@@ -148,35 +150,10 @@ const categories = {
   ]
 };
 
-// app.get('/:category', (req, res) => {
-//   const category = req.params.category;
-//   const cards = categories[category];
-//   if (cards) {
-//     res.render('category', { category, cards });
-//   } else {
-//     res.status(404).render('404');
-//   }
-// });
-
-app.get('/:category', optionalAuth, async (req, res) => {
-  try {
-    const category = req.params.category;
-    const events = await Event.find({ category: new RegExp(category, 'i') }).lean();
-    console.log('Events fetched:', events);
-
-    if (!events || events.length === 0) {
-      return res.render('category', { category, cards: [] });
-    }
-
-    res.render('category', { category, cards: events });
-  } catch (error) {
-    console.error('Error fetching events:', error);
-    res.status(500).render('500', { message: 'An error occurred while fetching events.' });
-  }
-});
+// Catch-all category route REMOVED - use /events/category/:category instead
+// This prevents conflicts with other routes and keeps event routes organized
 
 app.get('/', optionalAuth, eventController.getHomePage);  // Render home page
-app.get('/api/events', optionalAuth, eventController.getEventsApi);  // API for events JSON
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
