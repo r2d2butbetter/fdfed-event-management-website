@@ -79,3 +79,4 @@ dist-ssr
 *.sw?
 
 TASKLIST.md
+*.md
