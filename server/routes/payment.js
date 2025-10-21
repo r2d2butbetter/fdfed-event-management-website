@@ -6,41 +6,76 @@ import { isAuth, optionalAuth } from '../middlewares/auth.js';
 const router = express.Router();
 
 // Route for payment page with event ID
-router.get('/:id',optionalAuth ,async (req, res) => {
-    try {
-        const eventId = req.params.id;
-        const event = await Event.findById(eventId);
-        
-        if (!event) {
-            return res.status(404).render('404');
-        }
-        
-        console.log('Path of image', event.image);
+router.get('/:id', optionalAuth, async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const event = await Event.findById(eventId);
 
-        const userId = req.session.userId; // Assuming userId is stored in session
-        if (!userId) {
-            return res.status(401).send('Unauthorized: Please log in.');
-        }
-
-        const user = await User.findById(userId); // Fetch user details using userId
-        if (!user) {
-            return res.status(404).send('User not found.');
-        }
-
-        const totalRegistrations = await Registration.countDocuments({ eventId });
-        const ticketsLeft = event.capacity - totalRegistrations;
-
-        console.log('User retrieved:', user); 
-        res.render('payments.ejs', {
-            event,
-            user,
-            ticketsLeft,
-            title: 'Payment for ' + event.title
-        });
-    } catch (error) {
-        console.error('Error fetching event for payment:', error);
-        res.status(500).send('An error occurred while processing your payment request.');
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found'
+      });
     }
+
+    console.log('Path of image', event.image);
+
+    const userId = req.session.userId; // Assuming userId is stored in session
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized: Please log in.'
+      });
+    }
+
+    const user = await User.findById(userId); // Fetch user details using userId
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
+    }
+
+    const totalRegistrations = await Registration.countDocuments({ eventId });
+    const ticketsLeft = event.capacity - totalRegistrations;
+
+    console.log('User retrieved:', user);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payment data retrieved successfully',
+      data: {
+        event: {
+          _id: event._id,
+          title: event.title,
+          description: event.description,
+          startDateTime: event.startDateTime,
+          endDateTime: event.endDateTime,
+          venue: event.venue,
+          capacity: event.capacity,
+          ticketPrice: event.ticketPrice,
+          image: event.image,
+          category: event.category,
+          status: event.status
+        },
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone
+        },
+        ticketsLeft,
+        totalRegistrations
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching event for payment:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while processing your payment request.',
+      error: error.message
+    });
+  }
 });
 
 // Process payment submission
@@ -83,7 +118,7 @@ router.get('/:id',optionalAuth ,async (req, res) => {
 //         res.status(500).send('An error occurred while processing your payment and registration.');
 //     }
 // });
-router.get('/api/events/:id/tickets-left', async (req, res) => {
+router.get('/events/:id/tickets-left', async (req, res) => {
   try {
     const eventId = req.params.id;
     const event = await Event.findById(eventId);
@@ -99,7 +134,7 @@ router.get('/api/events/:id/tickets-left', async (req, res) => {
 
 // New: Process payment asynchronously
 
-router.post('/api/payments/process-payment-ajax', optionalAuth, async (req, res) => {
+router.post('/process-payment', optionalAuth, async (req, res) => {
   try {
     const { eventId, tickets } = req.body;
     const userId = req.user?._id;
