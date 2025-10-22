@@ -153,15 +153,25 @@ class eventController {
     // Render home page without events (for initial load)
     async getHomePage(req, res) {
         try {
-            res.render('home', {
-                titleQuery: req.query.title || '',
-                venueQuery: req.query.venue || '',
-                categoryQuery: req.query.category || ''
-                // No events passed here, frontend JS will fetch asynchronously
+            res.json({
+                success: true,
+                message: 'Home page data retrieved successfully',
+                data: {
+                    searchParams: {
+                        titleQuery: req.query.title || '',
+                        venueQuery: req.query.venue || '',
+                        categoryQuery: req.query.category || ''
+                    },
+                    note: 'Use /events endpoint to fetch actual events data'
+                }
             });
         } catch (err) {
             console.error(err);
-            res.status(500).send('Server error');
+            res.status(500).json({
+                success: false,
+                message: 'Server error while loading home page',
+                error: err.message
+            });
         }
     }
 

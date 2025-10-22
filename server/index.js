@@ -11,7 +11,6 @@ import eventRouter from './routes/event.js';
 import adminRouter from './routes/admin.js'
 import userRouter from './routes/user.js';
 import organizerRouter from './routes/organizer.js';
-import handle404 from './controllers/errorController.js';
 import connectDB from './connection.js';
 
 import session from "express-session";
@@ -38,12 +37,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(methodOverride('_method')); // Enable method override using _method query param
 
-
-
-app.set('view engine', 'ejs');  // Set up EJS for templating
-app.set('views', './views');
+// Serve static files (mainly for uploaded images)
 app.use(express.static("Public"));
-//for multer
+//for multer - serve uploaded files
 app.use(express.static('uploads'));
 
 
@@ -81,19 +77,8 @@ app.use(
 //   }
 // })();
 
-// Global middleware ensures isAuth is always available
-app.use((req, res, next) => {
-  res.locals.isAuth = false; // Default value
-  res.locals.user = null;   // Default value
-  next();
-});
-// app.get('/', optionalAuth, (req, res) => {
-//   res.render("home.ejs");
-// })
 
-// Route to render home page with events - Using eventController
-import eventController from './controllers/eventController.js';
-// app.get('/', optionalAuth, eventController.getAllEvents);
+
 
 // Route for Contact Us page - Simple JSON response
 app.get('/contact', optionalAuth, (req, res) => {
@@ -116,44 +101,25 @@ app.use('/admin', adminRouter);
 app.use('/user', userRouter);
 app.use('/organizer', organizerRouter);
 
-const categories = {
-  concert: [
-    { title: 'Concert 1', image: '/images/blank.png' },
-    { title: 'Concert 2', image: '/images/blank.png' },
-    { title: 'Concert 3', image: '/images/blank.png' },
-    { title: 'Concert 4', image: '/images/blank.png' }
-  ],
-  exhibition: [
-    { title: 'Exhibition 1', image: '/images/blank.png' },
-    { title: 'Exhibition 2', image: '/images/blank.png' },
-    { title: 'Exhibition 3', image: '/images/blank.png' },
-    { title: 'Exhibition 4', image: '/images/blank.png' }
-  ],
-  tedx: [
-    { title: 'TEDx 1', image: '/images/blank.png' },
-    { title: 'TEDx 2', image: '/images/blank.png' },
-    { title: 'TEDx 3', image: '/images/blank.png' },
-    { title: 'TEDx 4', image: '/images/blank.png' },
-    { title: 'TEDx 1', image: '/images/blank.png' },
-    { title: 'TEDx 2', image: '/images/blank.png' },
-    { title: 'TEDx 3', image: '/images/blank.png' },
-    { title: 'TEDx 4', image: '/images/blank.png' },
-    { title: 'TEDx 1', image: '/images/blank.png' },
-    { title: 'TEDx 2', image: '/images/blank.png' },
-    { title: 'TEDx 3', image: '/images/blank.png' },
-    { title: 'TEDx 4', image: '/images/blank.png' }
-  ],
-  'health-camp': [
-    { title: 'Health Camp 1', image: '/images/blank.png' },
-    { title: 'Health Camp 2', image: '/images/blank.png' },
-    { title: 'Health Camp 3', image: '/images/blank.png' },
-  ]
-};
-
-// Catch-all category route REMOVED - use /events/category/:category instead
-// This prevents conflicts with other routes and keeps event routes organized
-
-app.get('/', optionalAuth, eventController.getHomePage);  // Render home page
+// Home route - return JSON with basic API info since React handles the homepage
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Event Management API',
+    data: {
+      version: '1.0.0',
+      description: 'Backend API for Event Management System',
+      endpoints: {
+        events: '/events',
+        auth: '/login, /sign-up, /logout',
+        user: '/user/dashboard',
+        organizer: '/organizer/dashboard',
+        admin: '/admin/dashboard',
+        payments: '/payments'
+      }
+    }
+  });
+});
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
