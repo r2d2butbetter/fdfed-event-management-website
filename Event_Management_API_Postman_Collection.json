@@ -1,0 +1,1160 @@
+{
+    "info": {
+        "name": "Event Management API - Complete Collection",
+        "description": "Complete Postman collection for the Event Management System API after migration from EJS to React-compatible JSON APIs",
+        "version": "1.0.0",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "noauth"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:3000",
+            "type": "string"
+        },
+        {
+            "key": "reactUrl",
+            "value": "http://localhost:5173",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Authentication Endpoints",
+            "description": "User authentication, registration, and organizer signup",
+            "item": [
+                {
+                    "name": "Register User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password1\": \"securepassword123\",\n  \"password2\": \"securepassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/sign-up",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "sign-up"
+                            ]
+                        },
+                        "description": "Register a new user account"
+                    }
+                },
+                {
+                    "name": "Login User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"securepassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        },
+                        "description": "Login with email and password"
+                    }
+                },
+                {
+                    "name": "Check Organizer Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/organizer-login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "organizer-login"
+                            ]
+                        },
+                        "description": "Check if current user is an organizer"
+                    }
+                },
+                {
+                    "name": "Register as Organizer",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"orgName\": \"Tech Events Inc\",\n  \"description\": \"We organize tech conferences and workshops\",\n  \"mobile\": \"+1-555-123-4567\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/host_with_us",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "host_with_us"
+                            ]
+                        },
+                        "description": "Register current user as an event organizer"
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "logout"
+                            ]
+                        },
+                        "description": "Logout current user and destroy session"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Event Endpoints",
+            "description": "Event browsing, search, and display",
+            "item": [
+                {
+                    "name": "Get All Events (Home)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/events?page=1&limit=12&title=&venue=&category=",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "events"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "12"
+                                },
+                                {
+                                    "key": "title",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "venue",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "category",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "description": "Get all events with optional filtering and pagination"
+                    }
+                },
+                {
+                    "name": "Get Events by Category",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/events/category/Technology?page=1&limit=12",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "events",
+                                "category",
+                                "Technology"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "12"
+                                }
+                            ]
+                        },
+                        "description": "Get events filtered by specific category"
+                    }
+                },
+                {
+                    "name": "Get Upcoming Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/events/api/upcoming",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "events",
+                                "api",
+                                "upcoming"
+                            ]
+                        },
+                        "description": "Get upcoming events only"
+                    }
+                },
+                {
+                    "name": "Get Single Event",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/events/64a1b2c3d4e5f6789012345",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "events",
+                                "64a1b2c3d4e5f6789012345"
+                            ]
+                        },
+                        "description": "Get detailed information about a specific event"
+                    }
+                },
+                {
+                    "name": "Get Contact Information",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/contact",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "contact"
+                            ]
+                        },
+                        "description": "Get contact information"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "User Dashboard Endpoints",
+            "description": "User profile management and dashboard data",
+            "item": [
+                {
+                    "name": "Get User Dashboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/dashboard",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "dashboard"
+                            ]
+                        },
+                        "description": "Get user dashboard with bookings and statistics"
+                    }
+                },
+                {
+                    "name": "Get User Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/events",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "events"
+                            ]
+                        },
+                        "description": "Get events the user is registered for"
+                    }
+                },
+                {
+                    "name": "Get User Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "profile"
+                            ]
+                        },
+                        "description": "Get user profile information"
+                    }
+                },
+                {
+                    "name": "Update User Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"John Smith Updated\",\n  \"phone\": \"+91-9876543999\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "profile"
+                            ]
+                        },
+                        "description": "Update user profile information"
+                    }
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"currentPassword\": \"oldpassword123\",\n  \"newPassword\": \"newpassword456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/change-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "change-password"
+                            ]
+                        },
+                        "description": "Change user password"
+                    }
+                },
+                {
+                    "name": "Update Email",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"newEmail\": \"newemail@example.com\",\n  \"password\": \"currentpassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/update-email",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "update-email"
+                            ]
+                        },
+                        "description": "Update user email address"
+                    }
+                },
+                {
+                    "name": "Save Event",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"eventId\": \"64a1b2c3d4e5f6789012345\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/save-event",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "save-event"
+                            ]
+                        },
+                        "description": "Save/bookmark an event"
+                    }
+                },
+                {
+                    "name": "Unsave Event",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"eventId\": \"64a1b2c3d4e5f6789012345\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/unsave-event",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "unsave-event"
+                            ]
+                        },
+                        "description": "Remove event from saved/bookmarked events"
+                    }
+                },
+                {
+                    "name": "Check Saved Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/check-saved-status?eventId=64a1b2c3d4e5f6789012345",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "check-saved-status"
+                            ],
+                            "query": [
+                                {
+                                    "key": "eventId",
+                                    "value": "64a1b2c3d4e5f6789012345"
+                                }
+                            ]
+                        },
+                        "description": "Check if an event is saved by the user"
+                    }
+                },
+                {
+                    "name": "Get Saved Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/saved-events",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "saved-events"
+                            ]
+                        },
+                        "description": "Get all saved/bookmarked events"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Organizer Dashboard Endpoints",
+            "description": "Event management for organizers",
+            "item": [
+                {
+                    "name": "Get Organizer Dashboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/organizer/dashboard",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "organizer",
+                                "dashboard"
+                            ]
+                        },
+                        "description": "Get organizer dashboard with analytics and events"
+                    }
+                },
+                {
+                    "name": "Get Organizer Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/organizer/events",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "organizer",
+                                "events"
+                            ]
+                        },
+                        "description": "Get events created by the organizer (same as dashboard)"
+                    }
+                },
+                {
+                    "name": "Create Event",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "category",
+                                    "value": "Technology",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "title",
+                                    "value": "Tech Conference 2025",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Annual technology conference with industry leaders",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "startDateTime",
+                                    "value": "2025-12-25T10:00:00.000Z",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "endDateTime",
+                                    "value": "2025-12-25T18:00:00.000Z",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "venue",
+                                    "value": "Convention Center",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "capacity",
+                                    "value": "500",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "price",
+                                    "value": "1500",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "start_selling",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": "/path/to/image.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/organizer/events",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "organizer",
+                                "events"
+                            ]
+                        },
+                        "description": "Create a new event with optional image upload"
+                    }
+                },
+                {
+                    "name": "Update Event",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "title",
+                                    "value": "Updated Tech Conference 2025",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "price",
+                                    "value": "1800",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "category",
+                                    "value": "Technology",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Updated technology conference with new features",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": "/path/to/updated-image.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/organizer/events/64a1b2c3d4e5f6789012345",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "organizer",
+                                "events",
+                                "64a1b2c3d4e5f6789012345"
+                            ]
+                        },
+                        "description": "Update an existing event with optional image upload"
+                    }
+                },
+                {
+                    "name": "Delete Event",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/organizer/events/64a1b2c3d4e5f6789012345",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "organizer",
+                                "events",
+                                "64a1b2c3d4e5f6789012345"
+                            ]
+                        },
+                        "description": "Delete an event"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Payment Endpoints",
+            "description": "Payment processing and ticket management",
+            "item": [
+                {
+                    "name": "Get Payment Page Data",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/payments/64a1b2c3d4e5f6789012345",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "payments",
+                                "64a1b2c3d4e5f6789012345"
+                            ]
+                        },
+                        "description": "Get payment page data for a specific event"
+                    }
+                },
+                {
+                    "name": "Get Tickets Left",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/payments/events/64a1b2c3d4e5f6789012345/tickets-left",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "payments",
+                                "events",
+                                "64a1b2c3d4e5f6789012345",
+                                "tickets-left"
+                            ]
+                        },
+                        "description": "Get real-time ticket availability for an event"
+                    }
+                },
+                {
+                    "name": "Process Payment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"eventId\": \"64a1b2c3d4e5f6789012345\",\n  \"tickets\": 2\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/payments/process-payment",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "payments",
+                                "process-payment"
+                            ]
+                        },
+                        "description": "Process payment and register user for event"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Admin Dashboard Endpoints",
+            "description": "Admin panel management and analytics",
+            "item": [
+                {
+                    "name": "Get Admin Dashboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/dashboard",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "dashboard"
+                            ]
+                        },
+                        "description": "Get admin dashboard with comprehensive analytics"
+                    }
+                },
+                {
+                    "name": "Get All Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "users"
+                            ]
+                        },
+                        "description": "Get all users for management"
+                    }
+                },
+                {
+                    "name": "Create User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane@example.com\",\n  \"passwordHash\": \"$2b$10$hashedPasswordExample\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "users"
+                            ]
+                        },
+                        "description": "Create a new user account"
+                    }
+                },
+                {
+                    "name": "Update User",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"John Smith Updated\",\n  \"email\": \"john.updated@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/users/64a1b2c3d4e5f6789012345",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "users",
+                                "64a1b2c3d4e5f6789012345"
+                            ]
+                        },
+                        "description": "Update user information"
+                    }
+                },
+                {
+                    "name": "Delete User",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/users/64a1b2c3d4e5f6789012345",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "users",
+                                "64a1b2c3d4e5f6789012345"
+                            ]
+                        },
+                        "description": "Delete a user account"
+                    }
+                },
+                {
+                    "name": "Get All Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/events",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "events"
+                            ]
+                        },
+                        "description": "Get all events for management"
+                    }
+                },
+                {
+                    "name": "Get All Organizers",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/organizers",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "organizers"
+                            ]
+                        },
+                        "description": "Get all organizers for management"
+                    }
+                },
+                {
+                    "name": "Get Organizer by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/organizers/64a1b2c3d4e5f6789012345",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "organizers",
+                                "64a1b2c3d4e5f6789012345"
+                            ]
+                        },
+                        "description": "Get specific organizer details"
+                    }
+                },
+                {
+                    "name": "Verify Organizer",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/organizers/64a1b2c3d4e5f6789012345/verify",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "organizers",
+                                "64a1b2c3d4e5f6789012345",
+                                "verify"
+                            ]
+                        },
+                        "description": "Verify an organizer"
+                    }
+                },
+                {
+                    "name": "Reject Organizer",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/organizers/64a1b2c3d4e5f6789012345/reject",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "organizers",
+                                "64a1b2c3d4e5f6789012345",
+                                "reject"
+                            ]
+                        },
+                        "description": "Reject organizer verification"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Admin Chart Data",
+            "description": "Analytics and chart data for admin dashboard",
+            "item": [
+                {
+                    "name": "Monthly Events Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/chart/monthly-events",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "chart",
+                                "monthly-events"
+                            ]
+                        },
+                        "description": "Get monthly event statistics for charts"
+                    }
+                },
+                {
+                    "name": "Event Categories Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/chart/event-categories",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "chart",
+                                "event-categories"
+                            ]
+                        },
+                        "description": "Get event category distribution for charts"
+                    }
+                },
+                {
+                    "name": "Revenue Analysis",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/chart/revenue-analysis",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "chart",
+                                "revenue-analysis"
+                            ]
+                        },
+                        "description": "Get revenue analysis data for charts"
+                    }
+                },
+                {
+                    "name": "Organizer Verification Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/chart/organizer-verification",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "chart",
+                                "organizer-verification"
+                            ]
+                        },
+                        "description": "Get organizer verification statistics"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "API Info",
+            "description": "Basic API information",
+            "item": [
+                {
+                    "name": "API Root",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                ""
+                            ]
+                        },
+                        "description": "Get basic API information and available endpoints"
+                    }
+                }
+            ]
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Automatically include credentials for session-based auth",
+                    "pm.request.headers.add({",
+                    "    key: 'Cookie',",
+                    "    value: pm.environment.get('sessionCookie') || ''",
+                    "});",
+                    "",
+                    "// Set default headers for JSON requests",
+                    "if (pm.request.body && pm.request.body.mode === 'raw') {",
+                    "    pm.request.headers.add({",
+                    "        key: 'Content-Type',",
+                    "        value: 'application/json'",
+                    "    });",
+                    "}"
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Automatically save session cookies",
+                    "if (pm.response.headers.get('Set-Cookie')) {",
+                    "    const cookies = pm.response.headers.get('Set-Cookie');",
+                    "    pm.environment.set('sessionCookie', cookies);",
+                    "}",
+                    "",
+                    "// Basic response validation",
+                    "pm.test('Status code is 2xx or 3xx', function () {",
+                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 302]);",
+                    "});",
+                    "",
+                    "// Validate JSON structure for successful responses",
+                    "if (pm.response.code === 200 || pm.response.code === 201) {",
+                    "    try {",
+                    "        const jsonData = pm.response.json();",
+                    "        pm.test('Response has success field', function () {",
+                    "            pm.expect(jsonData).to.have.property('success');",
+                    "        });",
+                    "        ",
+                    "        if (jsonData.success) {",
+                    "            pm.test('Response has message field', function () {",
+                    "                pm.expect(jsonData).to.have.property('message');",
+                    "            });",
+                    "        }",
+                    "    } catch (e) {",
+                    "        // Response is not JSON, skip validation",
+                    "    }",
+                    "}"
+                ]
+            }
+        }
+    ]
+}
