@@ -4,7 +4,7 @@ import Home from './pages/Home';
 import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
 import Login from './pages/Login';
-
+import AdminDashboard from './pages/AdminDashboard';
 function App() {
   return (
     <>
@@ -16,6 +16,8 @@ function App() {
         <Route path='/about-us' element={<AboutUs />} />
         <Route path='/contact-us' element={<ContactUs />} />
         <Route path='/login' element={<Login />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
       </Routes>
     </>
   );
