@@ -14,3 +14,5 @@ Tasklist:
 - About us page- simple text content
 - Navbar with Signup/Login/profile pic(dropdown), buttons for home, about us, contact, user dashboard(show dropdown to admin and organiser dashboard if that role is there)
 - footer with simple links in the right side, contact info and copyright stuf in the left
+
+hrh
