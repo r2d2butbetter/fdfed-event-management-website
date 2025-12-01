@@ -43,8 +43,12 @@ function EventDetail() {
 			try {
 				const savedResp = await api.get(`/user/check-saved-status?eventId=${id}`);
 				if (!mounted) return;
-				if (savedResp?.success) setSaved(!!savedResp.isSaved);
-			} catch { }
+				if (savedResp?.success) {
+					setSaved(!!savedResp.isSaved);
+				}
+			} catch (error) {
+				console.error('Error checking saved status:', error);
+			}
 		}
 		load();
 		return () => { mounted = false; };
