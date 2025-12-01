@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import Signup from './pages/Signup';
 import EventDetail from './pages/EventDetail';
+import CategoryPage from './pages/CategoryPage';
 import Navbar from './components/navbar';
 
 function App() {
@@ -19,9 +20,9 @@ function App() {
         <Route path='/contact-us' element={<ContactUs />} />
         <Route path='/login' element={<Login />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-
         <Route path='/signup' element={<Signup />} />
         <Route path='/events/:id' element={<EventDetail />} />
+        <Route path='/category/:category' element={<CategoryPage />} />
       </Routes>
     </>
   );

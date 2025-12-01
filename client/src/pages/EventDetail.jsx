@@ -44,7 +44,7 @@ function EventDetail() {
 				const savedResp = await api.get(`/user/check-saved-status?eventId=${id}`);
 				if (!mounted) return;
 				if (savedResp?.success) setSaved(!!savedResp.isSaved);
-			} catch {}
+			} catch { }
 		}
 		load();
 		return () => { mounted = false; };
@@ -145,9 +145,35 @@ function EventDetail() {
 				<Grid container spacing={3}>
 					{related.map((ev) => (
 						<Grid item xs={12} sm={6} md={3} key={ev._id}>
-							<Card component={RouterLink} to={`/events/${ev._id}`} sx={{ textDecoration: 'none', borderRadius: 3 }}>
-								{ev.image && <CardMedia component="img" image={`http://localhost:3000/${ev.image}`} alt={ev.title} />}
-								<CardContent>
+							<Card
+								component={RouterLink}
+								to={`/events/${ev._id}`}
+								sx={{
+									textDecoration: 'none',
+									borderRadius: 3,
+									height: '100%',
+									width: '100%',
+									display: 'flex',
+									flexDirection: 'column',
+									transition: 'transform 0.2s',
+									'&:hover': {
+										transform: 'translateY(-4px)'
+									}
+								}}
+							>
+								{ev.image && (
+									<CardMedia
+										component="img"
+										image={`http://localhost:3000/${ev.image}`}
+										alt={ev.title}
+										sx={{
+											width: '100%',
+											height: 200,
+											objectFit: 'cover'
+										}}
+									/>
+								)}
+								<CardContent sx={{ flexGrow: 1 }}>
 									<Typography sx={{ fontWeight: 700 }}>{ev.title}</Typography>
 								</CardContent>
 							</Card>
