@@ -1,0 +1,33 @@
+.login-container {
+    background-color: #f5f5f5;
+}
+
+.login-paper {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.role-toggle-group {
+    border-radius: 4px !important;
+}
+
+.role-toggle-btn {
+    padding: 10px 16px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .login-paper {
+        margin: 16px;
+        padding: 24px 16px !important;
+    }
+
+    .role-toggle-btn {
+        font-size: 0.875rem !important;
+        padding: 8px 12px !important;
+    }
+
+    .role-toggle-btn svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+}
