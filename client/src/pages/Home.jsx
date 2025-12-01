@@ -49,15 +49,10 @@ function Home() {
 
     const categories = [
         'All Categories',
-        'Technology',
-        'Music',
-        'Sports',
-        'Arts',
-        'Business',
-        'Education',
-        'Food',
-        'Health',
-        'Entertainment',
+        'TEDx',
+        'Health Camp',
+        'Concerts',
+        'Exhibitions',
     ];
 
     useEffect(() => {
@@ -80,6 +75,29 @@ function Home() {
             window.scrollTo({ top: y, behavior: 'smooth' });
         }
     }, [loading, events, page]);
+
+    // Listen for search events from HeroSection
+    useEffect(() => {
+        const handleSearchEvent = (event) => {
+            const searchQuery = event.detail.query;
+            if (searchQuery) {
+                setTitleFilter(searchQuery);
+            }
+        };
+
+        window.addEventListener('searchEvents', handleSearchEvent);
+
+        // Also check session storage on mount
+        const storedQuery = sessionStorage.getItem('eventSearchQuery');
+        if (storedQuery) {
+            setTitleFilter(storedQuery);
+            sessionStorage.removeItem('eventSearchQuery');
+        }
+
+        return () => {
+            window.removeEventListener('searchEvents', handleSearchEvent);
+        };
+    }, []);
 
     const fetchEvents = async (pageNum) => {
         setLoading(true);
@@ -274,81 +292,89 @@ function Home() {
                     {!loading && !error && events.length > 0 && (
                         <>
                             <Grid container spacing={4} sx={{ alignItems: 'stretch', justifyContent: 'center' }}>
-                                {events.map((event) => (
-                                    <Grid item xs={12} sm={10} md={4} lg={4} key={event._id} sx={{ display: 'flex', maxWidth: { xs: '100%', md: '420px' }, minWidth: { md: '420px' } }}>
-                                        <Card className="event-card" sx={{ width: '100%', maxWidth: '100%' }}>
-                                            <CardMedia
-                                                className="event-card-media"
-                                                sx={{
-                                                    backgroundImage: event.imageUrl
-                                                        ? `url(http://localhost:3000/${event.imageUrl})`
-                                                        : 'none',
-                                                    backgroundSize: 'cover',
-                                                    backgroundPosition: 'center',
-                                                }}
-                                            >
-                                                {!event.imageUrl && <EventIcon sx={{ fontSize: 48, color: '#ddd' }} />}
-                                            </CardMedia>
-                                            <CardContent className="event-card-content">
-                                                <Chip
-                                                    label={event.category}
-                                                    size="small"
+                                {events.map((event) => {
+                                    // Construct the image URL properly
+                                    let imageUrl = '';
+                                    if (event.image) {
+                                        // Remove any leading slash and construct clean URL
+                                        const imagePath = event.image.replace(/^\/+/, '');
+                                        imageUrl = `http://localhost:3000/${imagePath}`;
+                                    }
+
+                                    return (
+                                        <Grid item xs={12} sm={10} md={4} lg={4} key={event._id} sx={{ display: 'flex', maxWidth: { xs: '100%', md: '420px' }, minWidth: { md: '420px' } }}>
+                                            <Card className="event-card" sx={{ width: '100%', maxWidth: '100%' }}>
+                                                <CardMedia
+                                                    className="event-card-media"
                                                     sx={{
-                                                        mb: 1.5,
-                                                        bgcolor: '#667eea',
-                                                        color: 'white',
-                                                        fontWeight: 500,
+                                                        backgroundImage: imageUrl ? `url(${imageUrl})` : 'none',
+                                                        backgroundSize: 'cover',
+                                                        backgroundPosition: 'center',
                                                     }}
-                                                />
-                                                <Typography className="event-card-title" variant="h6">
-                                                    {event.title}
-                                                </Typography>
-                                                <Typography className="event-card-description" variant="body2">
-                                                    {event.description?.substring(0, 100)}
-                                                    {event.description?.length > 100 ? '...' : ''}
-                                                </Typography>
-                                                <Box sx={{ mt: 'auto', pt: 2 }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                        <CalendarIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            {formatDate(event.startDateTime)} • {formatTime(event.startDateTime)}
-                                                        </Typography>
-                                                    </Box>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                        <LocationIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            {event.venue}
-                                                        </Typography>
-                                                    </Box>
-                                                    <Typography
-                                                        variant="h6"
-                                                        sx={{
-                                                            color: '#667eea',
-                                                            fontWeight: 600,
-                                                            mt: 1.5,
-                                                        }}
-                                                    >
-                                                        ₹{event.price}
-                                                    </Typography>
-                                                </Box>
-                                            </CardContent>
-                                            <CardActions className="event-card-actions">
-                                                <Button
-                                                    fullWidth
-                                                    variant="contained"
-                                                    className="event-card-button"
-                                                    sx={{
-                                                        bgcolor: '#667eea',
-                                                        '&:hover': { bgcolor: '#5568d3' },
-                                                    }}
-                                                    onClick={() => window.location.href = `/events/${event._id}`}
                                                 >
-                                                    View Details
-                                                </Button>
-                                            </CardActions>
-                                        </Card>
-                                    </Grid>
-                                ))}
+                                                    {!imageUrl && <EventIcon sx={{ fontSize: 48, color: '#ddd' }} />}
+                                                </CardMedia>
+                                                <CardContent className="event-card-content">
+                                                    <Chip
+                                                        label={event.category}
+                                                        size="small"
+                                                        sx={{
+                                                            mb: 1.5,
+                                                            bgcolor: '#667eea',
+                                                            color: 'white',
+                                                            fontWeight: 500,
+                                                        }}
+                                                    />
+                                                    <Typography className="event-card-title" variant="h6">
+                                                        {event.title}
+                                                    </Typography>
+                                                    <Typography className="event-card-description" variant="body2">
+                                                        {event.description?.substring(0, 100)}
+                                                        {event.description?.length > 100 ? '...' : ''}
+                                                    </Typography>
+                                                    <Box sx={{ mt: 'auto', pt: 2 }}>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                            <CalendarIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {formatDate(event.startDateTime)} • {formatTime(event.startDateTime)}
+                                                            </Typography>
+                                                        </Box>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                            <LocationIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {event.venue}
+                                                            </Typography>
+                                                        </Box>
+                                                        <Typography
+                                                            variant="h6"
+                                                            sx={{
+                                                                color: '#667eea',
+                                                                fontWeight: 600,
+                                                                mt: 1.5,
+                                                            }}
+                                                        >
+                                                            ₹{event.ticketPrice}
+                                                        </Typography>
+                                                    </Box>
+                                                </CardContent>
+                                                <CardActions className="event-card-actions">
+                                                    <Button
+                                                        fullWidth
+                                                        variant="contained"
+                                                        className="event-card-button"
+                                                        sx={{
+                                                            bgcolor: '#667eea',
+                                                            '&:hover': { bgcolor: '#5568d3' },
+                                                        }}
+                                                        onClick={() => window.location.href = `/events/${event._id}`}
+                                                    >
+                                                        View Details
+                                                    </Button>
+                                                </CardActions>
+                                            </Card>
+                                        </Grid>
+                                    );
+                                })}
                             </Grid>
 
                             {/* Pagination */}
