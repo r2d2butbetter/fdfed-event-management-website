@@ -15,4 +15,7 @@ router.get('/category/:category', optionalAuth, eventController.getEventsByCateg
 // Get event details by ID
 router.get('/:id', optionalAuth, eventController.getEventById);
 
+// Delete event (protected route - requires authentication)
+router.delete('/:id', isAuth, eventController.deleteEvent);
+
 export default router;

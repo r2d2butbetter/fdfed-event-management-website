@@ -329,6 +329,38 @@ class eventController {
             });
         }
     }
+
+    // Delete event by ID
+    async deleteEvent(req, res) {
+        try {
+            const eventId = req.params.id;
+            const event = await Event.findById(eventId);
+
+            if (!event) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Event not found.'
+                });
+            }
+
+            // Optional: Check if user is authorized to delete (admin or event organizer)
+            // For now, allowing any authenticated user to delete
+
+            await Event.findByIdAndDelete(eventId);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Event deleted successfully.'
+            });
+        } catch (error) {
+            console.error('Error deleting event:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'An error occurred while deleting the event.',
+                error: error.message
+            });
+        }
+    }
 }
 
 export default new eventController();
