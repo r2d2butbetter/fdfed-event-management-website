@@ -9,23 +9,36 @@ const HeroSection = () => {
 
     const handleSearch = (e) => {
         e.preventDefault();
+
         // Scroll to events section on the same page
         const eventsSection = document.getElementById('events-section');
         if (eventsSection) {
             eventsSection.scrollIntoView({ behavior: 'smooth' });
         }
-        // You can also use the searchQuery to filter events if needed
+
+        // If there's a search query, you could filter the events
+        // For now, we'll just scroll to the events section
+        // The actual filtering would need to be implemented in the Home component
+        if (searchQuery.trim()) {
+            // Store the search query in session storage or pass it to Home component
+            sessionStorage.setItem('eventSearchQuery', searchQuery);
+
+            // Trigger a custom event that the Home component can listen to
+            window.dispatchEvent(new CustomEvent('searchEvents', {
+                detail: { query: searchQuery }
+            }));
+        }
     };
     return (
         <Box sx={{ bgcolor: '#fafafa', minHeight: { lg: '100vh' }, display: 'flex', alignItems: 'center', overflow: 'hidden', position: 'relative', py: { xs: 6, sm: 8, lg: 0 } }}>
             <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3, lg: 4 }, position: 'relative', zIndex: 1 }}>
                 <Grid container spacing={{ xs: 6, lg: 8 }} alignItems="center">
                     <Grid item xs={12} lg={6}>
-                        <Box sx={{ textAlign: { xs: 'center', lg: 'left' }, maxWidth: { lg: '90%' } }}>
+                        <Box sx={{ textAlign: 'left', maxWidth: { lg: '85%' }, pr: { lg: 4 } }}>
                             <Typography
                                 variant="h1"
                                 sx={{
-                                    fontSize: { xs: '2.25rem', sm: '3rem', lg: '3.75rem' },
+                                    fontSize: { xs: '2.25rem', sm: '3rem', lg: '3.5rem' },
                                     fontWeight: 700,
                                     lineHeight: 1.2,
                                     color: '#1a1a1a',
@@ -37,10 +50,11 @@ const HeroSection = () => {
                             <Typography
                                 variant="body1"
                                 sx={{
-                                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                                    fontSize: { xs: '1rem', sm: '1.125rem', lg: '1rem' },
                                     color: '#666',
                                     mt: { xs: 1, sm: 2 },
-                                    mb: { xs: 4, sm: 4 }
+                                    mb: { xs: 4, sm: 4 },
+                                    maxWidth: { lg: '90%' }
                                 }}
                             >
                                 Join thousands of exciting events happening around you. From concerts to conferences, workshops to festivals - find your next unforgettable experience.
@@ -59,8 +73,7 @@ const HeroSection = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: 2,
-                                        maxWidth: { xs: '100%', sm: '500px' },
-                                        mx: { xs: 'auto', lg: 0 }
+                                        maxWidth: { xs: '100%', sm: '450px' }
                                     }}
                                 >
                                     <TextField
@@ -113,7 +126,7 @@ const HeroSection = () => {
                                 sx={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: { xs: 'center', lg: 'flex-start' },
+                                    justifyContent: 'flex-start',
                                     gap: { xs: 3, sm: 4 },
                                     mt: { xs: 5, sm: 6 }
                                 }}

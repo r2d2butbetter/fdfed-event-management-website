@@ -9,6 +9,7 @@ import UserDashboard from './pages/dashboards/UserDashboard';
 import OrganizerDashboard from './pages/dashboards/OrganizerDashboard';
 import Signup from './pages/Signup';
 import EventDetail from './pages/EventDetail';
+import CategoryPage from './pages/CategoryPage';
 import Navbar from './components/navbar';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
 
         <Route path='/signup' element={<Signup />} />
         <Route path='/events/:id' element={<EventDetail />} />
+        <Route path='/category/:category' element={<CategoryPage />} />
       </Routes>
     </>
   );
