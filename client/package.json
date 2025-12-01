@@ -16,11 +16,13 @@
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "chart.js": "^4.5.1",
+    "formik": "^2.4.9",
     "framer-motion": "^12.23.24",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.5",
-    "recharts": "^3.4.1"
+    "recharts": "^3.4.1",
+    "yup": "^1.7.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

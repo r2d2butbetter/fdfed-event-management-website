@@ -31,7 +31,6 @@ import {
     LocationOn as LocationIcon,
     EventAvailable as EventIcon,
 } from '@mui/icons-material';
-import Navbar from '../components/navbar';
 import HeroSection from '../components/HeroSection';
 import './Home.css';
 
@@ -179,7 +178,6 @@ function Home() {
     ];
     return (
         <div>
-            <Navbar />
 
             {/* New Hero Section */}
             <HeroSection />

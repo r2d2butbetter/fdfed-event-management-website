@@ -18,7 +18,7 @@ import { Visibility, VisibilityOff, Person, AdminPanelSettings, Business } from 
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import './Login.css';
-import { Lock, Person, Login as LoginIcon } from '@mui/icons-material';
+import { Lock, Login as LoginIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '@mui/material/styles';
 
