@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
     Box,
     Paper,
@@ -17,6 +18,9 @@ import { Visibility, VisibilityOff, Person, AdminPanelSettings, Business } from 
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import './Login.css';
+import { Lock, Person, Login as LoginIcon } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '@mui/material/styles';
 
 // Validation Schema
 const loginSchema = Yup.object().shape({
@@ -33,6 +37,10 @@ const loginSchema = Yup.object().shape({
 
 function Login() {
     const [showPassword, setShowPassword] = useState(false);
+
+    const theme = useTheme(); // Add this line
+    const isDarkMode = theme.palette.mode === 'dark'; // Add this line
+
 
     const handleClickShowPassword = () => setShowPassword(!showPassword);
 
