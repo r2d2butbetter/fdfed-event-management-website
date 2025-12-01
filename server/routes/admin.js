@@ -2,13 +2,9 @@ import express from 'express';
 const router = express.Router();
 import adminController from '../controllers/adminController.js'
 import isAdmin from '../middlewares/adminAuth.js';
-import { isAuth, optionalAuth } from '../middlewares/auth.js';
 
-// Routes that don't need admin privilege
-
-// All routes below this require admin privileges
+// All routes require admin privileges
 router.use(isAdmin);
-router.use(optionalAuth);
 
 // Dashboard route
 router.get('/dashboard',adminController.loadDashboard);

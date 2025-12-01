@@ -315,25 +315,31 @@ function CategoryPage() {
                                             },
                                         }}
                                     >
-                                        <CardMedia
-                                            sx={{
-                                                height: 200,
-                                                backgroundImage: (event.imageUrl || event.image)
-                                                    ? `url(http://localhost:3000/${event.imageUrl || event.image})`
-                                                    : 'none',
-                                                backgroundSize: 'cover',
-                                                backgroundPosition: 'center',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                position: 'relative',
-                                                bgcolor: '#f5f5f5',
-                                            }}
-                                        >
-                                            {!(event.imageUrl || event.image) && (
-                                                <EventIcon
-                                                    sx={{ fontSize: 64, color: '#ddd' }}
+                                        <Box sx={{ position: 'relative' }}>
+                                            {event.image ? (
+                                                <CardMedia
+                                                    component="img"
+                                                    image={`http://localhost:3000/${event.image}`}
+                                                    alt={event.title}
+                                                    sx={{
+                                                        height: 200,
+                                                        objectFit: 'cover',
+                                                    }}
                                                 />
+                                            ) : (
+                                                <CardMedia
+                                                    sx={{
+                                                        height: 200,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        bgcolor: '#f5f5f5',
+                                                    }}
+                                                >
+                                                    <EventIcon
+                                                        sx={{ fontSize: 64, color: '#ddd' }}
+                                                    />
+                                                </CardMedia>
                                             )}
                                             <Chip
                                                 label={event.category}
@@ -348,7 +354,7 @@ function CategoryPage() {
                                                     backdropFilter: 'blur(10px)',
                                                 }}
                                             />
-                                        </CardMedia>
+                                        </Box>
                                         <CardContent
                                             sx={{
                                                 flexGrow: 1,
