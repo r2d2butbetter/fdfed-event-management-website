@@ -293,27 +293,34 @@ function Home() {
                         <>
                             <Grid container spacing={4} sx={{ alignItems: 'stretch', justifyContent: 'center' }}>
                                 {events.map((event) => {
-                                    // Construct the image URL properly
-                                    let imageUrl = '';
-                                    if (event.image) {
-                                        // Remove any leading slash and construct clean URL
-                                        const imagePath = event.image.replace(/^\/+/, '');
-                                        imageUrl = `http://localhost:3000/${imagePath}`;
-                                    }
-
                                     return (
                                         <Grid item xs={12} sm={10} md={4} lg={4} key={event._id} sx={{ display: 'flex', maxWidth: { xs: '100%', md: '420px' }, minWidth: { md: '420px' } }}>
                                             <Card className="event-card" sx={{ width: '100%', maxWidth: '100%' }}>
-                                                <CardMedia
-                                                    className="event-card-media"
-                                                    sx={{
-                                                        backgroundImage: imageUrl ? `url(${imageUrl})` : 'none',
-                                                        backgroundSize: 'cover',
-                                                        backgroundPosition: 'center',
-                                                    }}
-                                                >
-                                                    {!imageUrl && <EventIcon sx={{ fontSize: 48, color: '#ddd' }} />}
-                                                </CardMedia>
+                                                {event.image ? (
+                                                    <CardMedia
+                                                        component="img"
+                                                        className="event-card-media"
+                                                        image={`http://localhost:3000/${event.image}`}
+                                                        alt={event.title}
+                                                        sx={{
+                                                            height: 200,
+                                                            objectFit: 'cover',
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <CardMedia
+                                                        className="event-card-media"
+                                                        sx={{
+                                                            height: 200,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            bgcolor: '#f5f5f5',
+                                                        }}
+                                                    >
+                                                        <EventIcon sx={{ fontSize: 48, color: '#ddd' }} />
+                                                    </CardMedia>
+                                                )}
                                                 <CardContent className="event-card-content">
                                                     <Chip
                                                         label={event.category}
