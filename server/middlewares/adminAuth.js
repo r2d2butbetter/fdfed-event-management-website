@@ -8,14 +8,28 @@ async function isAdmin(req, res, next) {
         // Check if user is authenticated using session
         const userId = req.session.userId;
 
-        // If no userId is found in session, redirect to login
+        // If no userId is found in session
         if (!userId) {
+            // For API requests, return JSON error
+            if (req.path.startsWith('/chart') || req.xhr || req.headers.accept?.includes('application/json')) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required. Please log in.'
+                });
+            }
+            // For page requests, redirect to login
             return res.redirect("/login");
         }
 
         // Find the user in the database
         const user = await User.findById(userId);
         if (!user) {
+            if (req.path.startsWith('/chart') || req.xhr || req.headers.accept?.includes('application/json')) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not found. Please log in again.'
+                });
+            }
             return res.redirect("/login");
         }
 
@@ -38,7 +52,10 @@ async function isAdmin(req, res, next) {
         next();
     } catch (error) {
         console.error('Error checking admin status:', error);
-        return res.status(500).send('Server error');
+        return res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
     }
 }
 
