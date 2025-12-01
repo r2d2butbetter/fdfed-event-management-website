@@ -20,7 +20,6 @@ import * as Yup from 'yup';
 import './Login.css';
 import { Lock, Login as LoginIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '@mui/material/styles';
 
 // Validation Schema
 const loginSchema = Yup.object().shape({
@@ -37,18 +36,56 @@ const loginSchema = Yup.object().shape({
 
 function Login() {
     const [showPassword, setShowPassword] = useState(false);
-
-    const theme = useTheme(); // Add this line
-    const isDarkMode = theme.palette.mode === 'dark'; // Add this line
-
+    const [errorMessage, setErrorMessage] = useState('');
+    const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleClickShowPassword = () => setShowPassword(!showPassword);
 
-    const handleSubmit = (values, { setSubmitting }) => {
-        // Form is valid - backend connection will be added later
-        console.log('Login attempt:', values);
-        alert(`Login as ${values.role} with email: ${values.email}`);
-        setSubmitting(false);
+    const handleSubmit = async (values, { setSubmitting }) => {
+        console.log(' Login form submitted with:', { email: values.email, role: values.role });
+        setErrorMessage('');
+        try {
+            console.log(' Calling login function...');
+            const result = await login({
+                email: values.email,
+                password: values.password,
+                role: values.role
+            });
+
+            console.log(' Login result:', result);
+
+            if (result.success) {
+                console.log('Login successful, navigating to dashboard...');
+                // Navigate based on role
+                switch (values.role) {
+                    case 'user':
+                        console.log('➡️ Navigating to /user/dashboard');
+                        navigate('/user/dashboard');
+                        break;
+                    case 'organizer':
+                        console.log('➡️ Navigating to /organizer/dashboard');
+                        navigate('/organizer/dashboard');
+                        break;
+                    case 'admin':
+                        console.log('➡️ Navigating to /admin/dashboard');
+                        navigate('/admin/dashboard');
+                        break;
+                    default:
+                        console.log('➡️ Navigating to /');
+                        navigate('/');
+                }
+            } else {
+                console.log('Login failed:', result.message);
+                setErrorMessage(result.message || 'Login failed. Please check your credentials.');
+            }
+        } catch (error) {
+            console.log('Login error caught:', error);
+            setErrorMessage('An error occurred during login. Please try again.');
+            console.error('Login error:', error);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -61,6 +98,14 @@ function Login() {
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 4 }}>
                     Please select your role and enter your credentials
                 </Typography>
+
+                {errorMessage && (
+                    <Box sx={{ mb: 3, p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
+                        <Typography variant="body2" color="error.dark">
+                            {errorMessage}
+                        </Typography>
+                    </Box>
+                )}
 
                 <Formik
                     initialValues={{
@@ -176,9 +221,11 @@ function Login() {
                 <Box sx={{ mt: 3, textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
                         Don't have an account?{' '}
-                        <Button size="small" sx={{ textTransform: 'none' }}>
-                            Sign Up
-                        </Button>
+                        <Link to="/signup" style={{ textDecoration: 'none' }}>
+                            <Button size="small" sx={{ textTransform: 'none' }}>
+                                Sign Up
+                            </Button>
+                        </Link>
                     </Typography>
                 </Box>
             </Paper>
