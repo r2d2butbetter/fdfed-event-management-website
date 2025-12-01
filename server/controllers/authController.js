@@ -264,6 +264,7 @@ import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
 import User from "../models/user.js"; // Assuming User is a Mongoose model
 import Organizer from "../models/organizer.js"; // Assuming Organizer is a Mongoose model
+import Admin from "../models/admin.js"; // Admin model
 import { setUser } from '../services/auth.js';
 
 class authController {
@@ -332,7 +333,7 @@ class authController {
     const { email, password } = req.body;
 
     try {
-      console.log("Login request received:", { email, password });
+      console.log("Login request received:", { email });
 
       // Find the user in the MongoDB database
       const user = await User.findOne({ email });
@@ -371,6 +372,26 @@ class authController {
       // Set the session ID in cookies
       res.cookie("uid", sessionId, { httpOnly: true });
 
+      // Check if user is an admin
+      const admin = await Admin.findOne({ userId: user._id });
+
+      // Check if user is an organizer
+      const organizer = await Organizer.findOne({ userId: user._id });
+
+      // Determine user role
+      let role = 'user';
+      let additionalData = {};
+
+      if (admin) {
+        role = 'admin';
+        additionalData.adminId = admin._id;
+      } else if (organizer) {
+        role = 'organizer';
+        additionalData.organizerId = organizer._id;
+        additionalData.organizationName = organizer.organizationName;
+        additionalData.verified = organizer.verified;
+      }
+
       // Return JSON response for React frontend
       return res.status(200).json({
         success: true,
@@ -378,7 +399,9 @@ class authController {
         data: {
           userId: user._id,
           name: user.name,
-          email: user.email
+          email: user.email,
+          role: role,
+          ...additionalData
         }
       });
     } catch (error) {
