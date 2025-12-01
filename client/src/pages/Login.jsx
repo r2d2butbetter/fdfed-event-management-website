@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Box,
@@ -15,12 +15,15 @@ import {
 } from '@mui/material';
 import { Lock, Person, Login as LoginIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
-import { ThemeContext } from '../context/theme-context'; // import your context
+import { useTheme } from '@mui/material/styles';
 
 const steps = ['Account Type', 'Personal Information', 'Complete Login'];
 
 function Login() {
-  const { isDarkMode } = useContext(ThemeContext); // get dark mode from context
+
+  const theme = useTheme(); // Add this line
+  const isDarkMode = theme.palette.mode === 'dark'; // Add this line
+
 
   const [activeStep, setActiveStep] = useState(0);
   const [accountType, setAccountType] = useState('');
