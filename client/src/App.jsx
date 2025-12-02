@@ -31,8 +31,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
-        {/* <Route path="/organizer/create-event" element={<EventForm />} />
-        <Route path="/organizer/edit-event/:id" element={<EventForm />} /> */}
+        <Route path="/organizer/create-event" element={<Createevent />} />
         <Route path="/organizer/analytics" element={<Analytics />} />
         <Route path="/organizer/settings" element={<Settings />} />
         <Route path="/become-organizer" element={<BecomeOrganizer />} />

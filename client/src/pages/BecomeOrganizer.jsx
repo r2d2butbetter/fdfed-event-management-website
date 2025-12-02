@@ -37,8 +37,11 @@ function BecomeOrganizer() {
     useEffect(() => {
         if (!isAuthenticated) {
             navigate('/login');
+        } else if (user?.role === 'organizer') {
+            // If user is already an organizer, redirect to dashboard
+            navigate('/organizer/dashboard');
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, user, navigate]);
 
     const handleSubmit = async (values) => {
         setLoading(true);
@@ -87,7 +90,7 @@ function BecomeOrganizer() {
                         backdropFilter: 'blur(10px)',
                         border: '2px solid rgba(147, 83, 211, 0.3)',
                         borderRadius: 4,
-                        boxShadow: '0 8px 32px rgba(147, 83, 211, 0.2)',
+                        // boxShadow: '0 8px 32px rgba(147, 83, 211, 0.2)',
                     }}
                 >
                     <Typography
@@ -97,7 +100,7 @@ function BecomeOrganizer() {
                             fontWeight: 700,
                             mb: 1,
                             textAlign: 'center',
-                            background: 'linear-gradient(135deg, #9353d3 0%, #f43f5e 100%)',
+                            background: 'linear-gradient(135deg, #9353d3 0%, #9353d3 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                         }}

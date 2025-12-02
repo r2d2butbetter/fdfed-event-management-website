@@ -459,7 +459,7 @@ function AdminDashboard() {
           <div className="sidebar">
             <div className="user-info">
               <div className="profile-image">
-                <img src="./guest.png" alt="Admin" />
+                <img class="MuiBox-root css-nj2ij4" alt="Event Management Illustration" src="\src\assets\images\proflepic.jpeg"></img>
               </div>
               <h3>Admin Panel</h3>
               <p>System Administrator</p>

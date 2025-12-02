@@ -413,6 +413,70 @@ class authController {
     }
   }
 
+  async checkSession(req, res) {
+    try {
+      // Check if user has an active session
+      if (!req.session.userId) {
+        return res.status(200).json({
+          success: true,
+          isAuthenticated: false,
+          message: "No active session."
+        });
+      }
+
+      // Find the user in the database
+      const user = await User.findById(req.session.userId);
+      
+      if (!user) {
+        // Session exists but user not found, clear the session
+        req.session.destroy();
+        return res.status(200).json({
+          success: true,
+          isAuthenticated: false,
+          message: "User not found."
+        });
+      }
+
+      // Check if user is an admin
+      const admin = await Admin.findOne({ userId: user._id });
+
+      // Check if user is an organizer
+      const organizer = await Organizer.findOne({ userId: user._id });
+
+      // Determine user role
+      let role = 'user';
+      let additionalData = {};
+
+      if (admin) {
+        role = 'admin';
+        additionalData.adminId = admin._id;
+      } else if (organizer) {
+        role = 'organizer';
+        additionalData.organizerId = organizer._id;
+        additionalData.organizationName = organizer.organizationName;
+        additionalData.verified = organizer.verified;
+      }
+
+      // Return user session data
+      return res.status(200).json({
+        success: true,
+        isAuthenticated: true,
+        data: {
+          userId: user._id,
+          name: user.name,
+          email: user.email,
+          role: role,
+          ...additionalData
+        }
+      });
+    } catch (error) {
+      console.error("Error checking session:", error);
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while checking session."
+      });
+    }
+  }
 
   async orgLogin(req, res) {
     if (!req.session.userId) {

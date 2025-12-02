@@ -9,6 +9,7 @@ import { isAuth } from '../middlewares/auth.js'
 
 router.post("/sign-up", authController.userSignUp);
 router.post("/login", authController.userLogin);
+router.get("/check-session", authController.checkSession);
 router.get("/organizer-login", authController.orgLogin);
 router.post('/host_with_us', authController.orgRegistration);
 router.get('/logout', authController.logout);
