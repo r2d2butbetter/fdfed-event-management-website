@@ -3,8 +3,6 @@ import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText
 import { Dashboard, Analytics, Settings, Logout } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/theme-context';
-import ThemeToggle from '../ThemeToggle';
 
 const drawerWidth = 260;
 
@@ -18,16 +16,15 @@ function Sidebar({ organizerName, organizationName }) {
     const navigate = useNavigate();
     const location = useLocation();
     const { logout } = useAuth();
-    const { isDarkMode } = useTheme();
 
     const handleLogout = async () => {
         await logout();
         navigate('/login');
     };
 
-    const bgColor = isDarkMode ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
-    const textColor = isDarkMode ? '#fff' : '#000';
-    const borderColor = isDarkMode ? 'rgba(147, 83, 211, 0.2)' : 'rgba(147, 83, 211, 0.3)';
+    const bgColor = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
+    const textColor = '#fff';
+    const borderColor = 'rgba(147, 83, 211, 0.2)';
 
     return (
         <Drawer
@@ -59,17 +56,12 @@ function Sidebar({ organizerName, organizationName }) {
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                     {organizerName || 'Organizer'}
                 </Typography>
-                <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)', fontSize: '0.875rem' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
                     {organizationName || 'Organization'}
                 </Typography>
             </Box>
 
             <Divider sx={{ borderColor }} />
-
-            {/* Theme Toggle */}
-            <Box sx={{ px: 2, pt: 2, display: 'flex', justifyContent: 'center' }}>
-                <ThemeToggle />
-            </Box>
 
             <List sx={{ px: 2, pt: 2 }}>
                 {menuItems.map((item) => (
@@ -87,7 +79,7 @@ function Sidebar({ organizerName, organizationName }) {
                                     },
                                 },
                                 '&:hover': {
-                                    background: isDarkMode ? 'rgba(147, 83, 211, 0.1)' : 'rgba(147, 83, 211, 0.05)',
+                                    background: 'rgba(147, 83, 211, 0.1)',
                                 },
                             }}
                         >

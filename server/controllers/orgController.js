@@ -300,6 +300,38 @@ class orgController {
         avgTicketPrice = totalTickets > 0 ? Math.round(totalPrice / totalTickets) : 0;
       }
 
+      // Calculate weekly sales data for the last 5 weeks
+      const weeklySalesData = [];
+      for (let i = 4; i >= 0; i--) {
+        const startOfWeek = new Date();
+        startOfWeek.setDate(startOfWeek.getDate() - (i * 7 + 6));
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        const endOfWeek = new Date();
+        endOfWeek.setDate(endOfWeek.getDate() - (i * 7));
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        const weekRegistrations = await Registration.find({
+          eventId: { $in: events.map(event => event._id) },
+          registrationDate: { $gte: startOfWeek, $lte: endOfWeek }
+        }).populate('eventId');
+
+        let weekTickets = weekRegistrations.length;
+        let weekRevenue = 0;
+
+        weekRegistrations.forEach(reg => {
+          if (reg.eventId && reg.eventId.ticketPrice) {
+            weekRevenue += reg.eventId.ticketPrice;
+          }
+        });
+
+        weeklySalesData.push({
+          name: `Week ${5 - i}`,
+          tickets: weekTickets,
+          revenue: weekRevenue
+        });
+      }
+
       // For ratings, since we don't have a Rating model, we'll use a default value
       const avgRating = 4.7; // This would be calculated from a Ratings model if it existed
       const ratingChange = 0.2; // This would also be calculated from actual data
@@ -332,7 +364,11 @@ class orgController {
             topSellingEvent,
             totalTicketsSold,
             ticketsSoldChange,
-            avgTicketPrice
+            topSellingEvent,
+            totalTicketsSold,
+            ticketsSoldChange,
+            avgTicketPrice,
+            weeklySalesData
           }
         }
       });
@@ -540,6 +576,114 @@ class orgController {
     } catch (error) {
       console.error('Error deleting event:', error);
       res.status(500).json({ message: 'An error occurred while deleting the event.' });
+    }
+  }
+
+  async updateProfile(req, res) {
+    try {
+      const userId = req.session.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const organizer = await Organizer.findOne({ userId: req.session.userId });
+
+      if (!organizer) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not registered as an organizer.'
+        });
+      }
+
+      const { organizationName, description, contactNo } = req.body;
+
+      // Update organizer profile
+      if (organizationName) organizer.organizationName = organizationName;
+      if (description !== undefined) organizer.description = description;
+      if (contactNo) organizer.contactNo = contactNo;
+
+      const updatedOrganizer = await organizer.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully!',
+        data: {
+          organizer: updatedOrganizer
+        }
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while updating profile.',
+        error: error.message
+      });
+    }
+  }
+
+  async changePassword(req, res) {
+    try {
+      const userId = req.session.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const User = (await import('../models/user.js')).default;
+      const bcrypt = (await import('bcrypt')).default;
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password and new password are required.'
+        });
+      }
+
+      // Find user
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found.'
+        });
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+
+      if (!isPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is incorrect.'
+        });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.passwordHash = hashedPassword;
+      await user.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Password changed successfully!'
+      });
+    } catch (error) {
+      console.error('Error changing password:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while changing password.',
+        error: error.message
+      });
     }
   }
 }
