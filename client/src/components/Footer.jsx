@@ -70,9 +70,27 @@ function Footer() {
                 </Box>
               </Grid>
 
+              {/* Dashboards */}
               <Grid item xs={12} sm={6} md={6}>
                 <Typography variant="h6" className="footer-section-title">
-                  Event  Links
+                  Dashboards
+                </Typography>
+                <Box className="footer-links">
+                  <Link href="/admin/dashboard" className="footer-link">
+                    Admin Dashboard
+                  </Link>
+                  <Link href="/organizer/dashboard" className="footer-link">
+                    Organizer Dashboard
+                  </Link>
+                  <Link href="/user/dashboard" className="footer-link">
+                    User Dashboard
+                  </Link>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={6}>
+                <Typography variant="h6" className="footer-section-title">
+                  Browse By Category
                 </Typography>
                 <Box className="footer-links">
                   <Link href="/category/tedx" className="footer-link">
