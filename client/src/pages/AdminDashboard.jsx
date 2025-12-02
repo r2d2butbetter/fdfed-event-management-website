@@ -20,6 +20,8 @@ function AdminDashboard() {
     events: "",
     organizers: "",
   });
+  const [selectedOrganizer, setSelectedOrganizer] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   const API = "http://localhost:3000/admin";
 
@@ -59,7 +61,7 @@ function AdminDashboard() {
 
   // Chart Functions
   const loadMonthlyEventsChart = () => {
-    fetch(`${API}/chart/monthly-events`)
+    fetch(`${API}/chart/monthly-events`, { credentials: 'include' })
       .then((response) => response.json())
       .then((data) => {
         const ctx = document.getElementById("monthlyEventsChart");
@@ -121,7 +123,7 @@ function AdminDashboard() {
   };
 
   const loadEventCategoriesChart = () => {
-    fetch(`${API}/chart/event-categories`)
+    fetch(`${API}/chart/event-categories`, { credentials: 'include' })
       .then((response) => response.json())
       .then((data) => {
         const ctx = document.getElementById("eventCategoriesChart");
@@ -184,7 +186,7 @@ function AdminDashboard() {
   };
 
   const loadRevenueChart = () => {
-    fetch(`${API}/chart/revenue-analysis`)
+    fetch(`${API}/chart/revenue-analysis`, { credentials: 'include' })
       .then((response) => response.json())
       .then((data) => {
         const ctx = document.getElementById("revenueChart");
@@ -230,7 +232,7 @@ function AdminDashboard() {
   };
 
   const loadOrganizerVerificationChart = () => {
-    fetch(`${API}/chart/organizer-verification`)
+    fetch(`${API}/chart/organizer-verification`, { credentials: 'include' })
       .then((response) => response.json())
       .then((data) => {
         const ctx = document.getElementById("organizerVerificationChart");
@@ -274,97 +276,178 @@ function AdminDashboard() {
       );
   };
 
-  // Search functionality
-    const userSearchInput = document.getElementById('user-search');
-    if (userSearchInput) {
-        userSearchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#users table tbody tr');
-            
-            rows.forEach(row => {
-                const name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                const email = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                
-                if (name.includes(searchTerm) || email.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
+  // Handler functions for CRUD operations
+  const handleDeleteUser = async (userId) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      const response = await fetch(`${API}/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(data.message || 'User deleted successfully');
+        // Refresh users list
+        const usersResponse = await fetch(`${API}/users`, { credentials: "include" });
+        const usersData = await usersResponse.json();
+        setUsers(usersData);
+      } else {
+        alert(data.message || 'Failed to delete user');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Error deleting user');
     }
-    const eventSearchInput = document.getElementById('event-search');
-    if (eventSearchInput) {
-        eventSearchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#events table tbody tr');
-            
-            rows.forEach(row => {
-                const name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                const organizer = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                
-                if (name.includes(searchTerm) || organizer.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!confirm('Are you sure you want to delete this event?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:3000/events/${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+
+      // Try to parse JSON response
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // If response is not JSON, it might be HTML (error page)
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        alert('Error: Server returned an unexpected response. Please make sure you are logged in.');
+        return;
+      }
+
+      if (response.ok && data.success) {
+        alert('Event deleted successfully');
+        // Refresh events list
+        const eventsResponse = await fetch(`${API}/events`, { credentials: "include" });
+        const eventsData = await eventsResponse.json();
+        setEvents(eventsData);
+      } else {
+        alert(data.message || 'Failed to delete event');
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Error deleting event: ' + error.message);
     }
-    
-    const organizerSearchInput = document.getElementById('organizer-search');
-    if (organizerSearchInput) {
-        organizerSearchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#organizers table tbody tr');
-            
-            rows.forEach(row => {
-                const name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                const contact = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                
-                if (name.includes(searchTerm) || contact.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
+  };
+
+  const handleViewOrganizer = async (organizerId) => {
+    try {
+      const response = await fetch(`${API}/organizers/${organizerId}`, {
+        credentials: 'include',
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setSelectedOrganizer(data);
+        setShowModal(true);
+      } else {
+        alert('Failed to load organizer details');
+      }
+    } catch (error) {
+      console.error('Error fetching organizer:', error);
+      alert('Error loading organizer details');
     }
-    function addUserEventListeners() {
-        // Edit user
-        document.querySelectorAll('.edit-user').forEach(button => {
-            button.addEventListener('click', function() {
-                const userId = this.getAttribute('data-id');
-                // Implement edit user functionality
-                alert(`Edit user with ID: ${userId}`);
-            });
-        });
-        
-        // Delete user
-        document.querySelectorAll('.delete-user').forEach(button => {
-            button.addEventListener('click', function() {
-                const userId = this.getAttribute('data-id');
-                if (confirm('Are you sure you want to delete this user?')) {
-                    fetch(`/admin/users/${userId}`, {
-                        method: 'DELETE',
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert(data.message);
-                        fetchUsers();
-                    })
-                    .catch(error => console.error('Error deleting user:', error));
-                }
-            });
-        });
+  };
+
+  const handleVerifyOrganizer = async () => {
+    if (!selectedOrganizer) return;
+
+    try {
+      const response = await fetch(`${API}/organizers/${selectedOrganizer._id}/verify`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(data.message || 'Organizer verified successfully');
+        setShowModal(false);
+        // Refresh organizers list
+        const organizersResponse = await fetch(`${API}/organizers`, { credentials: "include" });
+        const organizersData = await organizersResponse.json();
+        setOrganizers(organizersData);
+      } else {
+        alert(data.message || 'Failed to verify organizer');
+      }
+    } catch (error) {
+      console.error('Error verifying organizer:', error);
+      alert('Error verifying organizer');
     }
-  
+  };
+
+  const handleRejectOrganizer = async () => {
+    if (!selectedOrganizer) return;
+
+    try {
+      const response = await fetch(`${API}/organizers/${selectedOrganizer._id}/reject`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(data.message || 'Organizer rejected');
+        setShowModal(false);
+        // Refresh organizers list
+        const organizersResponse = await fetch(`${API}/organizers`, { credentials: "include" });
+        const organizersData = await organizersResponse.json();
+        setOrganizers(organizersData);
+      } else {
+        alert(data.message || 'Failed to reject organizer');
+      }
+    } catch (error) {
+      console.error('Error rejecting organizer:', error);
+      alert('Error rejecting organizer');
+    }
+  };
+
+  // Filter functions for search
+  const filteredUsers = users.filter(user => {
+    if (!searchTerms.users) return true;
+    const term = searchTerms.users.toLowerCase();
+    return (
+      user.name?.toLowerCase().includes(term) ||
+      user.email?.toLowerCase().includes(term)
+    );
+  });
+
+  const filteredEvents = events.filter(event => {
+    if (!searchTerms.events) return true;
+    const term = searchTerms.events.toLowerCase();
+    return (
+      event.title?.toLowerCase().includes(term) ||
+      event.organizerId?.businessName?.toLowerCase().includes(term)
+    );
+  });
+
+  const filteredOrganizers = organizers.filter(org => {
+    if (!searchTerms.organizers) return true;
+    const term = searchTerms.organizers.toLowerCase();
+    return (
+      org.organizationName?.toLowerCase().includes(term) ||
+      org.contactPerson?.toLowerCase().includes(term) ||
+      org.contactNumber?.toLowerCase().includes(term)
+    );
+  });
 
 
   return (
     <>
       {/* Include Navbar */}
-      <div dangerouslySetInnerHTML={{ __html: window.navbarHTML}} />
+      <div dangerouslySetInnerHTML={{ __html: window.navbarHTML }} />
 
       <div className="dashboard-container">
         <div className="gradient-blob blob-1"></div>
@@ -425,9 +508,8 @@ function AdminDashboard() {
             {/* ------------------- DASHBOARD SECTION ------------------- */}
             <section
               id="dashboard"
-              className={`dashboard-section ${
-                activeSection === "dashboard" ? "active" : ""
-              }`}
+              className={`dashboard-section ${activeSection === "dashboard" ? "active" : ""
+                }`}
             >
               <div className="section-header">
                 <h2>Dashboard Overview</h2>
@@ -513,11 +595,10 @@ function AdminDashboard() {
                           </td>
                           <td>
                             <span
-                              className={`status-badge ${
-                                event.status === "start_selling"
-                                  ? "status-verified"
-                                  : "status-pending"
-                              }`}
+                              className={`status-badge ${event.status === "start_selling"
+                                ? "status-verified"
+                                : "status-pending"
+                                }`}
                             >
                               {event.status === "start_selling"
                                 ? "Active"
@@ -541,17 +622,20 @@ function AdminDashboard() {
             {/* ------------------- USERS SECTION ------------------- */}
             <section
               id="users"
-              className={`dashboard-section ${
-                activeSection === "users" ? "active" : ""
-              }`}
+              className={`dashboard-section ${activeSection === "users" ? "active" : ""
+                }`}
             >
               <div className="section-header">
                 <h2>All Users</h2>
                 <div className="search-box">
-  <input id="user-search" type="text" placeholder="Search users..." />
-  <button className="btn-primary">Search</button>
-</div>
-
+                  <input
+                    id="user-search"
+                    type="text"
+                    placeholder="Search users..."
+                    value={searchTerms.users}
+                    onChange={(e) => setSearchTerms({ ...searchTerms, users: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="table-container">
@@ -566,22 +650,19 @@ function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((u) => (
+                    {filteredUsers.map((u) => (
                       <tr key={u._id}>
                         <td>{u._id}</td>
                         <td>{u.name}</td>
                         <td>{u.email}</td>
                         <td>{u.role || "User"}</td>
-
                         <td>
-                          <button className="btn btn-secondary">Edit</button>
                           <button
-  className="btn btn-danger delete-user"
-  data-id={u._id}
->
-  Delete
-</button>
-
+                            className="btn btn-danger"
+                            onClick={() => handleDeleteUser(u._id)}
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -593,17 +674,20 @@ function AdminDashboard() {
             {/* ------------------- EVENTS SECTION ------------------- */}
             <section
               id="events"
-              className={`dashboard-section ${
-                activeSection === "events" ? "active" : ""
-              }`}
+              className={`dashboard-section ${activeSection === "events" ? "active" : ""
+                }`}
             >
               <div className="section-header">
                 <h2>All Events</h2>
                 <div className="search-box">
-  <input id="event-search" type="text" placeholder="Search events..." />
-  <button className="btn-primary">Search</button>
-</div>
-
+                  <input
+                    id="event-search"
+                    type="text"
+                    placeholder="Search events..."
+                    value={searchTerms.events}
+                    onChange={(e) => setSearchTerms({ ...searchTerms, events: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="table-container">
@@ -620,28 +704,36 @@ function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {events.map((e) => (
+                    {filteredEvents.map((e) => (
                       <tr key={e._id}>
                         <td>{e._id}</td>
                         <td>{e.title}</td>
                         <td>{e.organizerId ? e.organizerId.businessName : "Unknown"}</td>
-<td>{new Date(e.startDateTime).toLocaleDateString()}</td>
-<td>{e.venue}</td>
-
+                        <td>{new Date(e.startDateTime).toLocaleDateString()}</td>
+                        <td>{e.venue}</td>
                         <td>
                           <span
-                            className={`status-badge ${
-                              e.status === "active"
-                                ? "status-verified"
-                                : "status-pending"
-                            }`}
+                            className={`status-badge ${e.status === "active"
+                              ? "status-verified"
+                              : "status-pending"
+                              }`}
                           >
                             {e.status}
                           </span>
                         </td>
                         <td>
-                          <button className="btn btn-secondary">View</button>
-                          <button className="btn btn-danger delete-event">Delete</button>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => window.location.href = `/events/${e._id}`}
+                          >
+                            View
+                          </button>
+                          <button
+                            className="btn btn-danger"
+                            onClick={() => handleDeleteEvent(e._id)}
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -653,17 +745,20 @@ function AdminDashboard() {
             {/* ------------------- ORGANIZERS SECTION ------------------- */}
             <section
               id="organizers"
-              className={`dashboard-section ${
-                activeSection === "organizers" ? "active" : ""
-              }`}
+              className={`dashboard-section ${activeSection === "organizers" ? "active" : ""
+                }`}
             >
               <div className="section-header">
                 <h2>Organizers Management</h2>
                 <div className="search-box">
-  <input id="organizer-search" type="text" placeholder="Search organizers..." />
-  <button className="btn-primary">Search</button>
-</div>
-
+                  <input
+                    id="organizer-search"
+                    type="text"
+                    placeholder="Search organizers..."
+                    value={searchTerms.organizers}
+                    onChange={(e) => setSearchTerms({ ...searchTerms, organizers: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="table-container">
@@ -679,22 +774,21 @@ function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {organizers.map((o) => (
+                    {filteredOrganizers.map((o) => (
                       <tr key={o._id}>
                         <td>{o._id}</td>
                         <td>{o.organizationName}</td>
                         <td>{o.contactPerson}</td>
                         <td>{o.contactNumber}</td>
                         <td>
-  <span className={`status-badge ${o.verified ? "status-verified" : "status-pending"}`}>
-    {o.verified ? "Verified" : "Pending"}
-  </span>
-</td>
-
+                          <span className={`status-badge ${o.verified ? "status-verified" : "status-pending"}`}>
+                            {o.verified ? "Verified" : "Pending"}
+                          </span>
+                        </td>
                         <td>
                           <button
-                            className="btn btn-secondary view-organizer"
-                            data-id={o._id}
+                            className="btn btn-secondary"
+                            onClick={() => handleViewOrganizer(o._id)}
                           >
                             View
                           </button>
@@ -709,46 +803,68 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Organizer Modal (kept same) */}
-      <div id="organizerModal" className="modal">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h3>Organizer Details</h3>
-            <button className="close-modal">&times;</button>
-          </div>
+      {/* Organizer Modal */}
+      {showModal && selectedOrganizer && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Organizer Details</h3>
+              <button className="close-modal" onClick={() => setShowModal(false)}>&times;</button>
+            </div>
 
-          <div className="organizer-details">
-            <dl>
-              <dt>Organization Name</dt>
-              <dd id="org-name"></dd>
+            <div className="organizer-details">
+              <dl>
+                <dt>Organization Name</dt>
+                <dd>{selectedOrganizer.organizationName || 'N/A'}</dd>
 
-              <dt>Contact Person</dt>
-              <dd id="org-contact"></dd>
+                <dt>Contact Person</dt>
+                <dd>{selectedOrganizer.contactPerson || 'N/A'}</dd>
 
-              <dt>Contact Number</dt>
-              <dd id="org-phone"></dd>
+                <dt>Contact Number</dt>
+                <dd>{selectedOrganizer.contactNumber || 'N/A'}</dd>
 
-              <dt>Email</dt>
-              <dd id="org-email"></dd>
+                <dt>Email</dt>
+                <dd>{selectedOrganizer.userId?.email || selectedOrganizer.email || 'N/A'}</dd>
 
-              <dt>Description</dt>
-              <dd id="org-description"></dd>
-            </dl>
-          </div>
+                <dt>Description</dt>
+                <dd>{selectedOrganizer.description || 'N/A'}</dd>
 
-          <div className="modal-actions">
-            <button className="btn btn-success" id="verifyOrganizer">
-              Verify Organizer
-            </button>
-            <button className="btn btn-danger" id="rejectOrganizer">
-              Reject
-            </button>
-            <button className="btn btn-secondary" id="closeModal">
-              Close
-            </button>
+                <dt>Verification Status</dt>
+                <dd>
+                  <span className={`status-badge ${selectedOrganizer.verified ? 'status-verified' : 'status-pending'}`}>
+                    {selectedOrganizer.verified ? 'Verified' : 'Pending'}
+                  </span>
+                </dd>
+              </dl>
+            </div>
+
+            <div className="modal-actions">
+              {!selectedOrganizer.verified && (
+                <button
+                  className="btn btn-success"
+                  onClick={handleVerifyOrganizer}
+                >
+                  Verify Organizer
+                </button>
+              )}
+              {selectedOrganizer.verified && (
+                <button
+                  className="btn btn-danger"
+                  onClick={handleRejectOrganizer}
+                >
+                  Revoke Verification
+                </button>
+              )}
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowModal(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

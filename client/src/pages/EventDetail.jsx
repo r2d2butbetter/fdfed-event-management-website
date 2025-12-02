@@ -43,8 +43,12 @@ function EventDetail() {
 			try {
 				const savedResp = await api.get(`/user/check-saved-status?eventId=${id}`);
 				if (!mounted) return;
-				if (savedResp?.success) setSaved(!!savedResp.isSaved);
-			} catch {}
+				if (savedResp?.success) {
+					setSaved(!!savedResp.isSaved);
+				}
+			} catch (error) {
+				console.error('Error checking saved status:', error);
+			}
 		}
 		load();
 		return () => { mounted = false; };
@@ -116,9 +120,13 @@ function EventDetail() {
 						<Typography><b>Status:</b> {event.status}</Typography>
 						<Typography><b>Tickets left:</b> {ticketsLeft ?? '-'}</Typography>
 					</Stack>
-					<Stack direction="row" spacing={2} alignItems="center">
-						<Button onClick={handleRegister} variant="contained" sx={{ px: 4, py: 1.5, background: 'linear-gradient(90deg,#ff4d7e,#ff7eb3)' }}>
-							REGISTER NOW
+					<Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+						<Button
+							onClick={() => navigate(`/payment/${id}`)}
+							variant="contained"
+							sx={{ px: 4, py: 1.5, background: 'linear-gradient(90deg,#ff4d7e,#ff7eb3)' }}
+						>
+							PROCEED TO PAYMENT
 						</Button>
 						<Button onClick={handleSaveToggle} variant="contained" sx={{ px: 4, py: 1.5, background: '#6a35b7' }}>
 							{saved ? 'SAVED' : 'SAVE'}
@@ -145,9 +153,35 @@ function EventDetail() {
 				<Grid container spacing={3}>
 					{related.map((ev) => (
 						<Grid item xs={12} sm={6} md={3} key={ev._id}>
-							<Card component={RouterLink} to={`/events/${ev._id}`} sx={{ textDecoration: 'none', borderRadius: 3 }}>
-								{ev.image && <CardMedia component="img" image={`http://localhost:3000/${ev.image}`} alt={ev.title} />}
-								<CardContent>
+							<Card
+								component={RouterLink}
+								to={`/events/${ev._id}`}
+								sx={{
+									textDecoration: 'none',
+									borderRadius: 3,
+									height: '100%',
+									width: '100%',
+									display: 'flex',
+									flexDirection: 'column',
+									transition: 'transform 0.2s',
+									'&:hover': {
+										transform: 'translateY(-4px)'
+									}
+								}}
+							>
+								{ev.image && (
+									<CardMedia
+										component="img"
+										image={`http://localhost:3000/${ev.image}`}
+										alt={ev.title}
+										sx={{
+											width: '100%',
+											height: 200,
+											objectFit: 'cover'
+										}}
+									/>
+								)}
+								<CardContent sx={{ flexGrow: 1 }}>
 									<Typography sx={{ fontWeight: 700 }}>{ev.title}</Typography>
 								</CardContent>
 							</Card>

@@ -1,273 +1,234 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Stepper,
-  Step,
-  StepLabel,
-  TextField,
-  InputAdornment,
-  CircularProgress,
-  MenuItem,
+    Box,
+    Paper,
+    Typography,
+    TextField,
+    Button,
+    ToggleButton,
+    ToggleButtonGroup,
+    FormControl,
+    InputLabel,
+    OutlinedInput,
+    InputAdornment,
+    IconButton
 } from '@mui/material';
-import { Lock, Person, Login as LoginIcon } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Person, AdminPanelSettings, Business } from '@mui/icons-material';
+import { Formik, Form } from 'formik';
+import * as Yup from 'yup';
+import './Login.css';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '@mui/material/styles';
 
-const steps = ['Account Type', 'Personal Information', 'Complete Login'];
+// Validation Schema
+const loginSchema = Yup.object().shape({
+    role: Yup.string()
+        .oneOf(['user', 'organizer', 'admin'], 'Please select a valid role')
+        .required('Please select a role'),
+    email: Yup.string()
+        .email('Please enter a valid email address')
+        .required('Email is required'),
+    password: Yup.string()
+        .min(8, 'Password must be at least 8 characters')
+        .required('Password is required')
+});
 
 function Login() {
+    const [showPassword, setShowPassword] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const navigate = useNavigate();
+    const { login } = useAuth();
 
-  const theme = useTheme(); // Add this line
-  const isDarkMode = theme.palette.mode === 'dark'; // Add this line
+    const handleClickShowPassword = () => setShowPassword(!showPassword);
 
+    const handleSubmit = async (values, { setSubmitting }) => {
+        console.log(' Login form submitted with:', { email: values.email, role: values.role });
+        setErrorMessage('');
+        try {
+            console.log(' Calling login function...');
+            const result = await login({
+                email: values.email,
+                password: values.password,
+                role: values.role
+            });
 
-  const [activeStep, setActiveStep] = useState(0);
-  const [accountType, setAccountType] = useState('');
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const { login, loading } = useAuth();
-  const navigate = useNavigate();
+            console.log(' Login result:', result);
 
-  const handleNext = async () => {
-    if (activeStep === 0 && !accountType) {
-      setError('Please select account type');
-      return;
-    }
-
-    if (activeStep === 1) {
-      if (!formData.email || !formData.password) {
-        setError('Please fill in all fields');
-        return;
-      }
-      try {
-        const result = await login({ ...formData });
-        if (result.success) {
-          setActiveStep(prev => prev + 1);
-          setTimeout(() => {
-            if (accountType === 'admin') navigate('/admin/dashboard');
-            else if (accountType === 'organizer') navigate('/organizer/dashboard');
-            else navigate('/user/dashboard');
-          }, 1500);
-          return;
+            if (result.success) {
+                console.log('Login successful, navigating to dashboard...');
+                switch (values.role) {
+                    case 'user':
+                        console.log('Navigating to /user/dashboard');
+                        navigate('/user/dashboard');
+                        break;
+                    case 'organizer':
+                        console.log('Navigating to /organizer/dashboard');
+                        navigate('/organizer/dashboard');
+                        break;
+                    case 'admin':
+                        console.log('Navigating to /admin/dashboard');
+                        navigate('/admin/dashboard');
+                        break;
+                    default:
+                        console.log('Navigating to /');
+                        navigate('/');
+                }
+            } else {
+                console.log('Login failed:', result.message);
+                setErrorMessage(result.message || 'Login failed. Please check your credentials.');
+            }
+        } catch (error) {
+            console.log('Login error caught:', error);
+            setErrorMessage('An error occurred during login. Please try again.');
+            console.error('Login error:', error);
+        } finally {
+            setSubmitting(false);
         }
-      } catch (err) {
-        setError(err.message || 'Login failed');
-        return;
-      }
-    }
+    };
 
-    setError('');
-    setActiveStep(prev => prev + 1);
-  };
+    return (
+        <Box className="login-container" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', py: 4, bgcolor: '#f5f5f5' }}>
+            <Paper elevation={1} className="login-paper" sx={{ p: 4, width: '100%', maxWidth: 450, borderRadius: 2 }}>
+                <Typography variant="h4" component="h1" gutterBottom sx={{ textAlign: 'center', fontWeight: 600, mb: 1 }}>
+                    Login
+                </Typography>
 
-  const handleBack = () => {
-    setError('');
-    setActiveStep(prev => prev - 1);
-  };
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 4 }}>
+                    Please select your role and enter your credentials
+                </Typography>
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+                {errorMessage && (
+                    <Box sx={{ mb: 3, p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
+                        <Typography variant="body2" color="error.dark">
+                            {errorMessage}
+                        </Typography>
+                    </Box>
+                )}
 
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-      <Paper
-        elevation={3}
-        sx={{
-          p: 6,
-          width: 600,
-          maxWidth: 580,
-          borderRadius: 4,
-          background: isDarkMode ? '#000' : '#fff', // dark mode black, light mode white
-          textAlign: 'center',
-          overflow: 'hidden',
-        }}
-      >
-        <Box
-          sx={{
-            width: 80,
-            height: 80,
-            borderRadius: '50%',
-            backgroundColor: '#2196f3',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mx: 'auto',
-            mb: 3,
-          }}
-        >
-          <LoginIcon sx={{ fontSize: 40, color: 'white' }} />
+                <Formik
+                    initialValues={{
+                        role: 'user',
+                        email: '',
+                        password: ''
+                    }}
+                    validationSchema={loginSchema}
+                    onSubmit={handleSubmit}
+                >
+                    {({ values, errors, touched, handleChange, handleBlur, setFieldValue, isSubmitting }) => (
+                        <Form>
+                            {/* Role Selection */}
+                            <Box sx={{ mb: 3 }}>
+                                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 500 }}>
+                                    Login as:
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                                    Admins can access all roles Organizers can access Organizer and User
+                                </Typography>
+                                <ToggleButtonGroup
+                                    value={values.role}
+                                    exclusive
+                                    onChange={(event, newRole) => {
+                                        if (newRole !== null) {
+                                            setFieldValue('role', newRole);
+                                        }
+                                    }}
+                                    aria-label="user role"
+                                    fullWidth
+                                    className="role-toggle-group"
+                                >
+                                    <ToggleButton value="user" aria-label="user" className="role-toggle-btn">
+                                        <Person sx={{ mr: 1 }} />
+                                        User
+                                    </ToggleButton>
+                                    <ToggleButton value="organizer" aria-label="organizer" className="role-toggle-btn">
+                                        <Business sx={{ mr: 1 }} />
+                                        Organizer
+                                    </ToggleButton>
+                                    <ToggleButton value="admin" aria-label="admin" className="role-toggle-btn">
+                                        <AdminPanelSettings sx={{ mr: 1 }} />
+                                        Admin
+                                    </ToggleButton>
+                                </ToggleButtonGroup>
+                                {touched.role && errors.role && (
+                                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, display: 'block' }}>
+                                        {errors.role}
+                                    </Typography>
+                                )}
+                            </Box>
+
+                            <TextField
+                                fullWidth
+                                label="Email Address"
+                                name="email"
+                                type="email"
+                                value={values.email}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={touched.email && Boolean(errors.email)}
+                                helperText={touched.email && errors.email}
+                                variant="outlined"
+                                sx={{ mb: 2.5 }}
+                                placeholder="Enter your email"
+                            />
+
+                            <FormControl fullWidth variant="outlined" sx={{ mb: 3 }} error={touched.password && Boolean(errors.password)}>
+                                <InputLabel htmlFor="password">Password</InputLabel>
+                                <OutlinedInput
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={values.password}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    endAdornment={
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                aria-label="toggle password visibility"
+                                                onClick={handleClickShowPassword}
+                                                edge="end"
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    }
+                                    label="Password"
+                                    placeholder="Enter your password (min 8 characters)"
+                                />
+                                {touched.password && errors.password && (
+                                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                                        {errors.password}
+                                    </Typography>
+                                )}
+                            </FormControl>
+
+
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                fullWidth
+                                size="large"
+                                disabled={isSubmitting}
+                                sx={{ py: 1.5, textTransform: 'none', fontSize: '1rem' }}
+                            >
+                                Login as {values.role.charAt(0).toUpperCase() + values.role.slice(1)}
+                            </Button>
+                        </Form>
+                    )}
+                </Formik>
+
+                <Box sx={{ mt: 3, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                        Don't have an account?{' '}
+                        <Link to="/signup" style={{ textDecoration: 'none' }}>
+                            <Button size="small" sx={{ textTransform: 'none' }}>
+                                Sign Up
+                            </Button>
+                        </Link>
+                    </Typography>
+                </Box>
+            </Paper>
         </Box>
-
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            background: 'linear-gradient(135deg, #646cff 0%, #61dafb 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mb: 3,
-          }}
-        >
-          Sign In
-        </Typography>
-
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4, flexWrap: 'wrap' }}>
-          {steps.map((label, index) => (
-            <Step key={label} sx={{ width: 'auto' }}>
-              <StepLabel
-                sx={{
-                  '& .MuiStepLabel-label': {
-                    color: isDarkMode ? 'white !important' : 'black !important',
-                    fontSize: '0.9rem',
-                    whiteSpace: 'normal',
-                    wordBreak: 'break-word',
-                  },
-                  '& .MuiStepIcon-root': {
-                    color: activeStep > index
-                      ? '#2196f3'
-                      : isDarkMode
-                      ? 'rgba(255,255,255,0.3)'
-                      : 'rgba(0,0,0,0.2)',
-                  },
-                  '& .Mui-active': { color: '#2196f3 !important' },
-                  '& .Mui-completed': { color: '#2196f3 !important' },
-                }}
-              >
-                {label}
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        {activeStep === 0 && (
-          <>
-            <Typography variant="h6" sx={{ mb: 3, color: isDarkMode ? 'white' : 'black' }}>
-              Choose Account Type
-            </Typography>
-            <TextField
-              select
-              fullWidth
-              label="Account Type"
-              value={accountType}
-              onChange={e => setAccountType(e.target.value)}
-              SelectProps={{ sx: { '& .MuiSvgIcon-root': { color: isDarkMode ? 'white' : 'black' } } }}
-              sx={{
-                mb: 4,
-                '& .MuiInputLabel-root': { color: isDarkMode ? 'white' : 'black' },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: accountType ? '#2196f3' : isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)' },
-                  '&:hover fieldset': { borderColor: '#2196f3' },
-                  '&.Mui-focused fieldset': { borderColor: '#2196f3' },
-                },
-                '& .MuiInputBase-input': { color: isDarkMode ? 'white' : 'black' },
-              }}
-            >
-              <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="organizer">Organizer</MenuItem>
-              <MenuItem value="user">User</MenuItem>
-            </TextField>
-          </>
-        )}
-
-        {activeStep === 1 && (
-          <>
-            <TextField
-              fullWidth
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              sx={{
-                mb: 3,
-                '& .MuiInputLabel-root': { color: isDarkMode ? 'white' : 'black' },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#2196f3' },
-                  '&:hover fieldset': { borderColor: '#64b5f6' },
-                  '&.Mui-focused fieldset': { borderColor: '#2196f3' },
-                },
-                '& .MuiInputBase-input': { color: isDarkMode ? 'white' : 'black' },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Person sx={{ color: '#2196f3' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={handleChange}
-              sx={{
-                mb: 3,
-                '& .MuiInputLabel-root': { color: isDarkMode ? 'white' : 'black' },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#2196f3' },
-                  '&:hover fieldset': { borderColor: '#64b5f6' },
-                  '&.Mui-focused fieldset': { borderColor: '#2196f3' },
-                },
-                '& .MuiInputBase-input': { color: isDarkMode ? 'white' : 'black' },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Lock sx={{ color: '#2196f3' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </>
-        )}
-
-        {error && (
-          <Typography color="error" sx={{ mb: 3 }}>
-            {error}
-          </Typography>
-        )}
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-          <Button disabled={activeStep === 0} onClick={handleBack}>
-            Back
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleNext}
-            disabled={loading}
-            sx={{
-              backgroundColor: '#2196f3',
-              color: '#fff',
-              px: 5,
-              py: 1.5,
-            }}
-          >
-            {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : activeStep === steps.length - 1 ? 'Finish' : 'Next'}
-          </Button>
-        </Box>
-
-        {activeStep < 2 && (
-          <Typography variant="body2" sx={{ mt: 3, color: isDarkMode ? 'white' : 'black' }}>
-            Don't have an account?{' '}
-            <Link to="/signup" style={{ color: '#2196f3', fontWeight: 600 }}>
-              Sign up here
-            </Link>
-          </Typography>
-        )}
-      </Paper>
-    </Box>
-  );
+    );
 }
 
 export default Login;
