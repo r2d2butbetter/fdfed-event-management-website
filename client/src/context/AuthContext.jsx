@@ -1,11 +1,31 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
 	const [user, setUser] = useState(null);
-	const [loading, setLoading] = useState(false);
+	const [loading, setLoading] = useState(true); // Start with true to check session on load
+	const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+	// Check for existing session on mount
+	useEffect(() => {
+		const checkSession = async () => {
+			try {
+				const response = await api.get('/check-session');
+				if (response?.success && response?.isAuthenticated && response?.data) {
+					setUser(response.data);
+				}
+			} catch (error) {
+				console.error('Error checking session:', error);
+			} finally {
+				setLoading(false);
+				setInitialCheckDone(true);
+			}
+		};
+
+		checkSession();
+	}, []);
 
 	const login = async ({ email, password, role }) => {
 		setLoading(true);
@@ -70,7 +90,7 @@ export function AuthProvider({ children }) {
 		setUser(null);
 	};
 
-	const value = useMemo(() => ({ user, isAuthenticated: !!user, loading, login, signup, logout }), [user, loading]);
+	const value = useMemo(() => ({ user, isAuthenticated: !!user, loading, login, signup, logout, initialCheckDone }), [user, loading, initialCheckDone]);
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

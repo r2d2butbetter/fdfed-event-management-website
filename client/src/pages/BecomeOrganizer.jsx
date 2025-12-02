@@ -37,8 +37,11 @@ function BecomeOrganizer() {
     useEffect(() => {
         if (!isAuthenticated) {
             navigate('/login');
+        } else if (user?.role === 'organizer') {
+            // If user is already an organizer, redirect to dashboard
+            navigate('/organizer/dashboard');
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, user, navigate]);
 
     const handleSubmit = async (values) => {
         setLoading(true);
