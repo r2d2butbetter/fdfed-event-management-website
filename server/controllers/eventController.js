@@ -181,46 +181,69 @@ class eventController {
             const titleQuery = req.query.title || '';
             const venueQuery = req.query.venue || '';
             const categoryQuery = req.query.category || '';
-            const page = parseInt(req.query.page) || 1;
+            const sellingPage = parseInt(req.query.sellingPage) || 1;
+            const upcomingPage = parseInt(req.query.upcomingPage) || 1;
             const limit = parseInt(req.query.limit) || 12;
-            const skip = (page - 1) * limit;
 
-            // Build filter
-            const filter = { status: 'start_selling' };
+            // Build base filter without status
+            const baseFilter = {};
 
             if (titleQuery) {
-                filter.title = { $regex: titleQuery, $options: 'i' };
+                baseFilter.title = { $regex: titleQuery, $options: 'i' };
             }
 
             if (venueQuery) {
-                filter.venue = { $regex: venueQuery, $options: 'i' };
+                baseFilter.venue = { $regex: venueQuery, $options: 'i' };
             }
 
             if (categoryQuery) {
-                filter.category = { $regex: categoryQuery, $options: 'i' };
+                baseFilter.category = { $regex: categoryQuery, $options: 'i' };
             }
 
-            // Get total count for pagination
-            const totalEvents = await Event.countDocuments(filter);
-            const totalPages = Math.ceil(totalEvents / limit);
-
-            // Fetch events with pagination
-            const events = await Event.find(filter)
+            // Get selling events
+            const sellingSkip = (sellingPage - 1) * limit;
+            const sellingFilter = { ...baseFilter, status: 'start_selling' };
+            const totalSellingEvents = await Event.countDocuments(sellingFilter);
+            const totalSellingPages = Math.ceil(totalSellingEvents / limit);
+            const sellingEvents = await Event.find(sellingFilter)
                 .sort({ startDateTime: 1 })
-                .skip(skip)
+                .skip(sellingSkip)
+                .limit(limit)
+                .lean();
+
+            // Get upcoming events
+            const upcomingSkip = (upcomingPage - 1) * limit;
+            const upcomingFilter = { ...baseFilter, status: 'upcoming' };
+            const totalUpcomingEvents = await Event.countDocuments(upcomingFilter);
+            const totalUpcomingPages = Math.ceil(totalUpcomingEvents / limit);
+            const upcomingEvents = await Event.find(upcomingFilter)
+                .sort({ startDateTime: 1 })
+                .skip(upcomingSkip)
                 .limit(limit)
                 .lean();
 
             return res.status(200).json({
                 success: true,
                 data: {
-                    events,
-                    pagination: {
-                        currentPage: page,
-                        totalPages,
-                        totalEvents,
-                        hasNextPage: page < totalPages,
-                        hasPrevPage: page > 1
+                    selling: {
+                        events: sellingEvents,
+                        pagination: {
+                            currentPage: sellingPage,
+                            totalPages: totalSellingPages,
+                            totalEvents: totalSellingEvents,
+                            hasNextPage: sellingPage < totalSellingPages,
+                            hasPrevPage: sellingPage > 1
+                        }
+                    },
+                    upcoming: {
+                        events: upcomingEvents,
+                        pagination: {
+                            currentPage: upcomingPage,
+                            totalPages: totalUpcomingPages,
+                            totalEvents: totalUpcomingEvents,
+                            hasNextPage: upcomingPage < totalUpcomingPages,
+                            hasPrevPage: upcomingPage > 1
+                        }
                     }
                 }
             });
@@ -241,10 +264,10 @@ class eventController {
             const limit = parseInt(req.query.limit) || 12;
             const skip = (page - 1) * limit;
 
-            // Build filter
+            // Build filter - show selling, upcoming, and over events on category pages
             const filter = {
                 category: { $regex: category, $options: 'i' },
-                status: 'start_selling'
+                status: { $in: ['start_selling', 'upcoming', 'over'] }
             };
 
             // Get total count for pagination
@@ -302,7 +325,7 @@ class eventController {
             const relatedEvents = await Event.find({
                 category: event.category,
                 _id: { $ne: eventId },
-                status: 'start_selling'
+                status: { $in: ['start_selling', 'upcoming', 'over'] }
             }).limit(4).lean();
 
             // Get registration count for capacity tracking

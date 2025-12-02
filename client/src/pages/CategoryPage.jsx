@@ -13,9 +13,16 @@ import {
     CircularProgress,
     Alert,
     Chip,
-    Button,
     Breadcrumbs,
     Link,
+    Button,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    Checkbox,
+    ListItemText,
+    OutlinedInput,
 } from '@mui/material';
 import {
     CalendarToday as CalendarIcon,
@@ -55,13 +62,16 @@ const categoryConfig = {
 function CategoryPage() {
     const { category } = useParams();
     const navigate = useNavigate();
-    const [events, setEvents] = useState([]);
+    const [allEvents, setAllEvents] = useState([]);
+    const [filteredEvents, setFilteredEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalEvents, setTotalEvents] = useState(0);
+    const [statusFilter, setStatusFilter] = useState(['start_selling', 'upcoming', 'over']);
     const eventsRef = useRef(null);
+    const ITEMS_PER_PAGE = 15;
 
     const config = categoryConfig[category] || {
         title: category?.charAt(0).toUpperCase() + category?.slice(1),
@@ -71,31 +81,50 @@ function CategoryPage() {
     };
 
     useEffect(() => {
-        fetchEvents(page);
-    }, [category, page]);
+        fetchEvents();
+    }, [category]);
 
     useEffect(() => {
-        if (!loading && events.length > 0 && page > 1 && eventsRef.current) {
+        // Apply client-side filtering and pagination
+        applyFilters();
+    }, [allEvents, statusFilter, page]);
+
+    useEffect(() => {
+        if (!loading && filteredEvents.length > 0 && page > 1 && eventsRef.current) {
             const yOffset = -100;
             const y = eventsRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
             window.scrollTo({ top: y, behavior: 'smooth' });
         }
-    }, [loading, events, page]);
+    }, [loading, filteredEvents, page]);
 
-    const fetchEvents = async (pageNum) => {
+    const applyFilters = () => {
+        let filtered = [...allEvents];
+
+        // Filter by status - show events that match any of the selected statuses
+        if (statusFilter.length > 0) {
+            filtered = filtered.filter(event => statusFilter.includes(event.status));
+        }
+
+        // Calculate pagination
+        const total = filtered.length;
+        setTotalEvents(total);
+        setTotalPages(Math.ceil(total / ITEMS_PER_PAGE));
+
+        // Apply pagination
+        const startIndex = (page - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        setFilteredEvents(filtered.slice(startIndex, endIndex));
+    };
+
+    const fetchEvents = async () => {
         setLoading(true);
         setError(null);
         try {
-            const params = new URLSearchParams({
-                page: pageNum,
-                limit: 15,
-            });
-
-            // Convert URL category format (health-camps) to match database format (health camps/Health Camps)
+            // Fetch all events without pagination
             const categorySearch = category.replace(/-/g, ' ');
 
             const response = await fetch(
-                `http://localhost:3000/events/category/${encodeURIComponent(categorySearch)}?${params.toString()}`,
+                `http://localhost:3000/events/category/${encodeURIComponent(categorySearch)}?limit=1000`,
                 {
                     credentials: 'include',
                 }
@@ -110,9 +139,8 @@ function CategoryPage() {
             if (data.success) {
                 console.log('Events data sample:', data.data.events[0]);
                 console.log('Image fields:', data.data.events.map(e => ({ id: e._id, image: e.image, imageUrl: e.imageUrl })));
-                setEvents(data.data.events);
-                setTotalPages(data.data.pagination.totalPages);
-                setTotalEvents(data.data.pagination.totalEvents);
+                setAllEvents(data.data.events);
+                setPage(1); // Reset to first page when fetching new data
             } else {
                 throw new Error(data.message || 'Failed to fetch events');
             }
@@ -126,6 +154,11 @@ function CategoryPage() {
 
     const handlePageChange = (event, value) => {
         setPage(value);
+    };
+
+    const handleStatusFilterChange = (newStatus) => {
+        setStatusFilter(newStatus);
+        setPage(1); // Reset to first page when filter changes
     };
 
     const formatDate = (dateString) => {
@@ -254,6 +287,73 @@ function CategoryPage() {
                 maxWidth="xl"
                 sx={{ maxWidth: '1400px !important', py: { xs: 6, md: 8 } }}
             >
+                {/* Status Filter Dropdown */}
+                <Box sx={{ mb: 4 }}>
+                    <FormControl sx={{ width: '100%', maxWidth: 300 }}>
+                        <InputLabel id="status-filter-label">Filter by Status</InputLabel>
+                        <Select
+                            labelId="status-filter-label"
+                            id="status-filter"
+                            multiple
+                            value={statusFilter}
+                            onChange={(event) => handleStatusFilterChange(event.target.value)}
+                            input={<OutlinedInput label="Filter by Status" />}
+                            renderValue={(selected) => {
+                                const labels = {
+                                    start_selling: 'Selling Now',
+                                    upcoming: 'Coming Soon',
+                                    over: 'Event Over',
+                                };
+                                return selected.map(s => labels[s]).join(', ');
+                            }}
+                            MenuProps={{
+                                PaperProps: {
+                                    style: {
+                                        maxHeight: 300,
+                                    },
+                                },
+                            }}
+                        >
+                            <MenuItem value="start_selling">
+                                <Checkbox
+                                    checked={statusFilter.includes('start_selling')}
+                                    sx={{
+                                        color: '#4CAF50',
+                                        '&.Mui-checked': {
+                                            color: '#4CAF50',
+                                        },
+                                    }}
+                                />
+                                <ListItemText primary="Selling Now" />
+                            </MenuItem>
+                            <MenuItem value="upcoming">
+                                <Checkbox
+                                    checked={statusFilter.includes('upcoming')}
+                                    sx={{
+                                        color: '#FF9800',
+                                        '&.Mui-checked': {
+                                            color: '#FF9800',
+                                        },
+                                    }}
+                                />
+                                <ListItemText primary="Coming Soon" />
+                            </MenuItem>
+                            <MenuItem value="over">
+                                <Checkbox
+                                    checked={statusFilter.includes('over')}
+                                    sx={{
+                                        color: '#9E9E9E',
+                                        '&.Mui-checked': {
+                                            color: '#9E9E9E',
+                                        },
+                                    }}
+                                />
+                                <ListItemText primary="Event Over" />
+                            </MenuItem>
+                        </Select>
+                    </FormControl>
+                </Box>
+
                 {/* Loading State */}
                 {loading && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 12 }}>
@@ -279,14 +379,14 @@ function CategoryPage() {
                 )}
 
                 {/* Events Grid */}
-                {!loading && !error && events.length > 0 && (
+                {!loading && !error && filteredEvents.length > 0 && (
                     <>
                         <Grid
                             container
                             spacing={3}
                             sx={{ alignItems: 'stretch', justifyContent: 'center' }}
                         >
-                            {events.map((event) => (
+                            {filteredEvents.map((event) => (
                                 <Grid
                                     item
                                     xs={12}
@@ -349,6 +449,31 @@ function CategoryPage() {
                                                     top: 12,
                                                     right: 12,
                                                     bgcolor: config.color,
+                                                    color: 'white',
+                                                    fontWeight: 600,
+                                                    backdropFilter: 'blur(10px)',
+                                                }}
+                                            />
+                                            {/* Status Badge - Selling Now, Coming Soon, or Event Over */}
+                                            <Chip
+                                                label={
+                                                    event.status === 'start_selling'
+                                                        ? 'Selling Now'
+                                                        : event.status === 'over'
+                                                            ? 'Event Over'
+                                                            : 'Coming Soon'
+                                                }
+                                                size="small"
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: 12,
+                                                    left: 12,
+                                                    bgcolor:
+                                                        event.status === 'start_selling'
+                                                            ? '#4CAF50'
+                                                            : event.status === 'over'
+                                                                ? '#9E9E9E'
+                                                                : '#FF9800',
                                                     color: 'white',
                                                     fontWeight: 600,
                                                     backdropFilter: 'blur(10px)',
@@ -451,8 +576,9 @@ function CategoryPage() {
                                             <Button
                                                 fullWidth
                                                 variant="contained"
+                                                disabled={event.status === 'over'}
                                                 sx={{
-                                                    bgcolor: config.color,
+                                                    bgcolor: event.status === 'over' ? '#9E9E9E' : config.color,
                                                     color: 'white',
                                                     fontWeight: 600,
                                                     py: 1.2,
@@ -460,15 +586,19 @@ function CategoryPage() {
                                                     textTransform: 'none',
                                                     fontSize: '0.9rem',
                                                     '&:hover': {
-                                                        bgcolor: config.color,
-                                                        filter: 'brightness(0.9)',
-                                                        transform: 'scale(1.02)',
+                                                        bgcolor: event.status === 'over' ? '#9E9E9E' : config.color,
+                                                        filter: event.status === 'over' ? 'none' : 'brightness(0.9)',
+                                                        transform: event.status === 'over' ? 'none' : 'scale(1.02)',
+                                                    },
+                                                    '&.Mui-disabled': {
+                                                        bgcolor: '#9E9E9E',
+                                                        color: 'white',
                                                     },
                                                     transition: 'all 0.2s ease',
                                                 }}
                                                 onClick={() => navigate(`/events/${event._id}`)}
                                             >
-                                                View Details
+                                                {event.status === 'over' ? 'Event Ended' : event.status === 'start_selling' ? 'Book Now' : 'View Details'}
                                             </Button>
                                         </CardActions>
                                     </Card>
@@ -510,7 +640,7 @@ function CategoryPage() {
                 )}
 
                 {/* No Events State */}
-                {!loading && !error && events.length === 0 && (
+                {!loading && !error && filteredEvents.length === 0 && (
                     <Box
                         sx={{
                             textAlign: 'center',
@@ -536,8 +666,10 @@ function CategoryPage() {
                                 fontSize: '1.1rem',
                             }}
                         >
-                            There are currently no events in the {config.title.toLowerCase()}{' '}
-                            category.
+                            {statusFilter.length === 3
+                                ? `There are currently no events in the ${config.title.toLowerCase()} category.`
+                                : `There are currently no events matching the selected filters in the ${config.title.toLowerCase()} category.`
+                            }
                         </Typography>
                         <Button
                             variant="contained"

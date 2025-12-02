@@ -1,11 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Container, Typography, TextField, Button, Grid, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import heroImage from '../assets/images/hero_img2.png';
 
 const HeroSection = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [totalEvents, setTotalEvents] = useState(0);
+    const [totalOrganizers, setTotalOrganizers] = useState(0);
+    const [displayEvents, setDisplayEvents] = useState(0);
+    const [displayOrganizers, setDisplayOrganizers] = useState(0);
     const navigate = useNavigate();
+
+    // Fetch stats on mount
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('http://localhost:3000/stats', {
+                    credentials: 'include',
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        setTotalEvents(data.data.totalEvents);
+                        setTotalOrganizers(data.data.totalOrganizers);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+                // Fallback to default values if fetch fails
+                setTotalEvents(5000);
+                setTotalOrganizers(100);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
+    // Animate count up for events
+    useEffect(() => {
+        if (totalEvents === 0) return;
+
+        const duration = 2000; // 2 seconds
+        const steps = 60;
+        const increment = totalEvents / steps;
+        let currentStep = 0;
+
+        const timer = setInterval(() => {
+            currentStep++;
+            if (currentStep >= steps) {
+                setDisplayEvents(totalEvents);
+                clearInterval(timer);
+            } else {
+                setDisplayEvents(Math.floor(increment * currentStep));
+            }
+        }, duration / steps);
+
+        return () => clearInterval(timer);
+    }, [totalEvents]);
+
+    // Animate count up for organizers
+    useEffect(() => {
+        if (totalOrganizers === 0) return;
+
+        const duration = 2000; // 2 seconds
+        const steps = 60;
+        const increment = totalOrganizers / steps;
+        let currentStep = 0;
+
+        const timer = setInterval(() => {
+            currentStep++;
+            if (currentStep >= steps) {
+                setDisplayOrganizers(totalOrganizers);
+                clearInterval(timer);
+            } else {
+                setDisplayOrganizers(Math.floor(increment * currentStep));
+            }
+        }, duration / steps);
+
+        return () => clearInterval(timer);
+    }, [totalOrganizers]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -140,7 +213,7 @@ const HeroSection = () => {
                                             color: '#1a1a1a'
                                         }}
                                     >
-                                        5000+
+                                        {displayEvents.toLocaleString()}+
                                     </Typography>
                                     <Typography
                                         variant="body2"
@@ -175,7 +248,7 @@ const HeroSection = () => {
                                             color: '#1a1a1a'
                                         }}
                                     >
-                                        100K+
+                                        {displayOrganizers.toLocaleString()}+
                                     </Typography>
                                     <Typography
                                         variant="body2"
@@ -186,7 +259,7 @@ const HeroSection = () => {
                                             lineHeight: 1.4
                                         }}
                                     >
-                                        Happy<br />Attendees
+                                        Event<br />Organizers
                                     </Typography>
                                 </Box>
                             </Box>
