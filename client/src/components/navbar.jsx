@@ -8,6 +8,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import ArrowDropDown from '@mui/icons-material/ArrowDropDown';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,6 +16,14 @@ function Navbar() {
 	const { user, isAuthenticated, logout } = useAuth();
 	const navigate = useNavigate();
 	const [anchorEl, setAnchorEl] = useState(null);
+	const [categoryAnchorEl, setCategoryAnchorEl] = useState(null);
+
+	const categories = [
+		{ name: 'Concerts', path: '/category/concerts' },
+		{ name: 'TEDx', path: '/category/tedx' },
+		{ name: 'Health Camps', path: '/category/health-camps' },
+		{ name: 'Exhibitions', path: '/category/exhibitions' },
+	];
 
 	// Determine where "Host with Us" should navigate
 	const handleHostWithUs = () => {
@@ -41,6 +50,19 @@ function Navbar() {
 		setAnchorEl(null);
 	};
 
+	const handleCategoryMenuOpen = (event) => {
+		setCategoryAnchorEl(event.currentTarget);
+	};
+
+	const handleCategoryMenuClose = () => {
+		setCategoryAnchorEl(null);
+	};
+
+	const handleCategoryClick = (path) => {
+		handleCategoryMenuClose();
+		navigate(path);
+	};
+
 	const handleDashboard = () => {
 		handleMenuClose();
 		// Everyone goes to user dashboard (organizers are also users)
@@ -55,7 +77,54 @@ function Navbar() {
 				</Typography>
 				<Box sx={{ display: 'flex', gap: 2 }}>
 					<Button component={RouterLink} to="/" sx={{ color: '#fff' }}>Home</Button>
-					<Button component={RouterLink} to="/categories/concerts" sx={{ color: '#fff' }}>Categories</Button>
+
+					{/* Categories Dropdown */}
+					<Button
+						onClick={handleCategoryMenuOpen}
+						endIcon={<ArrowDropDown />}
+						sx={{ color: '#fff' }}
+					>
+						Categories
+					</Button>
+					<Menu
+						anchorEl={categoryAnchorEl}
+						open={Boolean(categoryAnchorEl)}
+						onClose={handleCategoryMenuClose}
+						anchorOrigin={{
+							vertical: 'bottom',
+							horizontal: 'left',
+						}}
+						transformOrigin={{
+							vertical: 'top',
+							horizontal: 'left',
+						}}
+						PaperProps={{
+							sx: {
+								mt: 1,
+								background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(22, 33, 62, 0.98) 100%)',
+								backdropFilter: 'blur(10px)',
+								border: '1px solid rgba(147, 83, 211, 0.3)',
+								borderRadius: 2,
+								minWidth: 180,
+							},
+						}}
+					>
+						{categories.map((category) => (
+							<MenuItem
+								key={category.path}
+								onClick={() => handleCategoryClick(category.path)}
+								sx={{
+									color: '#fff',
+									'&:hover': {
+										backgroundColor: 'rgba(147, 83, 211, 0.2)',
+									},
+								}}
+							>
+								{category.name}
+							</MenuItem>
+						))}
+					</Menu>
+
 					<Button component={RouterLink} to="/contact-us" sx={{ color: '#fff' }}>Contact Us</Button>
 					<Button onClick={handleHostWithUs} sx={{ color: '#fff' }}>Host with Us</Button>
 				</Box>
