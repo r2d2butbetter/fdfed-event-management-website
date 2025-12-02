@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import Signup from './pages/Signup';
 import EventDetail from './pages/EventDetail';
 import Navbar from './components/navbar';
+import Createevent from './pages/createEvent';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
 
         <Route path='/signup' element={<Signup />} />
         <Route path='/events/:id' element={<EventDetail />} />
+        <Route path='/create-event' element={<Createevent />} />
       </Routes>
     </>
   );
