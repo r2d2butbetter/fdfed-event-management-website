@@ -17,7 +17,7 @@ function Navbar() {
 					<Button component={RouterLink} to="/" sx={{ color: '#fff' }}>Home</Button>
 					<Button component={RouterLink} to="/categories/concerts" sx={{ color: '#fff' }}>Categories</Button>
 					<Button component={RouterLink} to="/contact-us" sx={{ color: '#fff' }}>Contact Us</Button>
-					<Button component={RouterLink} to="/become-organizer" sx={{ color: '#fff' }}>Host with Us</Button>
+					<Button component={RouterLink} to="/host-with-us" sx={{ color: '#fff' }}>Host with Us</Button>
 				</Box>
 				<Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
 					<Button component={RouterLink} to="/signup" variant="contained" sx={{ background: 'linear-gradient(90deg,#7b2cff,#b06cff)' }}>

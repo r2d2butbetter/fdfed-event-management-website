@@ -14,6 +14,8 @@ import Signup from './pages/Signup';
 import EventDetail from './pages/EventDetail';
 import CategoryPage from './pages/CategoryPage';
 import Navbar from './components/navbar';
+import Footer from './components/Footer';
+
 
 function App() {
   return (
@@ -36,6 +38,7 @@ function App() {
         <Route path='/events/:id' element={<EventDetail />} />
         <Route path='/category/:category' element={<CategoryPage />} />
       </Routes>
+      <Footer />
     </>
   );
 }

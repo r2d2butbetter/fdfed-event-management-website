@@ -18,7 +18,6 @@ import { Visibility, VisibilityOff, Person, AdminPanelSettings, Business } from 
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import './Login.css';
-import { Lock, Login as LoginIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
 // Validation Schema
@@ -57,22 +56,21 @@ function Login() {
 
             if (result.success) {
                 console.log('Login successful, navigating to dashboard...');
-                // Navigate based on role
                 switch (values.role) {
                     case 'user':
-                        console.log('➡️ Navigating to /user/dashboard');
+                        console.log('Navigating to /user/dashboard');
                         navigate('/user/dashboard');
                         break;
                     case 'organizer':
-                        console.log('➡️ Navigating to /organizer/dashboard');
+                        console.log('Navigating to /organizer/dashboard');
                         navigate('/organizer/dashboard');
                         break;
                     case 'admin':
-                        console.log('➡️ Navigating to /admin/dashboard');
+                        console.log('Navigating to /admin/dashboard');
                         navigate('/admin/dashboard');
                         break;
                     default:
-                        console.log('➡️ Navigating to /');
+                        console.log('Navigating to /');
                         navigate('/');
                 }
             } else {
@@ -123,6 +121,9 @@ function Login() {
                                 <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 500 }}>
                                     Login as:
                                 </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                                    Admins can access all roles Organizers can access Organizer and User
+                                </Typography>
                                 <ToggleButtonGroup
                                     value={values.role}
                                     exclusive
@@ -155,7 +156,6 @@ function Login() {
                                 )}
                             </Box>
 
-                            {/* Email Field */}
                             <TextField
                                 fullWidth
                                 label="Email Address"
@@ -171,7 +171,6 @@ function Login() {
                                 placeholder="Enter your email"
                             />
 
-                            {/* Password Field */}
                             <FormControl fullWidth variant="outlined" sx={{ mb: 3 }} error={touched.password && Boolean(errors.password)}>
                                 <InputLabel htmlFor="password">Password</InputLabel>
                                 <OutlinedInput
@@ -202,7 +201,7 @@ function Login() {
                                 )}
                             </FormControl>
 
-                            {/* Submit Button */}
+
                             <Button
                                 type="submit"
                                 variant="contained"
@@ -217,7 +216,6 @@ function Login() {
                     )}
                 </Formik>
 
-                {/* Additional Links */}
                 <Box sx={{ mt: 3, textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
                         Don't have an account?{' '}

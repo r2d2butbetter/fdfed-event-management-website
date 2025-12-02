@@ -21,18 +21,26 @@ export function AuthProvider({ children }) {
 				const userData = resp.data;
 				console.log(' AuthContext: User data received:', userData);
 
+				const canAccessRole = (userRole, requestedRole) => {
+					if (userRole === 'admin') return true; // Admin can access all roles
+					if (userRole === 'organizer' && (requestedRole === 'organizer' || requestedRole === 'user')) return true;
+					if (userRole === 'user' && requestedRole === 'user') return true;
+					return false;
+				};
 
-				if (userData.role !== role) {
-					console.log('AuthContext: Role mismatch. Expected:', role, 'Got:', userData.role);
+				if (!canAccessRole(userData.role, role)) {
+					console.log('AuthContext: Role access denied. User role:', userData.role, 'Requested:', role);
 					return {
 						success: false,
 						message: `You don't have ${role} privileges. Your account is registered as a ${userData.role}.`
 					};
 				}
 
-				console.log('AuthContext: Role verified, setting user');
-				setUser(userData);
-				return { success: true, data: userData };
+				console.log('AuthContext: Role verified, setting user with requested role:', role);
+				// Store both the actual user role and the currently selected role
+				const userWithSelectedRole = { ...userData, selectedRole: role };
+				setUser(userWithSelectedRole);
+				return { success: true, data: userWithSelectedRole };
 			}
 			console.log('AuthContext: Login failed:', resp?.message);
 			return { success: false, message: resp?.message || 'Login failed' };
