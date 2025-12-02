@@ -1,0 +1,115 @@
+.payment-container {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.payment-method-toggle {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px !important;
+}
+
+.payment-toggle-btn {
+    padding: 12px 24px !important;
+    transition: all 0.3s ease !important;
+}
+
+.payment-toggle-btn:hover {
+    background-color: rgba(180, 123, 255, 0.1) !important;
+}
+
+.payment-toggle-btn.Mui-selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+}
+
+.payment-toggle-btn.Mui-selected:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+}
+
+.payment-summary {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    border-left: 4px solid #667eea;
+    transition: transform 0.2s ease;
+}
+
+.payment-summary:hover {
+    transform: translateX(4px);
+}
+
+.payment-submit-btn {
+    background: linear-gradient(90deg, #667eea, #764ba2) !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+}
+
+.payment-submit-btn:hover {
+    background: linear-gradient(90deg, #764ba2, #667eea) !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6) !important;
+    transform: translateY(-2px);
+}
+
+.payment-submit-btn:disabled {
+    background: linear-gradient(90deg, #ccc, #999) !important;
+    box-shadow: none !important;
+}
+
+.tickets-left {
+    background: linear-gradient(90deg, #ff4d7e, #ff7eb3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700 !important;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Card animations */
+.MuiPaper-root {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.MuiPaper-root:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Form field animations */
+.MuiTextField-root {
+    transition: all 0.2s ease;
+}
+
+.MuiTextField-root:focus-within {
+    transform: scale(1.01);
+}
+
+/* Alert styling */
+.MuiAlert-root {
+    border-radius: 8px !important;
+    font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .payment-container {
+        padding: 1rem 0;
+    }
+
+    .payment-toggle-btn {
+        padding: 10px 16px !important;
+        font-size: 0.875rem !important;
+    }
+}

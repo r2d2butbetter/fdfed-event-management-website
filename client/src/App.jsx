@@ -13,6 +13,7 @@ import BecomeOrganizer from './pages/BecomeOrganizer';
 import Signup from './pages/Signup';
 import EventDetail from './pages/EventDetail';
 import CategoryPage from './pages/CategoryPage';
+import PaymentPage from './pages/PaymentPage';
 import Navbar from './components/navbar';
 import Footer from './components/Footer';
 
@@ -37,6 +38,7 @@ function App() {
         <Route path='/signup' element={<Signup />} />
         <Route path='/events/:id' element={<EventDetail />} />
         <Route path='/category/:category' element={<CategoryPage />} />
+        <Route path='/payment/:id' element={<PaymentPage />} />
       </Routes>
       <Footer />
     </>

@@ -120,9 +120,13 @@ function EventDetail() {
 						<Typography><b>Status:</b> {event.status}</Typography>
 						<Typography><b>Tickets left:</b> {ticketsLeft ?? '-'}</Typography>
 					</Stack>
-					<Stack direction="row" spacing={2} alignItems="center">
-						<Button onClick={handleRegister} variant="contained" sx={{ px: 4, py: 1.5, background: 'linear-gradient(90deg,#ff4d7e,#ff7eb3)' }}>
-							REGISTER NOW
+					<Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+						<Button
+							onClick={() => navigate(`/payment/${id}`)}
+							variant="contained"
+							sx={{ px: 4, py: 1.5, background: 'linear-gradient(90deg,#ff4d7e,#ff7eb3)' }}
+						>
+							PROCEED TO PAYMENT
 						</Button>
 						<Button onClick={handleSaveToggle} variant="contained" sx={{ px: 4, py: 1.5, background: '#6a35b7' }}>
 							{saved ? 'SAVED' : 'SAVE'}
