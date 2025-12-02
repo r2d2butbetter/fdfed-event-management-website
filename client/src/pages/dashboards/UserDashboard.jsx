@@ -21,22 +21,35 @@ import {
     DialogContent,
     DialogActions,
     CardMedia,
-    CardActions,
     Chip,
-    Stack
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Avatar,
+    FormControl,
+    InputLabel,
+    OutlinedInput,
+    InputAdornment,
+    FormHelperText
 } from '@mui/material';
 import {
     Person as PersonIcon,
     Email as EmailIcon,
     Lock as LockIcon,
     Bookmark as BookmarkIcon,
-    BookmarkBorder as BookmarkBorderIcon,
     Event as EventIcon,
     LocationOn as LocationOnIcon,
     CalendarToday as CalendarIcon,
-    Delete as DeleteIcon,
     Visibility,
-    VisibilityOff
+    VisibilityOff,
+    ConfirmationNumber as TicketIcon,
+    EventAvailable as EventAvailableIcon,
+    CheckCircle as CheckCircleIcon,
+    Cancel as CancelIcon,
+    Info as InfoIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -46,20 +59,19 @@ function UserDashboard() {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
+    const [savedEventsLoading, setSavedEventsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState(0);
     const [dashboardData, setDashboardData] = useState(null);
     const [savedEvents, setSavedEvents] = useState([]);
+    const [bookedEvents, setBookedEvents] = useState([]);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-    const [confirmDialog, setConfirmDialog] = useState({ open: false, eventId: null, eventTitle: '' });
+    const [confirmDialog, setConfirmDialog] = useState({ open: false, eventId: null, eventTitle: '', action: '' });
 
     // Profile edit states
-    const [profileData, setProfileData] = useState({ name: '', email: '' });
+    const [profileData, setProfileData] = useState({ name: '', email: '', username: '' });
     const [emailData, setEmailData] = useState({ newEmail: '', password: '' });
     const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-    const [showNewPassword, setShowNewPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [showEmailPassword, setShowEmailPassword] = useState(false);
+    const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false, emailPassword: false });
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -68,6 +80,7 @@ function UserDashboard() {
         }
 
         fetchDashboardData();
+        fetchSavedEvents(); // Load saved events count for stats
     }, [isAuthenticated, navigate]);
 
     const fetchDashboardData = async () => {
@@ -77,8 +90,11 @@ function UserDashboard() {
                 setDashboardData(response.data);
                 setProfileData({
                     name: response.data.user.name,
-                    email: response.data.user.email
+                    email: response.data.user.email,
+                    username: response.data.user.username || ''
                 });
+                // Set booked events from dashboard response
+                setBookedEvents(response.data.bookings || []);
             }
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
@@ -89,6 +105,7 @@ function UserDashboard() {
     };
 
     const fetchSavedEvents = async () => {
+        setSavedEventsLoading(true);
         try {
             const response = await api.get('/user/saved-events');
             if (response.success) {
@@ -97,11 +114,13 @@ function UserDashboard() {
         } catch (error) {
             console.error('Failed to fetch saved events:', error);
             showSnackbar('Failed to load saved events', 'error');
+        } finally {
+            setSavedEventsLoading(false);
         }
     };
 
     useEffect(() => {
-        if (activeTab === 2) {
+        if (activeTab === 3) {
             fetchSavedEvents();
         }
     }, [activeTab]);
@@ -110,7 +129,7 @@ function UserDashboard() {
         setSnackbar({ open: true, message, severity });
     };
 
-    const handleCloseSnackbar = () => {
+    const handleSnackbarClose = () => {
         setSnackbar({ ...snackbar, open: false });
     };
 
@@ -180,6 +199,7 @@ function UserDashboard() {
             if (response.success) {
                 showSnackbar('Event removed from saved list', 'success');
                 fetchSavedEvents();
+                fetchDashboardData(); // Refresh stats
             } else {
                 showSnackbar(response.message || 'Failed to unsave event', 'error');
             }
@@ -188,17 +208,23 @@ function UserDashboard() {
         }
     };
 
+    // Aliases for form handlers to match form onSubmit calls
+    const handlePasswordChange = handleChangePassword;
+    const handleEmailChange = handleUpdateEmail;
+
+    const confirmUnsaveEvent = async () => {
+        if (confirmDialog.eventId) {
+            await handleUnsaveEvent(confirmDialog.eventId);
+        }
+        closeConfirmDialog();
+    };
+
     const openConfirmDialog = (eventId, eventTitle) => {
-        setConfirmDialog({ open: true, eventId, eventTitle });
+        setConfirmDialog({ open: true, eventId, eventTitle, action: 'unsave' });
     };
 
     const closeConfirmDialog = () => {
-        setConfirmDialog({ open: false, eventId: null, eventTitle: '' });
-    };
-
-    const confirmUnsaveEvent = () => {
-        handleUnsaveEvent(confirmDialog.eventId);
-        closeConfirmDialog();
+        setConfirmDialog({ open: false, eventId: null, eventTitle: '', action: '' });
     };
 
     const formatDate = (dateString) => {
@@ -206,99 +232,158 @@ function UserDashboard() {
         return new Date(dateString).toLocaleDateString('en-US', options);
     };
 
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'upcoming':
+                return 'primary';
+            case 'completed':
+                return 'default';
+            case 'cancelled':
+                return 'error';
+            default:
+                return 'default';
+        }
+    };
+
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'upcoming':
+                return EventAvailableIcon;
+            case 'completed':
+                return CheckCircleIcon;
+            case 'cancelled':
+                return CancelIcon;
+            default:
+                return InfoIcon;
+        }
+    };
+
     if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-                <CircularProgress />
+                <CircularProgress size={60} />
             </Box>
         );
     }
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, color: '#1a1a1a' }}>
-                My Dashboard
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ mb: 4 }}>
-                Welcome back, {dashboardData?.user?.name || 'User'}!
-            </Typography>
+            {/* Header Section */}
+            <Box sx={{ mb: 4 }}>
+                <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, color: '#1a1a1a' }}>
+                    My Dashboard
+                </Typography>
+                <Typography variant="subtitle1" color="text.secondary">
+                    Welcome back, {dashboardData?.user?.name || 'User'}!
+                </Typography>
+            </Box>
 
             {/* Stats Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={6} sm={6} md={3}>
-                    <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', height: '100%' }}>
-                        <CardContent sx={{ textAlign: 'center' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                                <EventIcon sx={{ mr: 1, color: '#667eea' }} />
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    Total Events
-                                </Typography>
-                            </Box>
-                            <Typography variant="h3" color="primary" sx={{ fontWeight: 700 }}>
+            <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
+                <Card sx={{
+                    flex: '1 1 calc(25% - 18px)',
+                    minWidth: '200px',
+                    borderRadius: 3,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                    background: '#667eea',
+                    color: 'white'
+                }}>
+                    <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <TicketIcon sx={{ fontSize: 40, opacity: 0.9 }} />
+                            <Typography variant="h3" sx={{ fontWeight: 700 }}>
                                 {dashboardData?.stats?.totalBookings || 0}
                             </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                        </Box>
+                        <Typography variant="body1" sx={{ opacity: 0.95, fontWeight: 500 }}>
+                            Total Bookings
+                        </Typography>
+                    </CardContent>
+                </Card>
 
-                <Grid item xs={6} sm={6} md={3}>
-                    <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', height: '100%' }}>
-                        <CardContent sx={{ textAlign: 'center' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                                <CalendarIcon sx={{ mr: 1, color: '#4caf50' }} />
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    Upcoming
-                                </Typography>
-                            </Box>
-                            <Typography variant="h3" sx={{ color: '#4caf50', fontWeight: 700 }}>
+                <Card sx={{
+                    flex: '1 1 calc(25% - 18px)',
+                    minWidth: '200px',
+                    borderRadius: 3,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                    background: '#f5576c',
+                    color: 'white'
+                }}>
+                    <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <EventAvailableIcon sx={{ fontSize: 40, opacity: 0.9 }} />
+                            <Typography variant="h3" sx={{ fontWeight: 700 }}>
                                 {dashboardData?.stats?.upcomingEvents || 0}
                             </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                        </Box>
+                        <Typography variant="body1" sx={{ opacity: 0.95, fontWeight: 500 }}>
+                            Upcoming Events
+                        </Typography>
+                    </CardContent>
+                </Card>
 
-                <Grid item xs={6} sm={6} md={3}>
-                    <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', height: '100%' }}>
-                        <CardContent sx={{ textAlign: 'center' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                                <BookmarkIcon sx={{ mr: 1, color: '#ff9800' }} />
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    Saved
-                                </Typography>
-                            </Box>
-                            <Typography variant="h3" sx={{ color: '#ff9800', fontWeight: 700 }}>
+                <Card sx={{
+                    flex: '1 1 calc(25% - 18px)',
+                    minWidth: '200px',
+                    borderRadius: 3,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                    background: '#00bcd4',
+                    color: 'white'
+                }}>
+                    <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <BookmarkIcon sx={{ fontSize: 40, opacity: 0.9 }} />
+                            <Typography variant="h3" sx={{ fontWeight: 700 }}>
                                 {savedEvents?.length || 0}
                             </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                        </Box>
+                        <Typography variant="body1" sx={{ opacity: 0.95, fontWeight: 500 }}>
+                            Saved Events
+                        </Typography>
+                    </CardContent>
+                </Card>
 
-                <Grid item xs={6} sm={6} md={3}>
-                    <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', height: '100%' }}>
-                        <CardContent sx={{ textAlign: 'center' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                                <EventIcon sx={{ mr: 1, color: '#9e9e9e' }} />
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    Completed
-                                </Typography>
-                            </Box>
-                            <Typography variant="h3" sx={{ color: '#9e9e9e', fontWeight: 700 }}>
+                <Card sx={{
+                    flex: '1 1 calc(25% - 18px)',
+                    minWidth: '200px',
+                    borderRadius: 3,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                    background: '#4caf50',
+                    color: 'white'
+                }}>
+                    <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <CheckCircleIcon sx={{ fontSize: 40, opacity: 0.9 }} />
+                            <Typography variant="h3" sx={{ fontWeight: 700 }}>
                                 {dashboardData?.stats?.completedEvents || 0}
                             </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
+                        </Box>
+                        <Typography variant="body1" sx={{ opacity: 0.95, fontWeight: 500 }}>
+                            Completed
+                        </Typography>
+                    </CardContent>
+                </Card>
+            </Box>
 
             {/* Tabs Section */}
-            <Paper sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <Paper sx={{ borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                 <Tabs
                     value={activeTab}
                     onChange={handleTabChange}
                     variant="fullWidth"
-                    sx={{ borderBottom: 1, borderColor: 'divider' }}
+                    sx={{
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        '& .MuiTab-root': {
+                            textTransform: 'none',
+                            fontSize: '1rem',
+                            fontWeight: 500,
+                            minHeight: 64
+                        }
+                    }}
                 >
                     <Tab label="Profile" icon={<PersonIcon />} iconPosition="start" />
+                    <Tab label="My Events" icon={<TicketIcon />} iconPosition="start" />
                     <Tab label="Account Settings" icon={<LockIcon />} iconPosition="start" />
                     <Tab label="Saved Events" icon={<BookmarkIcon />} iconPosition="start" />
                 </Tabs>
@@ -306,330 +391,522 @@ function UserDashboard() {
                 {/* Profile Tab */}
                 {activeTab === 0 && (
                     <Box sx={{ p: 4 }}>
-                        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                            Profile Information
-                        </Typography>
                         <Grid container spacing={3}>
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Name"
-                                    value={profileData.name}
-                                    InputProps={{ readOnly: true }}
-                                    variant="outlined"
-                                />
+                            <Grid item xs={12} md={4}>
+                                <Card sx={{ borderRadius: 2, textAlign: 'center', p: 3 }}>
+                                    <Avatar
+                                        sx={{
+                                            width: 120,
+                                            height: 120,
+                                            mx: 'auto',
+                                            mb: 2,
+                                            bgcolor: '#667eea',
+                                            fontSize: '3rem',
+                                            fontWeight: 700
+                                        }}
+                                    >
+                                        {dashboardData?.user?.name?.charAt(0).toUpperCase() || 'U'}
+                                    </Avatar>
+                                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+                                        {dashboardData?.user?.name}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        {dashboardData?.user?.email}
+                                    </Typography>
+                                    <Chip
+                                        label={dashboardData?.user?.isOrganizer ? 'Organizer' : 'Attendee'}
+                                        color="primary"
+                                        sx={{ fontWeight: 500 }}
+                                    />
+                                </Card>
                             </Grid>
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Email"
-                                    value={profileData.email}
-                                    InputProps={{ readOnly: true }}
-                                    variant="outlined"
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Username"
-                                    value={dashboardData?.user?.username || ''}
-                                    InputProps={{ readOnly: true }}
-                                    variant="outlined"
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Account Type"
-                                    value="User"
-                                    InputProps={{ readOnly: true }}
-                                    variant="outlined"
-                                />
+
+                            <Grid item xs={12} md={8}>
+                                <Card sx={{ borderRadius: 2, p: 3 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                                        Profile Information
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Full Name"
+                                                value={dashboardData?.user?.name || ''}
+                                                InputProps={{ readOnly: true }}
+                                                variant="outlined"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Email Address"
+                                                value={dashboardData?.user?.email || ''}
+                                                InputProps={{ readOnly: true }}
+                                                variant="outlined"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Phone Number"
+                                                value={dashboardData?.user?.phonenumber || 'Not provided'}
+                                                InputProps={{ readOnly: true }}
+                                                variant="outlined"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Account Type"
+                                                value={dashboardData?.user?.isOrganizer ? 'Organizer' : 'Attendee'}
+                                                InputProps={{ readOnly: true }}
+                                                variant="outlined"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                fullWidth
+                                                label="Member Since"
+                                                value={dashboardData?.user?.created_at ? formatDate(dashboardData.user.created_at) : 'N/A'}
+                                                InputProps={{ readOnly: true }}
+                                                variant="outlined"
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </Card>
                             </Grid>
                         </Grid>
                     </Box>
                 )}
 
-                {/* Account Settings Tab */}
+                {/* My Events Tab */}
                 {activeTab === 1 && (
                     <Box sx={{ p: 4 }}>
-                        {/* Change Email Section */}
-                        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                            Change Email
-                        </Typography>
-                        <Box component="form" onSubmit={handleUpdateEmail} sx={{ mb: 4 }}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="New Email"
-                                        type="email"
-                                        value={emailData.newEmail}
-                                        onChange={(e) => setEmailData({ ...emailData, newEmail: e.target.value })}
-                                        InputProps={{
-                                            startAdornment: <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Current Password"
-                                        type={showEmailPassword ? 'text' : 'password'}
-                                        value={emailData.password}
-                                        onChange={(e) => setEmailData({ ...emailData, password: e.target.value })}
-                                        InputProps={{
-                                            startAdornment: <LockIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                                            endAdornment: (
-                                                <IconButton
-                                                    onClick={() => setShowEmailPassword(!showEmailPassword)}
-                                                    edge="end"
-                                                >
-                                                    {showEmailPassword ? <VisibilityOff /> : <Visibility />}
-                                                </IconButton>
-                                            )
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        sx={{
-                                            textTransform: 'none',
-                                            fontWeight: 600,
-                                            px: 4,
-                                            py: 1.5,
-                                            borderRadius: 2
-                                        }}
-                                    >
-                                        Update Email
-                                    </Button>
-                                </Grid>
-                            </Grid>
+                        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                My Booked Events
+                            </Typography>
+                            <Chip
+                                label={`${bookedEvents?.length || 0} Events`}
+                                color="primary"
+                                variant="outlined"
+                            />
                         </Box>
 
-                        <Divider sx={{ my: 4 }} />
+                        {bookedEvents && bookedEvents.length > 0 ? (
+                            <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                                <Table>
+                                    <TableHead sx={{ bgcolor: '#f5f5f5' }}>
+                                        <TableRow>
+                                            <TableCell sx={{ fontWeight: 600 }}>Event</TableCell>
+                                            <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                                            <TableCell sx={{ fontWeight: 600 }}>Venue</TableCell>
+                                            <TableCell sx={{ fontWeight: 600 }} align="center">Tickets</TableCell>
+                                            <TableCell sx={{ fontWeight: 600 }} align="right">Total Price</TableCell>
+                                            <TableCell sx={{ fontWeight: 600 }} align="center">Status</TableCell>
+                                            <TableCell sx={{ fontWeight: 600 }} align="center">Actions</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {bookedEvents.map((booking) => {
+                                            const StatusIcon = getStatusIcon(booking.status);
+                                            return (
+                                                <TableRow key={booking.id} hover>
+                                                    <TableCell>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                            <Avatar
+                                                                sx={{ width: 50, height: 50, borderRadius: 2, bgcolor: '#667eea' }}
+                                                                variant="rounded"
+                                                            >
+                                                                <EventIcon />
+                                                            </Avatar>
+                                                            <Box>
+                                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                                    {booking.title || 'Event'}
+                                                                </Typography>
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {booking.ticketType || 'Standard'}
+                                                                </Typography>
+                                                            </Box>
+                                                        </Box>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography variant="body2">
+                                                            {formatDate(booking.startDateTime)}
+                                                        </Typography>
+                                                        {booking.endDateTime && (
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                to {formatDate(booking.endDateTime)}
+                                                            </Typography>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography variant="body2">
+                                                            {booking.venue || 'TBA'}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Chip
+                                                            label={`${booking.ticketCount || 1} ${(booking.ticketCount || 1) === 1 ? 'Ticket' : 'Tickets'}`}
+                                                            size="small"
+                                                            variant="outlined"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                            ₹{booking.price || 0}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Chip
+                                                            icon={<StatusIcon fontSize="small" />}
+                                                            label={booking.status || 'upcoming'}
+                                                            color={getStatusColor(booking.status || 'upcoming')}
+                                                            size="small"
+                                                            sx={{ fontWeight: 500, textTransform: 'capitalize' }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Button
+                                                            size="small"
+                                                            variant="outlined"
+                                                            onClick={() => navigate(`/events/${booking.eventId}`)}
+                                                            startIcon={<InfoIcon />}
+                                                        >
+                                                            Details
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        ) : (
+                            <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
+                                <TicketIcon sx={{ fontSize: 64, color: '#bdbdbd', mb: 2 }} />
+                                <Typography variant="h6" color="text.secondary" gutterBottom>
+                                    No booked events yet
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                    Explore events and book tickets to see them here
+                                </Typography>
+                                <Button
+                                    variant="contained"
+                                    onClick={() => navigate('/events')}
+                                    startIcon={<EventIcon />}
+                                >
+                                    Browse Events
+                                </Button>
+                            </Paper>
+                        )}
+                    </Box>
+                )}
 
-                        {/* Change Password Section */}
-                        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                            Change Password
-                        </Typography>
-                        <Box component="form" onSubmit={handleChangePassword}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Current Password"
-                                        type={showCurrentPassword ? 'text' : 'password'}
-                                        value={passwordData.currentPassword}
-                                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                                        InputProps={{
-                                            startAdornment: <LockIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                                            endAdornment: (
-                                                <IconButton
-                                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                                    edge="end"
-                                                >
-                                                    {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
-                                                </IconButton>
-                                            )
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="New Password"
-                                        type={showNewPassword ? 'text' : 'password'}
-                                        value={passwordData.newPassword}
-                                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                                        InputProps={{
-                                            startAdornment: <LockIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                                            endAdornment: (
-                                                <IconButton
-                                                    onClick={() => setShowNewPassword(!showNewPassword)}
-                                                    edge="end"
-                                                >
-                                                    {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                                                </IconButton>
-                                            )
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Confirm New Password"
-                                        type={showConfirmPassword ? 'text' : 'password'}
-                                        value={passwordData.confirmPassword}
-                                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                                        InputProps={{
-                                            startAdornment: <LockIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                                            endAdornment: (
-                                                <IconButton
-                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                    edge="end"
-                                                >
-                                                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                                                </IconButton>
-                                            )
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        sx={{
-                                            textTransform: 'none',
-                                            fontWeight: 600,
-                                            px: 4,
-                                            py: 1.5,
-                                            borderRadius: 2
-                                        }}
-                                    >
+                {/* Account Settings Tab */}
+                {activeTab === 2 && (
+                    <Box sx={{ p: 4 }}>
+                        <Grid container spacing={3}>
+                            {/* Change Password */}
+                            <Grid item xs={12} md={6}>
+                                <Card sx={{ borderRadius: 2, p: 3, height: '100%' }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
                                         Change Password
-                                    </Button>
-                                </Grid>
+                                    </Typography>
+                                    <Box component="form" onSubmit={handlePasswordChange}>
+                                        <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+                                            <InputLabel>Current Password</InputLabel>
+                                            <OutlinedInput
+                                                type={showPassword.current ? 'text' : 'password'}
+                                                value={passwordData.currentPassword}
+                                                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                                                endAdornment={
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            onClick={() => setShowPassword({ ...showPassword, current: !showPassword.current })}
+                                                            edge="end"
+                                                        >
+                                                            {showPassword.current ? <VisibilityOff /> : <Visibility />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                }
+                                                label="Current Password"
+                                                required
+                                            />
+                                        </FormControl>
+
+                                        <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+                                            <InputLabel>New Password</InputLabel>
+                                            <OutlinedInput
+                                                type={showPassword.new ? 'text' : 'password'}
+                                                value={passwordData.newPassword}
+                                                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                                endAdornment={
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            onClick={() => setShowPassword({ ...showPassword, new: !showPassword.new })}
+                                                            edge="end"
+                                                        >
+                                                            {showPassword.new ? <VisibilityOff /> : <Visibility />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                }
+                                                label="New Password"
+                                                required
+                                            />
+                                            <FormHelperText>
+                                                Password must be at least 6 characters
+                                            </FormHelperText>
+                                        </FormControl>
+
+                                        <FormControl fullWidth variant="outlined" sx={{ mb: 3 }}>
+                                            <InputLabel>Confirm New Password</InputLabel>
+                                            <OutlinedInput
+                                                type={showPassword.confirm ? 'text' : 'password'}
+                                                value={passwordData.confirmPassword}
+                                                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                                endAdornment={
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            onClick={() => setShowPassword({ ...showPassword, confirm: !showPassword.confirm })}
+                                                            edge="end"
+                                                        >
+                                                            {showPassword.confirm ? <VisibilityOff /> : <Visibility />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                }
+                                                label="Confirm New Password"
+                                                required
+                                            />
+                                        </FormControl>
+
+                                        <Button
+                                            fullWidth
+                                            type="submit"
+                                            variant="contained"
+                                            size="large"
+                                            startIcon={<LockIcon />}
+                                        >
+                                            Update Password
+                                        </Button>
+                                    </Box>
+                                </Card>
                             </Grid>
-                        </Box>
+
+                            {/* Change Email */}
+                            <Grid item xs={12} md={6}>
+                                <Card sx={{ borderRadius: 2, p: 3, height: '100%' }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                                        Change Email Address
+                                    </Typography>
+                                    <Box component="form" onSubmit={handleEmailChange}>
+                                        <Alert severity="info" sx={{ mb: 3 }}>
+                                            Current email: <strong>{dashboardData?.user?.email}</strong>
+                                        </Alert>
+
+                                        <TextField
+                                            fullWidth
+                                            label="New Email Address"
+                                            type="email"
+                                            value={emailData.newEmail}
+                                            onChange={(e) => setEmailData({ ...emailData, newEmail: e.target.value })}
+                                            sx={{ mb: 2 }}
+                                            required
+                                        />
+
+                                        <FormControl fullWidth variant="outlined" sx={{ mb: 3 }}>
+                                            <InputLabel>Confirm Password</InputLabel>
+                                            <OutlinedInput
+                                                type={showPassword.emailPassword ? 'text' : 'password'}
+                                                value={emailData.password}
+                                                onChange={(e) => setEmailData({ ...emailData, password: e.target.value })}
+                                                endAdornment={
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            onClick={() => setShowPassword({ ...showPassword, emailPassword: !showPassword.emailPassword })}
+                                                            edge="end"
+                                                        >
+                                                            {showPassword.emailPassword ? <VisibilityOff /> : <Visibility />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                }
+                                                label="Confirm Password"
+                                                required
+                                            />
+                                            <FormHelperText>
+                                                Enter your current password to confirm email change
+                                            </FormHelperText>
+                                        </FormControl>
+
+                                        <Button
+                                            fullWidth
+                                            type="submit"
+                                            variant="contained"
+                                            size="large"
+                                            startIcon={<EmailIcon />}
+                                        >
+                                            Update Email
+                                        </Button>
+                                    </Box>
+                                </Card>
+                            </Grid>
+                        </Grid>
                     </Box>
                 )}
 
                 {/* Saved Events Tab */}
-                {activeTab === 2 && (
+                {activeTab === 3 && (
                     <Box sx={{ p: 4 }}>
-                        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                            Saved Events
-                        </Typography>
-                        {savedEvents.length === 0 ? (
-                            <Box sx={{ textAlign: 'center', py: 8 }}>
-                                <BookmarkBorderIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                                <Typography variant="h6" color="text.secondary">
-                                    No saved events yet
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                    Start exploring events and save your favorites!
-                                </Typography>
-                                <Button
-                                    variant="contained"
-                                    onClick={() => navigate('/')}
-                                    sx={{ mt: 3, textTransform: 'none', fontWeight: 600 }}
-                                >
-                                    Browse Events
-                                </Button>
+                        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                Your Saved Events
+                            </Typography>
+                            <Chip
+                                label={`${savedEvents?.length || 0} Events`}
+                                color="primary"
+                                variant="outlined"
+                            />
+                        </Box>
+
+                        {savedEventsLoading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+                                <CircularProgress size={60} />
                             </Box>
-                        ) : (
+                        ) : savedEvents && savedEvents.length > 0 ? (
                             <Grid container spacing={3}>
                                 {savedEvents.map((event) => (
                                     <Grid item xs={12} sm={6} md={4} key={event._id}>
                                         <Card sx={{
-                                            height: '100%',
-                                            display: 'flex',
-                                            flexDirection: 'column',
                                             borderRadius: 2,
                                             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                                             transition: 'transform 0.2s, box-shadow 0.2s',
                                             '&:hover': {
                                                 transform: 'translateY(-4px)',
-                                                boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
+                                                boxShadow: '0 6px 20px rgba(0,0,0,0.12)'
                                             }
                                         }}>
                                             <CardMedia
-                                                component="div"
-                                                sx={{
-                                                    height: 180,
-                                                    backgroundColor: '#f5f5f5',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
+                                                component="img"
+                                                height="180"
+                                                image={event.image ? `http://localhost:3000/${event.image}` : 'https://via.placeholder.com/400x180?text=Event+Image'}
+                                                alt={event.name || event.title || 'Event'}
+                                                sx={{ objectFit: 'cover' }}
+                                                onError={(e) => {
+                                                    e.target.src = 'https://via.placeholder.com/400x180?text=Event+Image';
                                                 }}
-                                            >
-                                                <EventIcon sx={{ fontSize: 60, color: '#667eea' }} />
-                                            </CardMedia>
-                                            <CardContent sx={{ flexGrow: 1 }}>
-                                                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                                                    {event.title}
+                                            />
+                                            <CardContent>
+                                                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                                                    {event.name || event.title || 'Event Name'}
                                                 </Typography>
-                                                <Stack spacing={1}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <CalendarIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            {formatDate(event.startDateTime)}
-                                                        </Typography>
-                                                    </Box>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <LocationOnIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            {event.venue}
-                                                        </Typography>
-                                                    </Box>
-                                                    <Box sx={{ mt: 1 }}>
-                                                        <Chip
-                                                            label={`₹${event.ticketPrice}`}
-                                                            size="small"
-                                                            color="primary"
-                                                            sx={{ fontWeight: 600 }}
-                                                        />
-                                                    </Box>
-                                                </Stack>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, color: 'text.secondary' }}>
+                                                    <CalendarIcon fontSize="small" sx={{ mr: 1 }} />
+                                                    <Typography variant="body2">
+                                                        {formatDate(event.date || event.startDateTime)}
+                                                    </Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, color: 'text.secondary' }}>
+                                                    <LocationOnIcon fontSize="small" sx={{ mr: 1 }} />
+                                                    <Typography variant="body2">
+                                                        {event.venue || 'Venue TBA'}
+                                                    </Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                                                    <Typography variant="h6" color="primary" sx={{ fontWeight: 700 }}>
+                                                        {event.price || event.ticketPrice ? `₹${event.price || event.ticketPrice}` : 'Price TBA'}
+                                                    </Typography>
+                                                    <Chip label={event.category || 'General'} size="small" color="primary" variant="outlined" />
+                                                </Box>
                                             </CardContent>
-                                            <CardActions sx={{ p: 2, pt: 0 }}>
+                                            <Divider />
+                                            <Box sx={{ p: 2, display: 'flex', gap: 1 }}>
                                                 <Button
                                                     fullWidth
                                                     variant="outlined"
                                                     onClick={() => navigate(`/events/${event._id}`)}
-                                                    sx={{ textTransform: 'none', fontWeight: 600, mr: 1 }}
+                                                    startIcon={<InfoIcon />}
                                                 >
-                                                    View Details
+                                                    Details
                                                 </Button>
-                                                <IconButton
-                                                    color="error"
-                                                    onClick={() => openConfirmDialog(event._id, event.title)}
-                                                    sx={{ ml: 'auto' }}
+                                                <Button
+                                                    fullWidth
+                                                    variant="contained"
+                                                    onClick={() => handleUnsaveEvent(event._id)}
+                                                    startIcon={<BookmarkIcon />}
                                                 >
-                                                    <DeleteIcon />
-                                                </IconButton>
-                                            </CardActions>
+                                                    Unsave
+                                                </Button>
+                                            </Box>
                                         </Card>
                                     </Grid>
                                 ))}
                             </Grid>
+                        ) : (
+                            <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
+                                <BookmarkIcon sx={{ fontSize: 64, color: '#bdbdbd', mb: 2 }} />
+                                <Typography variant="h6" color="text.secondary" gutterBottom>
+                                    No saved events yet
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                    Save events you're interested in to access them quickly later
+                                </Typography>
+                                <Button
+                                    variant="contained"
+                                    onClick={() => navigate('/events')}
+                                    startIcon={<EventIcon />}
+                                >
+                                    Browse Events
+                                </Button>
+                            </Paper>
                         )}
                     </Box>
                 )}
             </Paper>
 
-            {/* Snackbar for notifications */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={6000}
-                onClose={handleCloseSnackbar}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            {/* Confirmation Dialog */}
+            <Dialog
+                open={confirmDialog.open}
+                onClose={closeConfirmDialog}
+                maxWidth="sm"
+                fullWidth
             >
-                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
-
-            {/* Confirm Unsave Dialog */}
-            <Dialog open={confirmDialog.open} onClose={closeConfirmDialog}>
-                <DialogTitle>Remove Saved Event?</DialogTitle>
+                <DialogTitle sx={{ fontWeight: 600 }}>
+                    Confirm Action
+                </DialogTitle>
                 <DialogContent>
                     <Typography>
                         Are you sure you want to remove "{confirmDialog.eventTitle}" from your saved events?
                     </Typography>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={closeConfirmDialog} sx={{ textTransform: 'none' }}>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button
+                        onClick={closeConfirmDialog}
+                        variant="outlined"
+                    >
                         Cancel
                     </Button>
-                    <Button onClick={confirmUnsaveEvent} color="error" variant="contained" sx={{ textTransform: 'none' }}>
-                        Remove
+                    <Button
+                        onClick={confirmUnsaveEvent}
+                        variant="contained"
+                        color="error"
+                        autoFocus
+                    >
+                        Confirm
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Snackbar for notifications */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={handleSnackbarClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Container>
     );
 }
