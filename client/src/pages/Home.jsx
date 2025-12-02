@@ -35,12 +35,18 @@ import HeroSection from '../components/HeroSection';
 import './Home.css';
 
 function Home() {
-    const [events, setEvents] = useState([]);
+    const [sellingEvents, setSellingEvents] = useState([]);
+    const [upcomingEvents, setUpcomingEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const eventsRef = useRef(null);
+    const [sellingPage, setSellingPage] = useState(1);
+    const [upcomingPage, setUpcomingPage] = useState(1);
+    const [sellingTotalPages, setSellingTotalPages] = useState(1);
+    const [upcomingTotalPages, setUpcomingTotalPages] = useState(1);
+    const sellingEventsRef = useRef(null);
+    const upcomingEventsRef = useRef(null);
+    const prevSellingPageRef = useRef(1);
+    const prevUpcomingPageRef = useRef(1);
 
     // Filter states
     const [titleFilter, setTitleFilter] = useState('');
@@ -56,25 +62,37 @@ function Home() {
     ];
 
     useEffect(() => {
-        fetchEvents(page);
-    }, [page]);
+        fetchEvents(sellingPage, upcomingPage);
+    }, [sellingPage, upcomingPage]);
 
     // Reset to page 1 when filters change
     useEffect(() => {
-        if (page === 1) {
-            fetchEvents(1);
-        } else {
-            setPage(1);
-        }
+        setSellingPage(1);
+        setUpcomingPage(1);
+        fetchEvents(1, 1);
     }, [titleFilter, venueFilter, categoryFilter]);
 
     useEffect(() => {
-        if (!loading && events.length > 0 && page > 1 && eventsRef.current) {
-            const yOffset = -100; // Offset for navbar
-            const y = eventsRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        // Only scroll if user actually changed the selling page (not initial load or filter change)
+        const pageChanged = sellingPage !== prevSellingPageRef.current;
+        if (!loading && sellingEvents.length > 0 && pageChanged && sellingEventsRef.current) {
+            const yOffset = -100;
+            const y = sellingEventsRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
             window.scrollTo({ top: y, behavior: 'smooth' });
         }
-    }, [loading, events, page]);
+        prevSellingPageRef.current = sellingPage;
+    }, [loading, sellingEvents, sellingPage]);
+
+    useEffect(() => {
+        // Only scroll if user actually changed the upcoming page (not initial load or filter change)
+        const pageChanged = upcomingPage !== prevUpcomingPageRef.current;
+        if (!loading && upcomingEvents.length > 0 && pageChanged && upcomingEventsRef.current) {
+            const yOffset = -100;
+            const y = upcomingEventsRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+        prevUpcomingPageRef.current = upcomingPage;
+    }, [loading, upcomingEvents, upcomingPage]);
 
     // Listen for search events from HeroSection
     useEffect(() => {
@@ -99,12 +117,13 @@ function Home() {
         };
     }, []);
 
-    const fetchEvents = async (pageNum) => {
+    const fetchEvents = async (sellingPageNum, upcomingPageNum) => {
         setLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams({
-                page: pageNum,
+                sellingPage: sellingPageNum,
+                upcomingPage: upcomingPageNum,
                 limit: 3,
             });
 
@@ -128,8 +147,10 @@ function Home() {
             const data = await response.json();
 
             if (data.success) {
-                setEvents(data.data.events);
-                setTotalPages(data.data.pagination.totalPages);
+                setSellingEvents(data.data.selling.events);
+                setSellingTotalPages(data.data.selling.pagination.totalPages);
+                setUpcomingEvents(data.data.upcoming.events);
+                setUpcomingTotalPages(data.data.upcoming.pagination.totalPages);
             } else {
                 throw new Error(data.message || 'Failed to fetch events');
             }
@@ -141,8 +162,12 @@ function Home() {
         }
     };
 
-    const handlePageChange = (event, value) => {
-        setPage(value);
+    const handleSellingPageChange = (event, value) => {
+        setSellingPage(value);
+    };
+
+    const handleUpcomingPageChange = (event, value) => {
+        setUpcomingPage(value);
     };
 
     const formatDate = (dateString) => {
@@ -202,14 +227,14 @@ function Home() {
 
             {/* Events Section */}
             {/* Events Section */}
-            <Box ref={eventsRef} id="events-section" className="events-section" sx={{ py: { xs: 8, md: 12 } }}>
+            <Box id="events-section" className="events-section" sx={{ py: { xs: 8, md: 12 } }}>
                 <Container maxWidth="xl" sx={{ maxWidth: '1400px !important' }}>
                     <Box sx={{ textAlign: 'center', mb: 7, position: 'relative' }}>
                         <Typography variant="h3" className="section-title" sx={{ fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
-                            Upcoming Events
+                            Discover Events
                         </Typography>
                         <Typography variant="body1" className="section-subtitle" sx={{ fontSize: { xs: '0.95rem', md: '1.05rem' } }}>
-                            Discover exciting events happening near you
+                            Browse events available now and coming soon
                         </Typography>
                     </Box>
 
@@ -276,7 +301,7 @@ function Home() {
 
                     {/* Loading State */}
                     {loading && (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
                             <CircularProgress />
                         </Box>
                     )}
@@ -288,134 +313,313 @@ function Home() {
                         </Alert>
                     )}
 
-                    {/* Events Grid */}
-                    {!loading && !error && events.length > 0 && (
-                        <>
-                            <Grid container spacing={4} sx={{ alignItems: 'stretch', justifyContent: 'center' }}>
-                                {events.map((event) => {
-                                    return (
-                                        <Grid item xs={12} sm={10} md={4} lg={4} key={event._id} sx={{ display: 'flex', maxWidth: { xs: '100%', md: '420px' }, minWidth: { md: '420px' } }}>
-                                            <Card className="event-card" sx={{ width: '100%', maxWidth: '100%' }}>
-                                                {event.image ? (
-                                                    <CardMedia
-                                                        component="img"
-                                                        className="event-card-media"
-                                                        image={`http://localhost:3000/${event.image}`}
-                                                        alt={event.title}
+                    {/* Selling Now Events Section */}
+                    <Box sx={{ position: 'relative', minHeight: loading ? '400px' : 'auto' }}>
+                        {!error && (
+                            <>
+                                <Box ref={sellingEventsRef} sx={{ mb: 8, opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, gap: 2 }}>
+                                        <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a', fontSize: { xs: '1.5rem', md: '1.75rem' } }}>
+                                            Selling Now
+                                        </Typography>
+                                        <Chip
+                                            label={`${sellingEvents.length} events`}
+                                            size="small"
+                                            sx={{ bgcolor: '#4CAF50', color: 'white', fontWeight: 600 }}
+                                        />
+                                    </Box>
+
+                                    {sellingEvents.length > 0 ? (
+                                        <>
+                                            <Grid container spacing={4} sx={{ alignItems: 'stretch', justifyContent: 'center' }}>
+                                                {sellingEvents.map((event) => (
+                                                    <Grid item xs={12} sm={10} md={4} lg={4} key={event._id} sx={{ display: 'flex', maxWidth: { xs: '100%', md: '420px' }, minWidth: { md: '420px' } }}>
+                                                        <Card className="event-card" sx={{ width: '100%', maxWidth: '100%', position: 'relative' }}>
+                                                            <Box sx={{ position: 'relative' }}>
+                                                                {event.image ? (
+                                                                    <CardMedia
+                                                                        component="img"
+                                                                        className="event-card-media"
+                                                                        image={`http://localhost:3000/${event.image}`}
+                                                                        alt={event.title}
+                                                                        sx={{
+                                                                            height: 200,
+                                                                            objectFit: 'cover',
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <CardMedia
+                                                                        className="event-card-media"
+                                                                        sx={{
+                                                                            height: 200,
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            bgcolor: '#f5f5f5',
+                                                                        }}
+                                                                    >
+                                                                        <EventIcon sx={{ fontSize: 48, color: '#ddd' }} />
+                                                                    </CardMedia>
+                                                                )}
+                                                                <Chip
+                                                                    label="Selling Now"
+                                                                    size="small"
+                                                                    sx={{
+                                                                        position: 'absolute',
+                                                                        top: 12,
+                                                                        left: 12,
+                                                                        bgcolor: '#4CAF50',
+                                                                        color: 'white',
+                                                                        fontWeight: 600,
+                                                                    }}
+                                                                />
+                                                            </Box>
+                                                            <CardContent className="event-card-content">
+                                                                <Chip
+                                                                    label={event.category}
+                                                                    size="small"
+                                                                    sx={{
+                                                                        mb: 1.5,
+                                                                        bgcolor: '#667eea',
+                                                                        color: 'white',
+                                                                        fontWeight: 500,
+                                                                    }}
+                                                                />
+                                                                <Typography className="event-card-title" variant="h6">
+                                                                    {event.title}
+                                                                </Typography>
+                                                                <Typography className="event-card-description" variant="body2">
+                                                                    {event.description?.substring(0, 100)}
+                                                                    {event.description?.length > 100 ? '...' : ''}
+                                                                </Typography>
+                                                                <Box sx={{ mt: 'auto', pt: 2 }}>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                        <CalendarIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
+                                                                        <Typography variant="body2" color="text.secondary">
+                                                                            {formatDate(event.startDateTime)} • {formatTime(event.startDateTime)}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                        <LocationIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
+                                                                        <Typography variant="body2" color="text.secondary">
+                                                                            {event.venue}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                    <Typography
+                                                                        variant="h6"
+                                                                        sx={{
+                                                                            color: '#667eea',
+                                                                            fontWeight: 600,
+                                                                            mt: 1.5,
+                                                                        }}
+                                                                    >
+                                                                        ₹{event.ticketPrice}
+                                                                    </Typography>
+                                                                </Box>
+                                                            </CardContent>
+                                                            <CardActions className="event-card-actions">
+                                                                <Button
+                                                                    fullWidth
+                                                                    variant="contained"
+                                                                    className="event-card-button"
+                                                                    sx={{
+                                                                        bgcolor: '#667eea',
+                                                                        '&:hover': { bgcolor: '#5568d3' },
+                                                                    }}
+                                                                    onClick={() => window.location.href = `/events/${event._id}`}
+                                                                >
+                                                                    Book Now
+                                                                </Button>
+                                                            </CardActions>
+                                                        </Card>
+                                                    </Grid>
+                                                ))}
+                                            </Grid>
+
+                                            {/* Selling Events Pagination */}
+                                            {sellingTotalPages > 1 && (
+                                                <Box className="pagination-container">
+                                                    <Pagination
+                                                        count={sellingTotalPages}
+                                                        page={sellingPage}
+                                                        onChange={handleSellingPageChange}
+                                                        color="primary"
+                                                        size="large"
                                                         sx={{
-                                                            height: 200,
-                                                            objectFit: 'cover',
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <CardMedia
-                                                        className="event-card-media"
-                                                        sx={{
-                                                            height: 200,
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            bgcolor: '#f5f5f5',
-                                                        }}
-                                                    >
-                                                        <EventIcon sx={{ fontSize: 48, color: '#ddd' }} />
-                                                    </CardMedia>
-                                                )}
-                                                <CardContent className="event-card-content">
-                                                    <Chip
-                                                        label={event.category}
-                                                        size="small"
-                                                        sx={{
-                                                            mb: 1.5,
-                                                            bgcolor: '#667eea',
-                                                            color: 'white',
-                                                            fontWeight: 500,
-                                                        }}
-                                                    />
-                                                    <Typography className="event-card-title" variant="h6">
-                                                        {event.title}
-                                                    </Typography>
-                                                    <Typography className="event-card-description" variant="body2">
-                                                        {event.description?.substring(0, 100)}
-                                                        {event.description?.length > 100 ? '...' : ''}
-                                                    </Typography>
-                                                    <Box sx={{ mt: 'auto', pt: 2 }}>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                            <CalendarIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {formatDate(event.startDateTime)} • {formatTime(event.startDateTime)}
-                                                            </Typography>
-                                                        </Box>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                            <LocationIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {event.venue}
-                                                            </Typography>
-                                                        </Box>
-                                                        <Typography
-                                                            variant="h6"
-                                                            sx={{
+                                                            '& .MuiPaginationItem-root': {
                                                                 color: '#667eea',
-                                                                fontWeight: 600,
-                                                                mt: 1.5,
-                                                            }}
-                                                        >
-                                                            ₹{event.ticketPrice}
-                                                        </Typography>
-                                                    </Box>
-                                                </CardContent>
-                                                <CardActions className="event-card-actions">
-                                                    <Button
-                                                        fullWidth
-                                                        variant="contained"
-                                                        className="event-card-button"
-                                                        sx={{
-                                                            bgcolor: '#667eea',
-                                                            '&:hover': { bgcolor: '#5568d3' },
+                                                            },
+                                                            '& .Mui-selected': {
+                                                                bgcolor: '#667eea !important',
+                                                                color: 'white',
+                                                            },
                                                         }}
-                                                        onClick={() => window.location.href = `/events/${event._id}`}
-                                                    >
-                                                        View Details
-                                                    </Button>
-                                                </CardActions>
-                                            </Card>
-                                        </Grid>
-                                    );
-                                })}
-                            </Grid>
-
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <Box className="pagination-container">
-                                    <Pagination
-                                        count={totalPages}
-                                        page={page}
-                                        onChange={handlePageChange}
-                                        color="primary"
-                                        size="large"
-                                        sx={{
-                                            '& .MuiPaginationItem-root': {
-                                                color: '#667eea',
-                                            },
-                                            '& .Mui-selected': {
-                                                bgcolor: '#667eea !important',
-                                                color: 'white',
-                                            },
-                                        }}
-                                    />
+                                                    />
+                                                </Box>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Box sx={{ textAlign: 'center', py: 4, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                                            <Typography variant="body1" color="text.secondary">
+                                                No events selling tickets at the moment
+                                            </Typography>
+                                        </Box>
+                                    )}
                                 </Box>
-                            )}
-                        </>
-                    )}
 
-                    {/* No Events State */}
-                    {!loading && !error && events.length === 0 && (
-                        <Box sx={{ textAlign: 'center', py: 8 }}>
-                            <Typography variant="h6" color="text.secondary">
-                                No events available at the moment
-                            </Typography>
-                        </Box>
-                    )}
+                                {/* Coming Soon Events Section */}
+                                <Box ref={upcomingEventsRef} sx={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, gap: 2 }}>
+                                        <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a', fontSize: { xs: '1.5rem', md: '1.75rem' } }}>
+                                            Coming Soon
+                                        </Typography>
+                                        <Chip
+                                            label={`${upcomingEvents.length} events`}
+                                            size="small"
+                                            sx={{ bgcolor: '#FF9800', color: 'white', fontWeight: 600 }}
+                                        />
+                                    </Box>
+
+                                    {upcomingEvents.length > 0 ? (
+                                        <>
+                                            <Grid container spacing={4} sx={{ alignItems: 'stretch', justifyContent: 'center' }}>
+                                                {upcomingEvents.map((event) => (
+                                                    <Grid item xs={12} sm={10} md={4} lg={4} key={event._id} sx={{ display: 'flex', maxWidth: { xs: '100%', md: '420px' }, minWidth: { md: '420px' } }}>
+                                                        <Card className="event-card" sx={{ width: '100%', maxWidth: '100%', position: 'relative' }}>
+                                                            <Box sx={{ position: 'relative' }}>
+                                                                {event.image ? (
+                                                                    <CardMedia
+                                                                        component="img"
+                                                                        className="event-card-media"
+                                                                        image={`http://localhost:3000/${event.image}`}
+                                                                        alt={event.title}
+                                                                        sx={{
+                                                                            height: 200,
+                                                                            objectFit: 'cover',
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <CardMedia
+                                                                        className="event-card-media"
+                                                                        sx={{
+                                                                            height: 200,
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            bgcolor: '#f5f5f5',
+                                                                        }}
+                                                                    >
+                                                                        <EventIcon sx={{ fontSize: 48, color: '#ddd' }} />
+                                                                    </CardMedia>
+                                                                )}
+                                                                <Chip
+                                                                    label="Coming Soon"
+                                                                    size="small"
+                                                                    sx={{
+                                                                        position: 'absolute',
+                                                                        top: 12,
+                                                                        left: 12,
+                                                                        bgcolor: '#FF9800',
+                                                                        color: 'white',
+                                                                        fontWeight: 600,
+                                                                    }}
+                                                                />
+                                                            </Box>
+                                                            <CardContent className="event-card-content">
+                                                                <Chip
+                                                                    label={event.category}
+                                                                    size="small"
+                                                                    sx={{
+                                                                        mb: 1.5,
+                                                                        bgcolor: '#667eea',
+                                                                        color: 'white',
+                                                                        fontWeight: 500,
+                                                                    }}
+                                                                />
+                                                                <Typography className="event-card-title" variant="h6">
+                                                                    {event.title}
+                                                                </Typography>
+                                                                <Typography className="event-card-description" variant="body2">
+                                                                    {event.description?.substring(0, 100)}
+                                                                    {event.description?.length > 100 ? '...' : ''}
+                                                                </Typography>
+                                                                <Box sx={{ mt: 'auto', pt: 2 }}>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                        <CalendarIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
+                                                                        <Typography variant="body2" color="text.secondary">
+                                                                            {formatDate(event.startDateTime)} • {formatTime(event.startDateTime)}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                        <LocationIcon sx={{ fontSize: 18, color: '#666', mr: 1 }} />
+                                                                        <Typography variant="body2" color="text.secondary">
+                                                                            {event.venue}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                    <Typography
+                                                                        variant="h6"
+                                                                        sx={{
+                                                                            color: '#667eea',
+                                                                            fontWeight: 600,
+                                                                            mt: 1.5,
+                                                                        }}
+                                                                    >
+                                                                        ₹{event.ticketPrice}
+                                                                    </Typography>
+                                                                </Box>
+                                                            </CardContent>
+                                                            <CardActions className="event-card-actions">
+                                                                <Button
+                                                                    fullWidth
+                                                                    variant="contained"
+                                                                    className="event-card-button"
+                                                                    sx={{
+                                                                        bgcolor: '#667eea',
+                                                                        '&:hover': { bgcolor: '#5568d3' },
+                                                                    }}
+                                                                    onClick={() => window.location.href = `/events/${event._id}`}
+                                                                >
+                                                                    View Details
+                                                                </Button>
+                                                            </CardActions>
+                                                        </Card>
+                                                    </Grid>
+                                                ))}
+                                            </Grid>
+
+                                            {/* Upcoming Events Pagination */}
+                                            {upcomingTotalPages > 1 && (
+                                                <Box className="pagination-container">
+                                                    <Pagination
+                                                        count={upcomingTotalPages}
+                                                        page={upcomingPage}
+                                                        onChange={handleUpcomingPageChange}
+                                                        color="primary"
+                                                        size="large"
+                                                        sx={{
+                                                            '& .MuiPaginationItem-root': {
+                                                                color: '#667eea',
+                                                            },
+                                                            '& .Mui-selected': {
+                                                                bgcolor: '#667eea !important',
+                                                                color: 'white',
+                                                            },
+                                                        }}
+                                                    />
+                                                </Box>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Box sx={{ textAlign: 'center', py: 4, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                                            <Typography variant="body1" color="text.secondary">
+                                                No upcoming events at the moment
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+                            </>
+                        )}
+                    </Box>
                 </Container>
             </Box>
 

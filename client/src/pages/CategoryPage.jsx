@@ -354,6 +354,31 @@ function CategoryPage() {
                                                     backdropFilter: 'blur(10px)',
                                                 }}
                                             />
+                                            {/* Status Badge - Selling Now, Coming Soon, or Event Over */}
+                                            <Chip
+                                                label={
+                                                    event.status === 'start_selling'
+                                                        ? 'Selling Now'
+                                                        : event.status === 'over'
+                                                            ? 'Event Over'
+                                                            : 'Coming Soon'
+                                                }
+                                                size="small"
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: 12,
+                                                    left: 12,
+                                                    bgcolor:
+                                                        event.status === 'start_selling'
+                                                            ? '#4CAF50'
+                                                            : event.status === 'over'
+                                                                ? '#9E9E9E'
+                                                                : '#FF9800',
+                                                    color: 'white',
+                                                    fontWeight: 600,
+                                                    backdropFilter: 'blur(10px)',
+                                                }}
+                                            />
                                         </Box>
                                         <CardContent
                                             sx={{
@@ -451,8 +476,9 @@ function CategoryPage() {
                                             <Button
                                                 fullWidth
                                                 variant="contained"
+                                                disabled={event.status === 'over'}
                                                 sx={{
-                                                    bgcolor: config.color,
+                                                    bgcolor: event.status === 'over' ? '#9E9E9E' : config.color,
                                                     color: 'white',
                                                     fontWeight: 600,
                                                     py: 1.2,
@@ -460,15 +486,19 @@ function CategoryPage() {
                                                     textTransform: 'none',
                                                     fontSize: '0.9rem',
                                                     '&:hover': {
-                                                        bgcolor: config.color,
-                                                        filter: 'brightness(0.9)',
-                                                        transform: 'scale(1.02)',
+                                                        bgcolor: event.status === 'over' ? '#9E9E9E' : config.color,
+                                                        filter: event.status === 'over' ? 'none' : 'brightness(0.9)',
+                                                        transform: event.status === 'over' ? 'none' : 'scale(1.02)',
+                                                    },
+                                                    '&.Mui-disabled': {
+                                                        bgcolor: '#9E9E9E',
+                                                        color: 'white',
                                                     },
                                                     transition: 'all 0.2s ease',
                                                 }}
                                                 onClick={() => navigate(`/events/${event._id}`)}
                                             >
-                                                View Details
+                                                {event.status === 'over' ? 'Event Ended' : event.status === 'start_selling' ? 'Book Now' : 'View Details'}
                                             </Button>
                                         </CardActions>
                                     </Card>
