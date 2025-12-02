@@ -7,10 +7,6 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/dashboards/UserDashboard';
 import OrganizerDashboard from './pages/dashboards/OrganizerDashboard';
-import EventForm from './pages/dashboards/EventForm';
-import Analytics from './pages/dashboards/Analytics';
-import Settings from './pages/dashboards/Settings';
-import BecomeOrganizer from './pages/BecomeOrganizer';
 import Signup from './pages/Signup';
 import EventDetail from './pages/EventDetail';
 import CategoryPage from './pages/CategoryPage';
@@ -30,11 +26,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
-        <Route path="/organizer/create-event" element={<EventForm />} />
-        <Route path="/organizer/edit-event/:id" element={<EventForm />} />
-        <Route path="/organizer/analytics" element={<Analytics />} />
-        <Route path="/organizer/settings" element={<Settings />} />
-        <Route path="/become-organizer" element={<BecomeOrganizer />} />
+
         <Route path='/signup' element={<Signup />} />
         <Route path='/events/:id' element={<EventDetail />} />
         <Route path='/category/:category' element={<CategoryPage />} />
