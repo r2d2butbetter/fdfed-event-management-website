@@ -22,6 +22,7 @@ import cors from 'cors';
 
 // for getting the events on home page
 import Event from './models/event.js';
+import Organizer from './models/organizer.js';
 
 
 dotenv.config();
@@ -100,6 +101,28 @@ app.use('/events', eventRouter);
 app.use('/admin', adminRouter);
 app.use('/user', userRouter);
 app.use('/organizer', organizerRouter);
+
+// Stats endpoint - returns total events and organizers
+app.get('/stats', async (req, res) => {
+  try {
+    const totalEvents = await Event.countDocuments();
+    const totalOrganizers = await Organizer.countDocuments();
+
+    res.json({
+      success: true,
+      data: {
+        totalEvents,
+        totalOrganizers
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching statistics.'
+    });
+  }
+});
 
 // Home route - return JSON with basic API info since React handles the homepage
 app.get('/', (req, res) => {
