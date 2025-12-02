@@ -9,5 +9,7 @@ router.get('/events', orgController.loadDashboard);
 router.post('/events', upload.single('image'), orgController.createEvents);
 router.put('/events/:id', upload.single('image'), orgController.updateEvent);
 router.delete('/events/:id', orgController.deleteEvent);
+router.put('/profile', orgController.updateProfile);
+router.put('/change-password', orgController.changePassword);
 
 export default router;

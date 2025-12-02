@@ -1,15 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Typography, Paper, Grid, Card, CardContent, CircularProgress, Button } from '@mui/material';
-import { useAuth } from '../../context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../api/client';
-import { Add as AddIcon } from '@mui/icons-material';
+import {
+    Box,
+    Container,
+    Typography,
+    Button,
+    Grid,
+    Paper,
+    Tabs,
+    Tab,
+    CircularProgress,
+    Alert,
+    Snackbar,
+    Card,
+    CardContent,
+} from '@mui/material';
+import { Add, Event as EventIcon, People, AttachMoney, TrendingUp } from '@mui/icons-material';
+import { useAuth } from '../../context/AuthContext';
+import { fetchDashboardData } from '../../redux/slices/organizerSlice';
+import { fetchEvents, deleteEvent, setFilter } from '../../redux/slices/eventSlice';
+import Sidebar from '../../components/organizer/Sidebar';
+import StatsCard from '../../components/organizer/StatsCard';
+import EventTable from '../../components/organizer/EventTable';
+
+const drawerWidth = 260;
 
 function OrganizerDashboard() {
-    const { user, isAuthenticated } = useAuth();
+    const dispatch = useDispatch();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [dashboardData, setDashboardData] = useState(null);
+    const { user, isAuthenticated } = useAuth();
+
+    const [currentTab, setCurrentTab] = useState(0);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+    const { organizer, stats, upcomingEvents, loading, error } = useSelector((state) => state.organizer);
+    const { filteredEvents, currentFilter, deleteLoading } = useSelector((state) => state.events);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -17,120 +43,236 @@ function OrganizerDashboard() {
             return;
         }
 
-        // Fetch dashboard data
-        const fetchDashboardData = async () => {
+        dispatch(fetchDashboardData());
+        dispatch(fetchEvents());
+    }, [isAuthenticated, navigate, dispatch]);
+
+    const handleTabChange = (event, newValue) => {
+        setCurrentTab(newValue);
+        const filters = ['all', 'upcoming', 'ongoing', 'completed', 'drafts'];
+        dispatch(setFilter(filters[newValue]));
+    };
+
+    const handleDeleteEvent = async (eventId) => {
+        if (window.confirm('Are you sure you want to delete this event?')) {
             try {
-                const response = await api.get('/organizer/dashboard');
-                setDashboardData(response);
+                await dispatch(deleteEvent(eventId)).unwrap();
+                setSnackbar({ open: true, message: 'Event deleted successfully', severity: 'success' });
+                dispatch(fetchDashboardData()); // Refresh stats
             } catch (error) {
-                console.error('Failed to fetch dashboard data:', error);
-            } finally {
-                setLoading(false);
+                setSnackbar({ open: true, message: error || 'Failed to delete event', severity: 'error' });
             }
-        };
+        }
+    };
 
-        fetchDashboardData();
-    }, [isAuthenticated, navigate]);
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
 
-    if (loading) {
+    if (loading && !organizer) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-                <CircularProgress />
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0f0f1e' }}>
+                <CircularProgress sx={{ color: '#9353d3' }} />
             </Box>
         );
     }
 
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <div>
-                    <Typography variant="h4" component="h1" gutterBottom>
-                        Organizer Dashboard
-                    </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">
-                        Welcome back, {user?.name || 'Organizer'}!
-                    </Typography>
-                </div>
-                <Button variant="contained" startIcon={<AddIcon />}>
-                    Create Event
-                </Button>
+        <Box sx={{ display: 'flex', minHeight: '100vh', background: '#0f0f1e' }}>
+            <Sidebar
+                organizerName={user?.name}
+                organizationName={organizer?.organizationName}
+            />
+
+            <Box
+                component="main"
+                sx={{
+                    flexGrow: 1,
+                    ml: `${drawerWidth}px`,
+                    p: 4,
+                }}
+            >
+                <Container maxWidth="xl">
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                        <div>
+                            <Typography variant="h4" sx={{ color: '#fff', fontWeight: 700, mb: 1 }}>
+                                My Events Dashboard
+                            </Typography>
+                            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                                Welcome back, {user?.name || 'Organizer'}!
+                            </Typography>
+                        </div>
+                        <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => navigate('/organizer/create-event')}
+                            sx={{
+                                background: 'linear-gradient(135deg, #9353d3 0%, #643d88 100%)',
+                                px: 3,
+                                py: 1.5,
+                                borderRadius: 2,
+                                textTransform: 'none',
+                                fontSize: '1rem',
+                                fontWeight: 600,
+                                '&:hover': {
+                                    background: 'linear-gradient(135deg, #a463e3 0%, #744d98 100%)',
+                                },
+                            }}
+                        >
+                            Create Event
+                        </Button>
+                    </Box>
+
+                    {error && (
+                        <Alert severity="error" sx={{ mb: 3 }}>
+                            {error}
+                        </Alert>
+                    )}
+
+                    {/* Stats Cards */}
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatsCard
+                                title="Total Events"
+                                value={stats.totalEvents}
+                                icon={<EventIcon />}
+                                color="primary"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatsCard
+                                title="Total Attendees"
+                                value={stats.totalAttendees}
+                                icon={<People />}
+                                change={stats.attendeeChange}
+                                color="success"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatsCard
+                                title="Total Revenue"
+                                value={`₹${stats.totalRevenue.toLocaleString()}`}
+                                icon={<AttachMoney />}
+                                change={stats.revenueChange}
+                                color="secondary"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatsCard
+                                title="Active Events"
+                                value={stats.totalActiveEvents}
+                                icon={<TrendingUp />}
+                                color="info"
+                            />
+                        </Grid>
+                    </Grid>
+
+                    {/* Upcoming Events */}
+                    {upcomingEvents && upcomingEvents.length > 0 && (
+                        <Paper
+                            sx={{
+                                p: 3,
+                                mb: 4,
+                                background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.9) 100%)',
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(147, 83, 211, 0.2)',
+                                borderRadius: 3,
+                            }}
+                        >
+                            <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600, mb: 3 }}>
+                                Upcoming Events
+                            </Typography>
+                            <Grid container spacing={2}>
+                                {upcomingEvents.slice(0, 3).map((event) => (
+                                    <Grid item xs={12} md={4} key={event._id}>
+                                        <Card
+                                            sx={{
+                                                background: 'rgba(147, 83, 211, 0.1)',
+                                                border: '1px solid rgba(147, 83, 211, 0.3)',
+                                                borderRadius: 2,
+                                            }}
+                                        >
+                                            <CardContent>
+                                                <Typography variant="h6" sx={{ color: '#fff', mb: 1, fontWeight: 600 }}>
+                                                    {event.title}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>
+                                                    📅 {new Date(event.startDateTime).toLocaleDateString()}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>
+                                                    📍 {event.venue}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#10b981', fontWeight: 600 }}>
+                                                    {event.registrationCount || 0} registered / {event.capacity} capacity
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#f59e0b', fontWeight: 600 }}>
+                                                    {event.ticketsLeft || event.capacity} tickets remaining
+                                                </Typography>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Paper>
+                    )}
+
+                    {/* Event Management */}
+                    <Paper
+                        sx={{
+                            p: 3,
+                            background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.9) 100%)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(147, 83, 211, 0.2)',
+                            borderRadius: 3,
+                        }}
+                    >
+                        <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600, mb: 3 }}>
+                            Event Management
+                        </Typography>
+
+                        <Tabs
+                            value={currentTab}
+                            onChange={handleTabChange}
+                            sx={{
+                                mb: 3,
+                                '& .MuiTab-root': {
+                                    color: 'rgba(255,255,255,0.7)',
+                                    textTransform: 'none',
+                                    fontSize: '1rem',
+                                    fontWeight: 500,
+                                    '&.Mui-selected': {
+                                        color: '#9353d3',
+                                    },
+                                },
+                                '& .MuiTabs-indicator': {
+                                    backgroundColor: '#9353d3',
+                                },
+                            }}
+                        >
+                            <Tab label="All Events" />
+                            <Tab label="Upcoming" />
+                            <Tab label="Ongoing" />
+                            <Tab label="Completed" />
+                            <Tab label="Drafts" />
+                        </Tabs>
+
+                        <EventTable events={filteredEvents} onDelete={handleDeleteEvent} />
+                    </Paper>
+                </Container>
             </Box>
 
-            <Grid container spacing={3}>
-                <Grid item xs={12} md={3}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                Total Events
-                            </Typography>
-                            <Typography variant="h3" color="primary">
-                                {dashboardData?.totalEvents || 0}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Events Created
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                Active Events
-                            </Typography>
-                            <Typography variant="h3" color="success.main">
-                                {dashboardData?.activeEvents || 0}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Currently Running
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                Total Registrations
-                            </Typography>
-                            <Typography variant="h3" color="secondary">
-                                {dashboardData?.totalRegistrations || 0}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Across All Events
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                Revenue
-                            </Typography>
-                            <Typography variant="h3" color="info.main">
-                                ${dashboardData?.totalRevenue || 0}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Total Earnings
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
-
-            <Paper sx={{ mt: 4, p: 3 }}>
-                <Typography variant="h5" gutterBottom>
-                    Your Events
-                </Typography>
-                <Typography color="text.secondary">
-                    Manage your events, view registrations, and track performance here.
-                </Typography>
-            </Paper>
-        </Container>
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+        </Box>
     );
 }
 
