@@ -29,5 +29,6 @@ router.get('/chart/monthly-events', adminController.getMonthlyEventStats);
 router.get('/chart/event-categories', adminController.getEventCategoriesStats);
 router.get('/chart/revenue-analysis', adminController.getRevenueAnalysis);
 router.get('/chart/organizer-verification', adminController.getOrganizerVerificationStats);
+router.get('/revenue', adminController.getCommissionRevenue);
 
 export default router;

@@ -150,6 +150,7 @@
 import { getUser } from '../services/auth.js';
 import Organizer from '../models/organizer.js';
 import Event from '../models/event.js';
+import Payment from '../models/payment.js';
 
 class orgController {
   async loadDashboard(req, res) {
@@ -686,6 +687,116 @@ class orgController {
       });
     }
   }
+
+  async getOrganizerRevenue(req, res) {
+    try {
+      const userId = req.session.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const organizer = await Organizer.findOne({ userId: req.session.userId });
+
+      if (!organizer) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not registered as an organizer.'
+        });
+      }
+
+      const events = await Event.find({ organizerId: organizer._id });
+      const eventIds = events.map(event => event._id);
+
+      const result = await Payment.aggregate([
+        { $match: { eventId: { $in: eventIds } } },
+        { $group: { _id: null, totalRevenue: { $sum: '$organizerRevenue' }, totalTicketsSold: { $sum: '$tickets' } } }
+      ]);
+
+      const totalRevenue = result.length > 0 ? result[0].totalRevenue : 0;
+      const totalTicketsSold = result.length > 0 ? result[0].totalTicketsSold : 0;
+
+      return res.status(200).json({
+        success: true,
+        data: { totalRevenue, totalTicketsSold }
+      });
+    } catch (error) {
+      console.error('Error calculating organizer revenue:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while calculating revenue.',
+        error: error.message
+      });
+    }
+  }
+
+  async getMonthlyRevenue(req, res) {
+    try {
+      const userId = req.session.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const organizer = await Organizer.findOne({ userId: req.session.userId });
+
+      if (!organizer) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not registered as an organizer.'
+        });
+      }
+
+      const events = await Event.find({ organizerId: organizer._id });
+      const eventIds = events.map(event => event._id);
+
+      const now = new Date();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(now.getMonth() - 6);
+
+      const monthlyData = await Payment.aggregate([
+        { $match: { eventId: { $in: eventIds }, paymentDate: { $gte: sixMonthsAgo, $lte: now } } },
+        { $group: { _id: { year: { $year: '$paymentDate' }, month: { $month: '$paymentDate' } }, revenue: { $sum: '$organizerRevenue' }, tickets: { $sum: '$tickets' } } },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]);
+
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const formattedData = [];
+
+      for (let i = 0; i < 6; i++) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 5 + i);
+        formattedData.push({ name: months[d.getMonth()], year: d.getFullYear(), revenue: 0, tickets: 0 });
+      }
+
+      monthlyData.forEach(item => {
+        const monthIndex = item._id.month - 1;
+        const label = months[monthIndex];
+        const dataIndex = formattedData.findIndex(d => d.name === label && d.year === item._id.year);
+        if (dataIndex !== -1) {
+          formattedData[dataIndex].revenue = item.revenue;
+          formattedData[dataIndex].tickets = item.tickets;
+        }
+      });
+
+      return res.status(200).json({ success: true, data: formattedData });
+    } catch (error) {
+      console.error('Error getting monthly revenue:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while getting monthly revenue.',
+        error: error.message
+      });
+    }
+  }
 }
 
 export default new orgController();
+
+

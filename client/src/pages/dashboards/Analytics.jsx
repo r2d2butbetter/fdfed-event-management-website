@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Container, Typography, Paper, Grid, Card, CardContent } from '@mui/material';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, ConfirmationNumber, AttachMoney } from '@mui/icons-material';
-import { fetchDashboardData } from '../../redux/slices/organizerSlice';
+import { fetchDashboardData, fetchRealRevenue, fetchMonthlyRevenue } from '../../redux/slices/organizerSlice';
 import { fetchEvents } from '../../redux/slices/eventSlice';
 import Sidebar from '../../components/organizer/Sidebar';
 import StatsCard from '../../components/organizer/StatsCard';
@@ -12,12 +11,14 @@ const drawerWidth = 260;
 
 function Analytics() {
     const dispatch = useDispatch();
-    const { organizer, user, stats } = useSelector((state) => state.organizer);
+    const { organizer, user, stats, realRevenue, monthlyRevenueData } = useSelector((state) => state.organizer);
     const { events } = useSelector((state) => state.events);
 
     useEffect(() => {
         dispatch(fetchDashboardData());
         dispatch(fetchEvents());
+        dispatch(fetchRealRevenue());
+        dispatch(fetchMonthlyRevenue());
     }, [dispatch]);
 
 
@@ -71,92 +72,8 @@ function Analytics() {
                         </Grid>
                     </Grid>
 
-                    {/* Charts */}
-                    <Grid container spacing={3} sx={{ mb: 4 }}>
-                        {/* Ticket Sales Chart */}
-                        <Grid item xs={12}>
-                            <Paper
-                                sx={{
-                                    p: 3,
-                                    background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.9) 100%)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(147, 83, 211, 0.2)',
-                                    borderRadius: 3,
-                                    width: '100%',
-                                    overflow: 'hidden'
-                                }}
-                            >
-                                <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600, mb: 2 }}>
-                                    Ticket Sales
-                                </Typography>
-                                <Box sx={{ width: '100%', height: 350 }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={stats.weeklySalesData || []} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" vertical={true} horizontal={true} />
-                                            <XAxis
-                                                dataKey="name"
-                                                stroke="rgba(255,255,255,0.5)"
-                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }}
-                                                tickLine={false}
-                                                axisLine={false}
-                                            />
-                                            <YAxis
-                                                yAxisId="left"
-                                                stroke="rgba(255,255,255,0.5)"
-                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }}
-                                                tickLine={false}
-                                                axisLine={false}
-                                                label={{ value: 'Tickets Sold', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.5)', style: { textAnchor: 'middle' } }}
-                                            />
-                                            <YAxis
-                                                yAxisId="right"
-                                                orientation="right"
-                                                stroke="rgba(255,255,255,0.5)"
-                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }}
-                                                tickLine={false}
-                                                axisLine={false}
-                                                label={{ value: 'Revenue (₹)', angle: 90, position: 'insideRight', fill: 'rgba(255,255,255,0.5)', style: { textAnchor: 'middle' } }}
-                                            />
-                                            <Tooltip
-                                                contentStyle={{
-                                                    background: '#1a1a2e',
-                                                    border: '1px solid rgba(147, 83, 211, 0.3)',
-                                                    borderRadius: 8,
-                                                    color: '#fff',
-                                                }}
-                                            />
-                                            <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                                            <Line
-                                                yAxisId="left"
-                                                type="monotone"
-                                                dataKey="tickets"
-                                                stroke="#2dd4bf"
-                                                strokeWidth={3}
-                                                dot={{ fill: '#2dd4bf', r: 6, strokeWidth: 0 }}
-                                                activeDot={{ r: 8 }}
-                                                name="Tickets Sold"
-                                            />
-                                            <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                dataKey="revenue"
-                                                stroke="#a855f7"
-                                                strokeWidth={3}
-                                                dot={{ fill: '#a855f7', r: 6, strokeWidth: 0 }}
-                                                activeDot={{ r: 8 }}
-                                                name="Revenue (₹)"
-                                            />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </Box>
-                            </Paper>
-                        </Grid>
-
-
-                    </Grid>
-
                     {/* Top Events */}
-                    <Grid container spacing={3}>
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
                         <Grid item xs={12}>
                             <Paper
                                 sx={{
@@ -216,6 +133,7 @@ function Analytics() {
                             </Paper>
                         </Grid>
                     </Grid>
+
                 </Container>
             </Box>
         </Box>

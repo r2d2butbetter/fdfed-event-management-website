@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../css/admin.css";
 import Chart from "chart.js/auto";
+import profilePic from "../assets/images/proflepic.jpeg";
 
 function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -459,7 +460,7 @@ function AdminDashboard() {
           <div className="sidebar">
             <div className="user-info">
               <div className="profile-image">
-                <img class="MuiBox-root css-nj2ij4" alt="Event Management Illustration" src="\src\assets\images\proflepic.jpeg"></img>
+                <img src={profilePic} alt="Admin Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
               </div>
               <h3>Admin Panel</h3>
               <p>System Administrator</p>

@@ -17,8 +17,9 @@ import {
     CardContent,
 } from '@mui/material';
 import { Add, Event as EventIcon, People, AttachMoney, TrendingUp } from '@mui/icons-material';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
-import { fetchDashboardData } from '../../redux/slices/organizerSlice';
+import { fetchDashboardData, fetchRealRevenue } from '../../redux/slices/organizerSlice';
 import { fetchEvents, deleteEvent, setFilter } from '../../redux/slices/eventSlice';
 import Sidebar from '../../components/organizer/Sidebar';
 import StatsCard from '../../components/organizer/StatsCard';
@@ -34,7 +35,7 @@ function OrganizerDashboard() {
     const [currentTab, setCurrentTab] = useState(0);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    const { organizer, stats, upcomingEvents, loading, error } = useSelector((state) => state.organizer);
+    const { organizer, stats, upcomingEvents, loading, error, realRevenue } = useSelector((state) => state.organizer);
     const { filteredEvents, currentFilter, deleteLoading } = useSelector((state) => state.events);
 
     useEffect(() => {
@@ -45,6 +46,7 @@ function OrganizerDashboard() {
 
         dispatch(fetchDashboardData());
         dispatch(fetchEvents());
+        dispatch(fetchRealRevenue());
     }, [isAuthenticated, navigate, dispatch]);
 
     const handleTabChange = (event, newValue) => {
@@ -151,10 +153,9 @@ function OrganizerDashboard() {
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatsCard
-                                title="Total Revenue"
-                                value={`₹${stats.totalRevenue.toLocaleString()}`}
+                                title="Total Revenue (Paid)"
+                                value={`₹${(realRevenue?.totalRevenue || 0).toLocaleString()}`}
                                 icon={<AttachMoney />}
-                                change={stats.revenueChange}
                                 color="secondary"
                             />
                         </Grid>
@@ -165,6 +166,66 @@ function OrganizerDashboard() {
                                 icon={<TrendingUp />}
                                 color="info"
                             />
+                        </Grid>
+                    </Grid>
+
+                    {/* Ticket Sales Chart */}
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
+                        <Grid item xs={12}>
+                            <Paper
+                                sx={{
+                                    p: 3,
+                                    background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.9) 100%)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1px solid rgba(147, 83, 211, 0.2)',
+                                    borderRadius: 3,
+                                    width: '100%',
+                                    overflow: 'hidden'
+                                }}
+                            >
+                                <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600, mb: 2 }}>
+                                    Ticket Sales Trend
+                                </Typography>
+                                <div style={{ width: '100%', height: 400 }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={stats.weeklySalesData || []} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" vertical={true} horizontal={true} />
+                                            <XAxis
+                                                dataKey="name"
+                                                stroke="rgba(255,255,255,0.5)"
+                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }}
+                                                tickLine={false}
+                                                axisLine={false}
+                                            />
+                                            <YAxis
+                                                stroke="rgba(255,255,255,0.5)"
+                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                label={{ value: 'Tickets Sold', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.5)', style: { textAnchor: 'middle' } }}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{
+                                                    background: '#1a1a2e',
+                                                    border: '1px solid rgba(147, 83, 211, 0.3)',
+                                                    borderRadius: 8,
+                                                    color: '#fff',
+                                                }}
+                                            />
+                                            <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="tickets"
+                                                stroke="#2dd4bf"
+                                                strokeWidth={3}
+                                                dot={{ fill: '#2dd4bf', r: 6, strokeWidth: 0 }}
+                                                activeDot={{ r: 8 }}
+                                                name="Tickets Sold"
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </Paper>
                         </Grid>
                     </Grid>
 

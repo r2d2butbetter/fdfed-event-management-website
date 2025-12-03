@@ -38,6 +38,30 @@ export const changePassword = createAsyncThunk(
   }
 );
 
+export const fetchRealRevenue = createAsyncThunk(
+  'organizer/fetchRealRevenue',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/organizer/revenue');
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchMonthlyRevenue = createAsyncThunk(
+  'organizer/fetchMonthlyRevenue',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/organizer/revenue/monthly');
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const initialState = {
   organizer: null,
   user: null,
@@ -53,16 +77,21 @@ const initialState = {
     topSellingEvent: null,
     totalTicketsSold: 0,
     ticketsSoldChange: 0,
-    ticketsSoldChange: 0,
     avgTicketPrice: 0,
     weeklySalesData: [],
   },
+  realRevenue: {
+    totalRevenue: 0,
+    totalTicketsSold: 0,
+  },
+  monthlyRevenueData: [],
   upcomingEvents: [],
   loading: false,
   error: null,
   updateLoading: false,
   updateError: null,
   updateSuccess: false,
+  revenueLoading: false,
 };
 
 const organizerSlice = createSlice({
@@ -127,6 +156,28 @@ const organizerSlice = createSlice({
       .addCase(changePassword.rejected, (state, action) => {
         state.updateLoading = false;
         state.updateError = action.payload;
+      })
+      // Fetch Real Revenue
+      .addCase(fetchRealRevenue.pending, (state) => {
+        state.revenueLoading = true;
+      })
+      .addCase(fetchRealRevenue.fulfilled, (state, action) => {
+        state.revenueLoading = false;
+        state.realRevenue = action.payload;
+      })
+      .addCase(fetchRealRevenue.rejected, (state) => {
+        state.revenueLoading = false;
+      })
+      // Fetch Monthly Revenue
+      .addCase(fetchMonthlyRevenue.pending, (state) => {
+        state.revenueLoading = true;
+      })
+      .addCase(fetchMonthlyRevenue.fulfilled, (state, action) => {
+        state.revenueLoading = false;
+        state.monthlyRevenueData = action.payload;
+      })
+      .addCase(fetchMonthlyRevenue.rejected, (state) => {
+        state.revenueLoading = false;
       });
   },
 });

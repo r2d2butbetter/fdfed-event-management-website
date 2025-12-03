@@ -103,7 +103,7 @@ function EventDetail() {
 			<Grid container spacing={4}>
 				<Grid item xs={12} md={6}>
 					<Card sx={{ borderRadius: 3, overflow: 'hidden', bgcolor: '#111' }}>
-						{imageUrl && <CardMedia component="img" image={imageUrl} alt={event.title} />}
+						{imageUrl && <CardMedia component="img" image={imageUrl} alt={event.title} sx={{ height: 400, objectFit: 'cover' }} />}
 					</Card>
 				</Grid>
 				<Grid item xs={12} md={6}>
@@ -124,9 +124,14 @@ function EventDetail() {
 						<Button
 							onClick={() => navigate(`/payment/${id}`)}
 							variant="contained"
-							sx={{ px: 4, py: 1.5, background: 'linear-gradient(90deg,#ff4d7e,#ff7eb3)' }}
+							disabled={event.status !== 'start_selling'}
+							sx={{
+								px: 4,
+								py: 1.5,
+								background: event.status === 'start_selling' ? 'linear-gradient(90deg,#ff4d7e,#ff7eb3)' : 'rgba(255, 255, 255, 0.12)'
+							}}
 						>
-							PROCEED TO PAYMENT
+							{event.status === 'start_selling' ? 'PROCEED TO PAYMENT' : 'REGISTRATION CLOSED'}
 						</Button>
 						<Button onClick={handleSaveToggle} variant="contained" sx={{ px: 4, py: 1.5, background: '#6a35b7' }}>
 							{saved ? 'SAVED' : 'SAVE'}
