@@ -151,7 +151,14 @@ function OrganizerDashboard() {
                                 color="success"
                             />
                         </Grid>
-
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatsCard
+                                title="Total Revenue (Paid)"
+                                value={`₹${(realRevenue?.totalRevenue || 0).toLocaleString()}`}
+                                icon={<AttachMoney />}
+                                color="secondary"
+                            />
+                        </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatsCard
                                 title="Active Events"
