@@ -137,7 +137,7 @@ router.get('/events/:id/tickets-left', async (req, res) => {
 router.post('/process-payment', optionalAuth, async (req, res) => {
   try {
     const { eventId, tickets } = req.body;
-    const userId = req.user?._id;
+    const userId = req.session.userId;
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
