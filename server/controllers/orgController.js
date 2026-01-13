@@ -150,6 +150,7 @@
 import { getUser } from '../services/auth.js';
 import Organizer from '../models/organizer.js';
 import Event from '../models/event.js';
+import Payment from '../models/payment.js';
 
 class orgController {
   async loadDashboard(req, res) {
@@ -1069,3 +1070,5 @@ class orgController {
 }
 
 export default new orgController();
+
+

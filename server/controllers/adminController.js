@@ -3,6 +3,7 @@ import Event from '../models/event.js';
 import Organizer from '../models/organizer.js';
 import Admin from '../models/admin.js';
 import Registration from '../models/registration.js';
+import Payment from '../models/payment.js';
 
 class adminController {
     async loadDashboard(req, res) {
@@ -429,6 +430,17 @@ class adminController {
             res.status(500).json({ message: 'Server error' });
         }
     }
+
+            async getCommissionRevenue (req, res) {
+              try {
+                const result = await Payment.aggregate([{ 
+                $group: { _id: null, totalAdminCommission: { $sum: '$adminCommission' } }
+                }]);
+                res.json({ totalAdminCommission: result[0]?.totalAdminCommission || 0 });
+            } catch (error) {
+                res.status(500).json({ error: 'Failed to calculate admin revenue' });
+            }
+        }
 
 }
 

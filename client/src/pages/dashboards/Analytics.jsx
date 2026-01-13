@@ -12,13 +12,15 @@ const drawerWidth = 260;
 
 function Analytics() {
     const dispatch = useDispatch();
-    const { organizer, user, stats } = useSelector((state) => state.organizer);
+    const { organizer, user, stats, realRevenue, monthlyRevenueData } = useSelector((state) => state.organizer);
     const { events } = useSelector((state) => state.events);
     const [revenueTab, setRevenueTab] = useState(0);
 
     useEffect(() => {
         dispatch(fetchDashboardData());
         dispatch(fetchEvents());
+        dispatch(fetchRealRevenue());
+        dispatch(fetchMonthlyRevenue());
     }, [dispatch]);
 
 
@@ -96,7 +98,7 @@ function Analytics() {
                         </Grid>
                     </Grid>
 
-                    {/* Charts */}
+                    {/* Top Events */}
                     <Grid container spacing={3} sx={{ mb: 4 }}>
                         {/* Revenue Trends Chart */}
                         <Grid item xs={12} lg={8}>
@@ -465,6 +467,7 @@ function Analytics() {
                             </Paper>
                         </Grid>
                     </Grid>
+
                 </Container>
             </Box>
         </Box>
