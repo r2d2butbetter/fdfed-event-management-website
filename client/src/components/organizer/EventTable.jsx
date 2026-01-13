@@ -12,7 +12,7 @@ import {
     Typography,
     Box,
 } from '@mui/material';
-import { Edit, Delete, Visibility } from '@mui/icons-material';
+import { Edit, Delete, Visibility, People } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 function EventTable({ events, onDelete }) {
@@ -131,13 +131,23 @@ function EventTable({ events, onDelete }) {
                                         size="small"
                                         onClick={() => navigate(`/events/${event._id}`)}
                                         sx={{ color: '#3b82f6' }}
+                                        title="View Event"
                                     >
                                         <Visibility fontSize="small" />
                                     </IconButton>
                                     <IconButton
                                         size="small"
+                                        onClick={() => navigate(`/organizer/events/${event._id}/attendees`)}
+                                        sx={{ color: '#9353d3' }}
+                                        title="View Attendees"
+                                    >
+                                        <People fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                        size="small"
                                         onClick={() => navigate(`/organizer/edit-event/${event._id}`)}
                                         sx={{ color: '#10b981' }}
+                                        title="Edit Event"
                                     >
                                         <Edit fontSize="small" />
                                     </IconButton>
@@ -145,6 +155,7 @@ function EventTable({ events, onDelete }) {
                                         size="small"
                                         onClick={() => onDelete(event._id)}
                                         sx={{ color: '#f43f5e' }}
+                                        title="Delete Event"
                                     >
                                         <Delete fontSize="small" />
                                     </IconButton>
