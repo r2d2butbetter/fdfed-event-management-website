@@ -11,7 +11,11 @@ router.put('/events/:id', upload.single('image'), orgController.updateEvent);
 router.delete('/events/:id', orgController.deleteEvent);
 router.put('/profile', orgController.updateProfile);
 router.put('/change-password', orgController.changePassword);
-router.get('/revenue', orgController.getOrganizerRevenue);
-router.get('/revenue/monthly', orgController.getMonthlyRevenue);
+router.get('/events/:eventId/attendees', orgController.getEventAttendees);
+router.get('/events/:eventId/attendees/export', orgController.exportEventAttendees);
+router.post('/events/:eventId/send-email', orgController.sendBulkEmail);
+// Commented out until Payment model is fully integrated
+// router.get('/revenue', orgController.getOrganizerRevenue);
+// router.get('/revenue/monthly', orgController.getMonthlyRevenue);
 
 export default router;

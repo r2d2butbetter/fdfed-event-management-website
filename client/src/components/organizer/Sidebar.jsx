@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Typography, Divider } from '@mui/material';
-import { Dashboard, Analytics, Settings, Logout } from '@mui/icons-material';
+import { Dashboard, Analytics, Settings, Logout, Email } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,6 +9,7 @@ const drawerWidth = 260;
 const menuItems = [
     { text: 'My Events', icon: <Dashboard />, path: '/organizer/dashboard' },
     { text: 'Analytics', icon: <Analytics />, path: '/organizer/analytics' },
+    { text: 'Communications', icon: <Email />, path: '/organizer/communication' },
     { text: 'Settings', icon: <Settings />, path: '/organizer/settings' },
 ];
 

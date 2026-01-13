@@ -9,6 +9,9 @@ import UserDashboard from './pages/dashboards/UserDashboard';
 import OrganizerDashboard from './pages/dashboards/OrganizerDashboard';
 import Analytics from './pages/dashboards/Analytics';
 import Settings from './pages/dashboards/Settings';
+import EventAttendees from './pages/dashboards/EventAttendees';
+import Communication from './pages/dashboards/Communication';
+import EditEvent from './pages/dashboards/EditEvent';
 import BecomeOrganizer from './pages/BecomeOrganizer';
 import Signup from './pages/Signup';
 import EventDetail from './pages/EventDetail';
@@ -34,6 +37,9 @@ function App() {
         <Route path="/organizer/create-event" element={<Createevent />} />
         <Route path="/organizer/analytics" element={<Analytics />} />
         <Route path="/organizer/settings" element={<Settings />} />
+        <Route path="/organizer/edit-event/:eventId" element={<EditEvent />} />
+        <Route path="/organizer/events/:eventId/attendees" element={<EventAttendees />} />
+        <Route path="/organizer/communication" element={<Communication />} />
         <Route path="/become-organizer" element={<BecomeOrganizer />} />
         <Route path='/signup' element={<Signup />} />
         <Route path='/events/:id' element={<EventDetail />} />

@@ -79,6 +79,12 @@ const initialState = {
     ticketsSoldChange: 0,
     avgTicketPrice: 0,
     weeklySalesData: [],
+    monthlyRevenueData: [],
+    quarterlyRevenueData: [],
+    yearlyRevenueData: [],
+    peakHoursData: [],
+    peakDaysData: [],
+    revenuePerEvent: [],
   },
   realRevenue: {
     totalRevenue: 0,

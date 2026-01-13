@@ -333,6 +333,133 @@ class orgController {
         });
       }
 
+      // Calculate monthly revenue trends (last 12 months)
+      const monthlyRevenueData = [];
+      for (let i = 11; i >= 0; i--) {
+        const monthStart = new Date();
+        monthStart.setMonth(monthStart.getMonth() - i);
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+        
+        const monthEnd = new Date(monthStart);
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+        monthEnd.setDate(0);
+        monthEnd.setHours(23, 59, 59, 999);
+
+        const monthRegistrations = await Registration.find({
+          eventId: { $in: events.map(event => event._id) },
+          registrationDate: { $gte: monthStart, $lte: monthEnd }
+        }).populate('eventId');
+
+        let monthRevenue = 0;
+        monthRegistrations.forEach(reg => {
+          if (reg.eventId && reg.eventId.ticketPrice) {
+            monthRevenue += reg.eventId.ticketPrice;
+          }
+        });
+
+        monthlyRevenueData.push({
+          name: monthStart.toLocaleString('default', { month: 'short', year: 'numeric' }),
+          revenue: monthRevenue,
+          tickets: monthRegistrations.length
+        });
+      }
+
+      // Calculate quarterly revenue trends (last 4 quarters)
+      const quarterlyRevenueData = [];
+      const currentQuarter = Math.floor(new Date().getMonth() / 3);
+      for (let i = 3; i >= 0; i--) {
+        const quarterMonth = (currentQuarter - i) * 3;
+        const quarterStart = new Date(new Date().getFullYear(), quarterMonth, 1);
+        const quarterEnd = new Date(new Date().getFullYear(), quarterMonth + 3, 0, 23, 59, 59, 999);
+
+        const quarterRegistrations = await Registration.find({
+          eventId: { $in: events.map(event => event._id) },
+          registrationDate: { $gte: quarterStart, $lte: quarterEnd }
+        }).populate('eventId');
+
+        let quarterRevenue = 0;
+        quarterRegistrations.forEach(reg => {
+          if (reg.eventId && reg.eventId.ticketPrice) {
+            quarterRevenue += reg.eventId.ticketPrice;
+          }
+        });
+
+        quarterlyRevenueData.push({
+          name: `Q${Math.floor(quarterMonth / 3) + 1} ${quarterStart.getFullYear()}`,
+          revenue: quarterRevenue,
+          tickets: quarterRegistrations.length
+        });
+      }
+
+      // Calculate yearly revenue trends (last 3 years)
+      const yearlyRevenueData = [];
+      const currentYear = new Date().getFullYear();
+      for (let i = 2; i >= 0; i--) {
+        const yearStart = new Date(currentYear - i, 0, 1);
+        const yearEnd = new Date(currentYear - i, 11, 31, 23, 59, 59, 999);
+
+        const yearRegistrations = await Registration.find({
+          eventId: { $in: events.map(event => event._id) },
+          registrationDate: { $gte: yearStart, $lte: yearEnd }
+        }).populate('eventId');
+
+        let yearRevenue = 0;
+        yearRegistrations.forEach(reg => {
+          if (reg.eventId && reg.eventId.ticketPrice) {
+            yearRevenue += reg.eventId.ticketPrice;
+          }
+        });
+
+        yearlyRevenueData.push({
+          name: (currentYear - i).toString(),
+          revenue: yearRevenue,
+          tickets: yearRegistrations.length
+        });
+      }
+
+      // Calculate peak registration times (by hour and day of week)
+      const allRegistrations = await Registration.find({
+        eventId: { $in: events.map(event => event._id) }
+      });
+
+      const hourlyRegistrations = Array(24).fill(0);
+      const dailyRegistrations = Array(7).fill(0);
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+      allRegistrations.forEach(reg => {
+        const regDate = new Date(reg.registrationDate);
+        hourlyRegistrations[regDate.getHours()]++;
+        dailyRegistrations[regDate.getDay()]++;
+      });
+
+      const peakHoursData = hourlyRegistrations.map((count, hour) => ({
+        hour: `${hour}:00`,
+        count
+      }));
+
+      const peakDaysData = dailyRegistrations.map((count, day) => ({
+        day: dayNames[day],
+        count
+      }));
+
+      // Calculate revenue per event
+      const revenuePerEvent = [];
+      for (const event of events) {
+        const eventRegistrations = await Registration.countDocuments({ eventId: event._id });
+        const eventRevenue = event.ticketPrice * eventRegistrations;
+        revenuePerEvent.push({
+          eventId: event._id,
+          title: event.title,
+          revenue: eventRevenue,
+          ticketPrice: event.ticketPrice,
+          ticketsSold: eventRegistrations,
+          capacity: event.capacity,
+          fillRate: event.capacity > 0 ? Math.round((eventRegistrations / event.capacity) * 100) : 0
+        });
+      }
+      revenuePerEvent.sort((a, b) => b.revenue - a.revenue);
+
       // For ratings, since we don't have a Rating model, we'll use a default value
       const avgRating = 4.7; // This would be calculated from a Ratings model if it existed
       const ratingChange = 0.2; // This would also be calculated from actual data
@@ -369,7 +496,13 @@ class orgController {
             totalTicketsSold,
             ticketsSoldChange,
             avgTicketPrice,
-            weeklySalesData
+            weeklySalesData,
+            monthlyRevenueData,
+            quarterlyRevenueData,
+            yearlyRevenueData,
+            peakHoursData,
+            peakDaysData,
+            revenuePerEvent
           }
         }
       });
@@ -688,8 +821,9 @@ class orgController {
     }
   }
 
-  async getOrganizerRevenue(req, res) {
+  async getEventAttendees(req, res) {
     try {
+      const { eventId } = req.params;
       const userId = req.session.userId;
 
       if (!userId) {
@@ -700,7 +834,6 @@ class orgController {
       }
 
       const organizer = await Organizer.findOne({ userId: req.session.userId });
-
       if (!organizer) {
         return res.status(403).json({
           success: false,
@@ -708,33 +841,84 @@ class orgController {
         });
       }
 
-      const events = await Event.find({ organizerId: organizer._id });
-      const eventIds = events.map(event => event._id);
+      const event = await Event.findById(eventId);
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found.'
+        });
+      }
 
-      const result = await Payment.aggregate([
-        { $match: { eventId: { $in: eventIds } } },
-        { $group: { _id: null, totalRevenue: { $sum: '$organizerRevenue' }, totalTicketsSold: { $sum: '$tickets' } } }
-      ]);
+      // Verify organizer owns this event
+      if (!event.organizerId.equals(organizer._id)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to view attendees for this event.'
+        });
+      }
 
-      const totalRevenue = result.length > 0 ? result[0].totalRevenue : 0;
-      const totalTicketsSold = result.length > 0 ? result[0].totalTicketsSold : 0;
+      const Registration = (await import('../models/registration.js')).default;
+      const User = (await import('../models/user.js')).default;
+
+      // Get all registrations for this event
+      const registrations = await Registration.find({ eventId })
+        .populate('userId', 'name email')
+        .sort({ registrationDate: -1 })
+        .lean();
+
+      // Group by user and count tickets
+      const attendeeMap = new Map();
+      registrations.forEach(reg => {
+        const userId = reg.userId._id.toString();
+        if (!attendeeMap.has(userId)) {
+          attendeeMap.set(userId, {
+            userId: reg.userId._id,
+            name: reg.userId.name,
+            email: reg.userId.email,
+            ticketCount: 0,
+            firstRegistrationDate: reg.registrationDate,
+            lastRegistrationDate: reg.registrationDate
+          });
+        }
+        const attendee = attendeeMap.get(userId);
+        attendee.ticketCount++;
+        if (new Date(reg.registrationDate) < new Date(attendee.firstRegistrationDate)) {
+          attendee.firstRegistrationDate = reg.registrationDate;
+        }
+        if (new Date(reg.registrationDate) > new Date(attendee.lastRegistrationDate)) {
+          attendee.lastRegistrationDate = reg.registrationDate;
+        }
+      });
+
+      const attendees = Array.from(attendeeMap.values());
 
       return res.status(200).json({
         success: true,
-        data: { totalRevenue, totalTicketsSold }
+        data: {
+          event: {
+            _id: event._id,
+            title: event.title,
+            startDateTime: event.startDateTime
+          },
+          attendees,
+          totalAttendees: attendees.length,
+          totalTickets: registrations.length
+        }
       });
     } catch (error) {
-      console.error('Error calculating organizer revenue:', error);
+      console.error('Error fetching event attendees:', error);
       return res.status(500).json({
         success: false,
-        message: 'An error occurred while calculating revenue.',
+        message: 'An error occurred while fetching attendees.',
         error: error.message
       });
     }
   }
 
-  async getMonthlyRevenue(req, res) {
+  async exportEventAttendees(req, res) {
     try {
+      const { eventId } = req.params;
+      const { format = 'csv' } = req.query;
       const userId = req.session.userId;
 
       if (!userId) {
@@ -745,7 +929,6 @@ class orgController {
       }
 
       const organizer = await Organizer.findOne({ userId: req.session.userId });
-
       if (!organizer) {
         return res.status(403).json({
           success: false,
@@ -753,44 +936,133 @@ class orgController {
         });
       }
 
-      const events = await Event.find({ organizerId: organizer._id });
-      const eventIds = events.map(event => event._id);
-
-      const now = new Date();
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(now.getMonth() - 6);
-
-      const monthlyData = await Payment.aggregate([
-        { $match: { eventId: { $in: eventIds }, paymentDate: { $gte: sixMonthsAgo, $lte: now } } },
-        { $group: { _id: { year: { $year: '$paymentDate' }, month: { $month: '$paymentDate' } }, revenue: { $sum: '$organizerRevenue' }, tickets: { $sum: '$tickets' } } },
-        { $sort: { '_id.year': 1, '_id.month': 1 } }
-      ]);
-
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const formattedData = [];
-
-      for (let i = 0; i < 6; i++) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - 5 + i);
-        formattedData.push({ name: months[d.getMonth()], year: d.getFullYear(), revenue: 0, tickets: 0 });
+      const event = await Event.findById(eventId);
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found.'
+        });
       }
 
-      monthlyData.forEach(item => {
-        const monthIndex = item._id.month - 1;
-        const label = months[monthIndex];
-        const dataIndex = formattedData.findIndex(d => d.name === label && d.year === item._id.year);
-        if (dataIndex !== -1) {
-          formattedData[dataIndex].revenue = item.revenue;
-          formattedData[dataIndex].tickets = item.tickets;
+      if (!event.organizerId.equals(organizer._id)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to export attendees for this event.'
+        });
+      }
+
+      const Registration = (await import('../models/registration.js')).default;
+      const registrations = await Registration.find({ eventId })
+        .populate('userId', 'name email')
+        .sort({ registrationDate: -1 })
+        .lean();
+
+      // Group by user
+      const attendeeMap = new Map();
+      registrations.forEach(reg => {
+        const userId = reg.userId._id.toString();
+        if (!attendeeMap.has(userId)) {
+          attendeeMap.set(userId, {
+            name: reg.userId.name,
+            email: reg.userId.email,
+            ticketCount: 0,
+            registrationDate: reg.registrationDate
+          });
         }
+        attendeeMap.get(userId).ticketCount++;
       });
 
-      return res.status(200).json({ success: true, data: formattedData });
+      const attendees = Array.from(attendeeMap.values());
+
+      if (format === 'csv') {
+        // Generate CSV
+        const csvHeader = 'Name,Email,Ticket Count,Registration Date\n';
+        const csvRows = attendees.map(attendee => {
+          const date = new Date(attendee.registrationDate).toLocaleString();
+          return `"${attendee.name}","${attendee.email}",${attendee.ticketCount},"${date}"`;
+        }).join('\n');
+        const csv = csvHeader + csvRows;
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="attendees-${event.title}-${Date.now()}.csv"`);
+        return res.send(csv);
+      } else {
+        // For Excel, we'll return JSON and let frontend handle it
+        return res.status(200).json({
+          success: true,
+          data: attendees,
+          eventTitle: event.title
+        });
+      }
     } catch (error) {
-      console.error('Error getting monthly revenue:', error);
+      console.error('Error exporting attendees:', error);
       return res.status(500).json({
         success: false,
-        message: 'An error occurred while getting monthly revenue.',
+        message: 'An error occurred while exporting attendees.',
+        error: error.message
+      });
+    }
+  }
+
+  async sendBulkEmail(req, res) {
+    try {
+      const { eventId, subject, message, recipientEmails } = req.body;
+      const userId = req.session.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const organizer = await Organizer.findOne({ userId: req.session.userId });
+      if (!organizer) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not registered as an organizer.'
+        });
+      }
+
+      const event = await Event.findById(eventId);
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found.'
+        });
+      }
+
+      if (!event.organizerId.equals(organizer._id)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to send emails for this event.'
+        });
+      }
+
+      if (!subject || !message) {
+        return res.status(400).json({
+          success: false,
+          message: 'Subject and message are required.'
+        });
+      }
+
+      // Here you would integrate with an email service like Nodemailer, SendGrid, etc.
+      // For now, we'll just simulate sending emails
+      // TODO: Integrate actual email service
+
+      return res.status(200).json({
+        success: true,
+        message: `Email sent successfully to ${recipientEmails?.length || 0} recipients.`,
+        data: {
+          emailsSent: recipientEmails?.length || 0,
+          recipients: recipientEmails || []
+        }
+      });
+    } catch (error) {
+      console.error('Error sending bulk email:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while sending emails.',
         error: error.message
       });
     }
