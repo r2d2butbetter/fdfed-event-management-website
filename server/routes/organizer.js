@@ -14,7 +14,8 @@ router.put('/change-password', orgController.changePassword);
 router.get('/events/:eventId/attendees', orgController.getEventAttendees);
 router.get('/events/:eventId/attendees/export', orgController.exportEventAttendees);
 router.post('/events/:eventId/send-email', orgController.sendBulkEmail);
-router.get('/revenue', orgController.getOrganizerRevenue);
-router.get('/revenue/monthly', orgController.getMonthlyRevenue);
+// Commented out until Payment model is fully integrated
+// router.get('/revenue', orgController.getOrganizerRevenue);
+// router.get('/revenue/monthly', orgController.getMonthlyRevenue);
 
 export default router;

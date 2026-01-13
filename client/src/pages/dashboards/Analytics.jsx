@@ -12,15 +12,16 @@ const drawerWidth = 260;
 
 function Analytics() {
     const dispatch = useDispatch();
-    const { organizer, user, stats, realRevenue, monthlyRevenueData } = useSelector((state) => state.organizer);
+    const { organizer, user, stats } = useSelector((state) => state.organizer);
     const { events } = useSelector((state) => state.events);
     const [revenueTab, setRevenueTab] = useState(0);
 
     useEffect(() => {
         dispatch(fetchDashboardData());
         dispatch(fetchEvents());
-        dispatch(fetchRealRevenue());
-        dispatch(fetchMonthlyRevenue());
+        // Revenue endpoints are commented out until Payment model is fully integrated
+        // dispatch(fetchRealRevenue());
+        // dispatch(fetchMonthlyRevenue());
     }, [dispatch]);
 
 
