@@ -312,7 +312,62 @@ class adminController {
     async getAllEvents(req, res) {
         try {
             const events = await Event.find().populate('organizerId');
-            res.json(events);
+            // res.json(events);
+                        // Aggregate events with their registration counts and organizer info
+
+                        const eventsWithCounts = await Event.aggregate([
+
+                            {
+            
+                                $lookup: {
+            
+                                    from: 'registrations',
+            
+                                    localField: '_id',
+            
+                                    foreignField: 'eventId',
+            
+                                    as: 'registrations'
+            
+                                }
+            
+                            },
+            
+                            {
+            
+                                $addFields: { registrationCount: { $size: '$registrations' } }
+            
+                            },
+            
+                            {
+            
+                                $lookup: {
+            
+                                    from: 'organizers',
+            
+                                    localField: 'organizerId',
+            
+                                    foreignField: '_id',
+            
+                                    as: 'organizer'
+            
+                                }
+            
+                            },
+            
+                            { $unwind: { path: '$organizer', preserveNullAndEmptyArrays: true } },
+            
+                            { $addFields: { organizerId: '$organizer' } },
+            
+                            { $project: { registrations: 0, organizer: 0 } },
+            
+                            { $sort: { registrationCount: -1, createdAt: -1 } }
+            
+                        ]);
+            
+            
+            
+                        res.json(eventsWithCounts);
         } catch (error) {
             console.error('Error getting events:', error);
             res.status(500).json({ message: 'Server error' });
