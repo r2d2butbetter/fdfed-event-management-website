@@ -32,8 +32,11 @@ class adminController {
                 .populate('userId', 'name email')
                 .populate('eventId', 'title startDateTime');
 
-            // Calculate additional statistics
+            // Calculate additional statistics - only count active registrations
             const totalRevenue = await Registration.aggregate([
+                {
+                    $match: { status: 'active' }
+                },
                 {
                     $lookup: {
                         from: 'events',
@@ -234,9 +237,10 @@ class adminController {
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(now.getMonth() - 6);
 
-            // Get all registrations from the last 6 months
+            // Get all active registrations from the last 6 months
             const registrations = await Registration.find({
-                registrationDate: { $gte: sixMonthsAgo, $lte: now }
+                registrationDate: { $gte: sixMonthsAgo, $lte: now },
+                status: 'active'
             }).populate('eventId');
 
             // Calculate monthly revenue
@@ -313,61 +317,65 @@ class adminController {
         try {
             const events = await Event.find().populate('organizerId');
             // res.json(events);
-                        // Aggregate events with their registration counts and organizer info
+            // Aggregate events with their registration counts (active only) and organizer info
 
-                        const eventsWithCounts = await Event.aggregate([
+            const eventsWithCounts = await Event.aggregate([
 
-                            {
-            
-                                $lookup: {
-            
-                                    from: 'registrations',
-            
-                                    localField: '_id',
-            
-                                    foreignField: 'eventId',
-            
-                                    as: 'registrations'
-            
-                                }
-            
-                            },
-            
-                            {
-            
-                                $addFields: { registrationCount: { $size: '$registrations' } }
-            
-                            },
-            
-                            {
-            
-                                $lookup: {
-            
-                                    from: 'organizers',
-            
-                                    localField: 'organizerId',
-            
-                                    foreignField: '_id',
-            
-                                    as: 'organizer'
-            
-                                }
-            
-                            },
-            
-                            { $unwind: { path: '$organizer', preserveNullAndEmptyArrays: true } },
-            
-                            { $addFields: { organizerId: '$organizer' } },
-            
-                            { $project: { registrations: 0, organizer: 0 } },
-            
-                            { $sort: { registrationCount: -1, createdAt: -1 } }
-            
-                        ]);
-            
-            
-            
-                        res.json(eventsWithCounts);
+                {
+
+                    $lookup: {
+
+                        from: 'registrations',
+
+                        localField: '_id',
+
+                        foreignField: 'eventId',
+
+                        pipeline: [
+                            { $match: { status: 'active' } }
+                        ],
+
+                        as: 'registrations'
+
+                    }
+
+                },
+
+                {
+
+                    $addFields: { registrationCount: { $size: '$registrations' } }
+
+                },
+
+                {
+
+                    $lookup: {
+
+                        from: 'organizers',
+
+                        localField: 'organizerId',
+
+                        foreignField: '_id',
+
+                        as: 'organizer'
+
+                    }
+
+                },
+
+                { $unwind: { path: '$organizer', preserveNullAndEmptyArrays: true } },
+
+                { $addFields: { organizerId: '$organizer' } },
+
+                { $project: { registrations: 0, organizer: 0 } },
+
+                { $sort: { registrationCount: -1, createdAt: -1 } }
+
+            ]);
+
+
+
+            res.json(eventsWithCounts);
         } catch (error) {
             console.error('Error getting events:', error);
             res.status(500).json({ message: 'Server error' });
@@ -486,16 +494,27 @@ class adminController {
         }
     }
 
-            async getCommissionRevenue (req, res) {
-              try {
-                const result = await Payment.aggregate([{ 
-                $group: { _id: null, totalAdminCommission: { $sum: '$adminCommission' } }
-                }]);
-                res.json({ totalAdminCommission: result[0]?.totalAdminCommission || 0 });
-            } catch (error) {
-                res.status(500).json({ error: 'Failed to calculate admin revenue' });
-            }
+    async getCommissionRevenue(req, res) {
+        try {
+            // Calculate net admin commission (total commission minus refunded commission)
+            const result = await Payment.aggregate([{
+                $group: {
+                    _id: null,
+                    totalAdminCommission: { $sum: '$adminCommission' },
+                    totalRefunded: { $sum: { $multiply: ['$refundAmount', 0.05] } }
+                }
+            }]);
+            const totalCommission = result[0]?.totalAdminCommission || 0;
+            const totalRefundedCommission = result[0]?.totalRefunded || 0;
+            res.json({
+                totalAdminCommission: totalCommission,
+                netAdminCommission: totalCommission - totalRefundedCommission,
+                refundedCommission: totalRefundedCommission
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to calculate admin revenue' });
         }
+    }
 
 }
 

@@ -49,7 +49,8 @@ import {
     EventAvailable as EventAvailableIcon,
     CheckCircle as CheckCircleIcon,
     Cancel as CancelIcon,
-    Info as InfoIcon
+    Info as InfoIcon,
+    MoneyOff as RefundIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -66,6 +67,12 @@ function UserDashboard() {
     const [bookedEvents, setBookedEvents] = useState([]);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
     const [confirmDialog, setConfirmDialog] = useState({ open: false, eventId: null, eventTitle: '', action: '' });
+    const [cancelDialog, setCancelDialog] = useState({
+        open: false,
+        booking: null,
+        loading: false,
+        cancelCount: 1
+    });
 
     // Profile edit states
     const [profileData, setProfileData] = useState({ name: '', email: '', username: '' });
@@ -225,6 +232,48 @@ function UserDashboard() {
 
     const closeConfirmDialog = () => {
         setConfirmDialog({ open: false, eventId: null, eventTitle: '', action: '' });
+    };
+
+    const openCancelDialog = (booking) => {
+        setCancelDialog({ open: true, booking, loading: false, cancelCount: 1 });
+    };
+
+    const closeCancelDialog = () => {
+        setCancelDialog({ open: false, booking: null, loading: false, cancelCount: 1 });
+    };
+
+    const handleCancelCountChange = (newCount) => {
+        const maxCount = cancelDialog.booking?.activeTicketCount || 1;
+        const count = Math.max(1, Math.min(newCount, maxCount));
+        setCancelDialog(prev => ({ ...prev, cancelCount: count }));
+    };
+
+    const handleCancelBooking = async () => {
+        if (!cancelDialog.booking) return;
+
+        setCancelDialog(prev => ({ ...prev, loading: true }));
+        try {
+            const response = await api.post('/user/cancel-booking', {
+                registrationIds: cancelDialog.booking.activeRegistrationIds,
+                ticketCount: cancelDialog.cancelCount
+            });
+
+            if (response.success) {
+                showSnackbar(
+                    `${response.data.cancelledCount} ticket(s) cancelled successfully! ${response.data.totalRefundAmount > 0
+                        ? `Refund of ₹${response.data.totalRefundAmount} will be processed.`
+                        : 'No refund applicable.'}`,
+                    'success'
+                );
+                fetchDashboardData(); // Refresh the bookings list
+            } else {
+                showSnackbar(response.message || 'Failed to cancel booking', 'error');
+            }
+        } catch (error) {
+            showSnackbar(error.message || 'Failed to cancel booking', 'error');
+        } finally {
+            closeCancelDialog();
+        }
     };
 
     const formatDate = (dateString) => {
@@ -508,10 +557,11 @@ function UserDashboard() {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {bookedEvents.map((booking) => {
+                                        {bookedEvents.map((booking, index) => {
                                             const StatusIcon = getStatusIcon(booking.status);
+                                            const totalPrice = (booking.price || 0) * (booking.ticketCount || 1);
                                             return (
-                                                <TableRow key={booking.id} hover>
+                                                <TableRow key={`${booking.eventId}-${booking.registrationStatus}-${index}`} hover>
                                                     <TableCell>
                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                             <Avatar
@@ -554,8 +604,13 @@ function UserDashboard() {
                                                     </TableCell>
                                                     <TableCell align="right">
                                                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                            ₹{booking.price || 0}
+                                                            ₹{totalPrice}
                                                         </Typography>
+                                                        {booking.status === 'cancelled' && booking.totalRefundedAmount > 0 && (
+                                                            <Typography variant="caption" color="success.main">
+                                                                Refunded: ₹{booking.totalRefundedAmount}
+                                                            </Typography>
+                                                        )}
                                                     </TableCell>
                                                     <TableCell align="center">
                                                         <Chip
@@ -567,14 +622,27 @@ function UserDashboard() {
                                                         />
                                                     </TableCell>
                                                     <TableCell align="center">
-                                                        <Button
-                                                            size="small"
-                                                            variant="outlined"
-                                                            onClick={() => navigate(`/events/${booking.eventId}`)}
-                                                            startIcon={<InfoIcon />}
-                                                        >
-                                                            Details
-                                                        </Button>
+                                                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                                            <Button
+                                                                size="small"
+                                                                variant="outlined"
+                                                                onClick={() => navigate(`/events/${booking.eventId}`)}
+                                                                startIcon={<InfoIcon />}
+                                                            >
+                                                                Details
+                                                            </Button>
+                                                            {booking.canCancel && (
+                                                                <Button
+                                                                    size="small"
+                                                                    variant="outlined"
+                                                                    color="error"
+                                                                    onClick={() => openCancelDialog(booking)}
+                                                                    startIcon={<CancelIcon />}
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                            )}
+                                                        </Box>
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -892,6 +960,132 @@ function UserDashboard() {
                         autoFocus
                     >
                         Confirm
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Cancel Booking Dialog */}
+            <Dialog
+                open={cancelDialog.open}
+                onClose={closeCancelDialog}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <RefundIcon color="error" />
+                    Cancel Booking
+                </DialogTitle>
+                <DialogContent>
+                    {cancelDialog.booking && (
+                        <Box>
+                            <Alert severity="warning" sx={{ mb: 2 }}>
+                                You are about to cancel ticket(s) for this event. This action cannot be undone.
+                            </Alert>
+
+                            <Paper sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                                    {cancelDialog.booking.title}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                    <CalendarIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
+                                    {formatDate(cancelDialog.booking.startDateTime)}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    <LocationOnIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
+                                    {cancelDialog.booking.venue}
+                                </Typography>
+                            </Paper>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            {/* Ticket Quantity Selector */}
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                                How many tickets do you want to cancel?
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() => handleCancelCountChange(cancelDialog.cancelCount - 1)}
+                                    disabled={cancelDialog.cancelCount <= 1}
+                                >
+                                    -
+                                </Button>
+                                <Typography variant="h6" sx={{ minWidth: 40, textAlign: 'center' }}>
+                                    {cancelDialog.cancelCount}
+                                </Typography>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() => handleCancelCountChange(cancelDialog.cancelCount + 1)}
+                                    disabled={cancelDialog.cancelCount >= (cancelDialog.booking.activeTicketCount || 1)}
+                                >
+                                    +
+                                </Button>
+                                <Typography variant="body2" color="text.secondary">
+                                    of {cancelDialog.booking.activeTicketCount || 1} ticket(s)
+                                </Typography>
+                            </Box>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                                Refund Details
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body2">Ticket Price (each):</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>₹{cancelDialog.booking.price}</Typography>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body2">Tickets to Cancel:</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{cancelDialog.cancelCount}</Typography>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body2">Refund Percentage:</Typography>
+                                <Chip
+                                    label={`${cancelDialog.booking.refundPercentage}%`}
+                                    size="small"
+                                    color={cancelDialog.booking.refundPercentage === 100 ? 'success' : cancelDialog.booking.refundPercentage === 50 ? 'warning' : 'error'}
+                                />
+                            </Box>
+
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, pt: 1, borderTop: '1px solid #eee' }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>Total Refund Amount:</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main' }}>
+                                    ₹{(cancelDialog.booking.refundAmountPerTicket || 0) * cancelDialog.cancelCount}
+                                </Typography>
+                            </Box>
+
+                            <Alert severity="info" sx={{ mt: 2 }}>
+                                <Typography variant="caption">
+                                    <strong>Refund Policy:</strong><br />
+                                    • More than 7 days before event: 100% refund<br />
+                                    • 3-7 days before event: 50% refund<br />
+                                    • Less than 3 days before event: No refund
+                                </Typography>
+                            </Alert>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button
+                        onClick={closeCancelDialog}
+                        variant="outlined"
+                        disabled={cancelDialog.loading}
+                    >
+                        Keep Booking
+                    </Button>
+                    <Button
+                        onClick={handleCancelBooking}
+                        variant="contained"
+                        color="error"
+                        disabled={cancelDialog.loading}
+                        startIcon={cancelDialog.loading ? <CircularProgress size={16} /> : <CancelIcon />}
+                    >
+                        {cancelDialog.loading ? 'Cancelling...' : `Cancel ${cancelDialog.cancelCount} Ticket(s)`}
                     </Button>
                 </DialogActions>
             </Dialog>

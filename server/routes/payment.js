@@ -2,6 +2,7 @@ import express from 'express';
 import Event from '../models/event.js';
 import User from '../models/user.js';
 import Registration from '../models/registration.js';
+import Payment from '../models/payment.js';
 import { isAuth, optionalAuth } from '../middlewares/auth.js';
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       });
     }
 
-    const totalRegistrations = await Registration.countDocuments({ eventId });
+    const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
     const ticketsLeft = event.capacity - totalRegistrations;
 
     console.log('User retrieved:', user);
@@ -124,7 +125,8 @@ router.get('/events/:id/tickets-left', async (req, res) => {
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
-    const totalRegistrations = await Registration.countDocuments({ eventId });
+    // Only count active registrations
+    const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
     const ticketsLeft = event.capacity - totalRegistrations;
     res.json({ ticketsLeft });
   } catch (error) {
@@ -148,22 +150,57 @@ router.post('/process-payment', optionalAuth, async (req, res) => {
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
-    const totalRegistrations = await Registration.countDocuments({ eventId });
+    // Only count active registrations
+    const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
     const ticketsLeft = event.capacity - totalRegistrations;
 
     if (ticketCount > ticketsLeft)
       return res.status(400).json({ error: 'Not enough tickets left' });
 
+    // Calculate payment amounts
+    const totalPrice = ticketCount * event.ticketPrice;
+    const adminCommission = totalPrice * 0.05; // 5% commission
+    const organizerRevenue = totalPrice * 0.95; // 95% to organizer
+
+    // Create Payment record
+    const payment = await Payment.create({
+      userId,
+      eventId,
+      tickets: ticketCount,
+      totalPrice,
+      adminCommission,
+      organizerRevenue,
+      transactionId: `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      status: 'completed'
+    });
+
+    // Create registrations linked to the payment
+    const registrationIds = [];
     for (let i = 0; i < ticketCount; i++) {
-      await Registration.create({ userId, eventId });
+      const registration = await Registration.create({
+        userId,
+        eventId,
+        paymentId: payment._id,
+        status: 'active'
+      });
+      registrationIds.push(registration._id);
     }
 
-    if (totalRegistrations + ticketCount >= event.capacity) {
+    // Update event status if sold out
+    const newTotalRegistrations = totalRegistrations + ticketCount;
+    if (newTotalRegistrations >= event.capacity) {
       event.status = 'Not Selling';
       await event.save();
     }
 
-    res.json({ success: true, ticketsLeft: ticketsLeft - ticketCount });
+    res.json({
+      success: true,
+      ticketsLeft: ticketsLeft - ticketCount,
+      paymentId: payment._id,
+      transactionId: payment.transactionId,
+      totalPrice,
+      registrationIds
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });

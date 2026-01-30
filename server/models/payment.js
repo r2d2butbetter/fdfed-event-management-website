@@ -8,7 +8,11 @@ const PaymentSchema = new mongoose.Schema({
   adminCommission: { type: Number, required: true }, // 5% of totalPrice
   organizerRevenue: { type: Number, required: true }, // 95% of totalPrice
   paymentDate: { type: Date, default: Date.now },
-  transactionId: { type: String } // optional, if integrating payment gateway
+  transactionId: { type: String }, // optional, if integrating payment gateway
+  status: { type: String, enum: ['completed', 'refunded', 'partial_refund'], default: 'completed' },
+  refundAmount: { type: Number, default: 0 },
+  refundDate: { type: Date },
+  refundedTickets: { type: Number, default: 0 }
 }, {
   collection: 'payments'
 });

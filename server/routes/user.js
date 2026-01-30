@@ -13,4 +13,6 @@ router.post('/save-event', optionalAuth, userController.saveEvent);
 router.post('/unsave-event', optionalAuth, userController.unsaveEvent);
 router.get('/check-saved-status', optionalAuth, userController.checkSavedStatus);
 router.get('/saved-events', userController.getSavedEvents);
+router.post('/cancel-booking', optionalAuth, userController.cancelBooking);
+router.get('/refund-preview/:registrationId', optionalAuth, userController.getRefundPreview);
 export default router;
