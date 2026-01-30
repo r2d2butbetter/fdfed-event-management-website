@@ -14,7 +14,7 @@
 
 // export default createUserTable;
 
-  
+
 import mongoose from 'mongoose';
 
 const UserSchema = new mongoose.Schema({
@@ -22,6 +22,11 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
+  notificationPreferences: {
+    emailUpdates: { type: Boolean, default: true },
+    eventReminders: { type: Boolean, default: true },
+    promotionalEmails: { type: Boolean, default: false },
+  },
 });
 
 const User = mongoose.model('User', UserSchema);
