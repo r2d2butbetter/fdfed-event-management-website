@@ -960,6 +960,338 @@ class userController {
         }
     }
 
+    /**
+     * Get user's payment history with pagination
+     */
+    async getPaymentHistory(req, res) {
+        try {
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            // Pagination parameters
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            // Optional filters
+            const { status, startDate, endDate } = req.query;
+
+            // Import Payment model
+            const Payment = (await import('../models/payment.js')).default;
+
+            // Build query
+            const query = { userId };
+            if (status && ['completed', 'refunded', 'partial_refund'].includes(status)) {
+                query.status = status;
+            }
+            if (startDate || endDate) {
+                query.paymentDate = {};
+                if (startDate) query.paymentDate.$gte = new Date(startDate);
+                if (endDate) query.paymentDate.$lte = new Date(endDate);
+            }
+
+            // Get total count for pagination
+            const totalCount = await Payment.countDocuments(query);
+            const totalPages = Math.ceil(totalCount / limit);
+
+            // Fetch payments with event details
+            const payments = await Payment.find(query)
+                .populate({
+                    path: 'eventId',
+                    model: 'Event',
+                    select: 'title startDateTime venue image'
+                })
+                .sort({ paymentDate: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean();
+
+            // Format payment data
+            const formattedPayments = payments.map(payment => ({
+                _id: payment._id,
+                transactionId: payment.transactionId || `TXN-${payment._id.toString().slice(-8).toUpperCase()}`,
+                eventTitle: payment.eventId?.title || 'Unknown Event',
+                eventDate: payment.eventId?.startDateTime,
+                eventVenue: payment.eventId?.venue,
+                eventImage: payment.eventId?.image,
+                tickets: payment.tickets,
+                totalPrice: payment.totalPrice,
+                paymentDate: payment.paymentDate,
+                status: payment.status,
+                refundAmount: payment.refundAmount,
+                refundDate: payment.refundDate,
+                refundedTickets: payment.refundedTickets,
+                netAmount: payment.totalPrice - (payment.refundAmount || 0)
+            }));
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    payments: formattedPayments,
+                    pagination: {
+                        currentPage: page,
+                        totalPages,
+                        totalCount,
+                        hasMore: page < totalPages
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching payment history:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to fetch payment history',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Get notification preferences
+     */
+    async getNotificationPreferences(req, res) {
+        try {
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            const User = (await import('../models/user.js')).default;
+            const user = await User.findById(userId).select('notificationPreferences').lean();
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            // Return default preferences if not set
+            const preferences = user.notificationPreferences || {
+                emailUpdates: true,
+                eventReminders: true,
+                promotionalEmails: false
+            };
+
+            return res.status(200).json({
+                success: true,
+                data: preferences
+            });
+        } catch (error) {
+            console.error('Error fetching notification preferences:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to fetch notification preferences',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Update notification preferences
+     */
+    async updateNotificationPreferences(req, res) {
+        try {
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            const { emailUpdates, eventReminders, promotionalEmails } = req.body;
+
+            const User = (await import('../models/user.js')).default;
+
+            const updateData = {
+                notificationPreferences: {
+                    emailUpdates: emailUpdates !== undefined ? Boolean(emailUpdates) : true,
+                    eventReminders: eventReminders !== undefined ? Boolean(eventReminders) : true,
+                    promotionalEmails: promotionalEmails !== undefined ? Boolean(promotionalEmails) : false
+                }
+            };
+
+            const user = await User.findByIdAndUpdate(
+                userId,
+                updateData,
+                { new: true, runValidators: true }
+            ).select('notificationPreferences');
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: 'Notification preferences updated successfully',
+                data: user.notificationPreferences
+            });
+        } catch (error) {
+            console.error('Error updating notification preferences:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to update notification preferences',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Get activity stats for charts (events attended over time, spending by category)
+     */
+    async getActivityStats(req, res) {
+        try {
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            const Registration = (await import('../models/registration.js')).default;
+            const Payment = (await import('../models/payment.js')).default;
+            const Event = (await import('../models/event.js')).default;
+
+            // Get registrations for last 12 months
+            const twelveMonthsAgo = new Date();
+            twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+            // Monthly event attendance
+            const registrations = await Registration.find({
+                userId,
+                registrationDate: { $gte: twelveMonthsAgo },
+                status: 'active'
+            }).populate({
+                path: 'eventId',
+                model: 'Event',
+                select: 'category startDateTime'
+            }).lean();
+
+            // Group by month for attendance chart
+            const monthlyAttendance = {};
+            const currentDate = new Date();
+
+            // Initialize all 12 months with 0
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date(currentDate);
+                date.setMonth(date.getMonth() - i);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthlyAttendance[monthKey] = { month: monthKey, events: 0 };
+            }
+
+            // Count events per month
+            registrations.forEach(reg => {
+                if (reg.eventId && reg.eventId.startDateTime) {
+                    const eventDate = new Date(reg.eventId.startDateTime);
+                    const monthKey = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}`;
+                    if (monthlyAttendance[monthKey]) {
+                        monthlyAttendance[monthKey].events++;
+                    }
+                }
+            });
+
+            // Get payments for spending by category
+            const payments = await Payment.find({
+                userId,
+                paymentDate: { $gte: twelveMonthsAgo },
+                status: { $in: ['completed', 'partial_refund'] }
+            }).populate({
+                path: 'eventId',
+                model: 'Event',
+                select: 'category'
+            }).lean();
+
+            // Group spending by category
+            const spendingByCategory = {};
+            payments.forEach(payment => {
+                const category = payment.eventId?.category || 'Other';
+                const netSpent = payment.totalPrice - (payment.refundAmount || 0);
+                if (!spendingByCategory[category]) {
+                    spendingByCategory[category] = { category, amount: 0, count: 0 };
+                }
+                spendingByCategory[category].amount += netSpent;
+                spendingByCategory[category].count++;
+            });
+
+            // Monthly spending trend
+            const monthlySpending = {};
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date(currentDate);
+                date.setMonth(date.getMonth() - i);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthlySpending[monthKey] = { month: monthKey, amount: 0 };
+            }
+
+            payments.forEach(payment => {
+                const paymentDate = new Date(payment.paymentDate);
+                const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+                if (monthlySpending[monthKey]) {
+                    monthlySpending[monthKey].amount += payment.totalPrice - (payment.refundAmount || 0);
+                }
+            });
+
+            // Summary stats
+            const totalSpent = payments.reduce((sum, p) => sum + p.totalPrice - (p.refundAmount || 0), 0);
+            const totalEvents = registrations.length;
+            const avgSpentPerEvent = totalEvents > 0 ? totalSpent / totalEvents : 0;
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    monthlyAttendance: Object.values(monthlyAttendance),
+                    monthlySpending: Object.values(monthlySpending),
+                    spendingByCategory: Object.values(spendingByCategory),
+                    summary: {
+                        totalSpent: Math.round(totalSpent * 100) / 100,
+                        totalEvents,
+                        avgSpentPerEvent: Math.round(avgSpentPerEvent * 100) / 100,
+                        categoriesExplored: Object.keys(spendingByCategory).length
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching activity stats:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to fetch activity stats',
+                error: error.message
+            });
+        }
+    }
+
 }
 
 export default new userController();
