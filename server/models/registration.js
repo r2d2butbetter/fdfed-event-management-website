@@ -22,11 +22,11 @@ import mongoose from 'mongoose';
 const RegistrationSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
+  paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
   registrationDate: { type: Date, default: Date.now },
-}, {
-  indexes: [
-    { fields: { userId: 1, eventId: 1 }, unique: true }, // Prevent duplicate registrations
-  ],
+  status: { type: String, enum: ['active', 'cancelled'], default: 'active' },
+  cancelledAt: { type: Date },
+  refundAmount: { type: Number, default: 0 },
 });
 
 const Registration = mongoose.model('Registration', RegistrationSchema);
