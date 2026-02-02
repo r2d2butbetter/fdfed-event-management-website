@@ -2,7 +2,7 @@ import { createTheme } from '@mui/material/styles';
 
 const muiAdminTheme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
       main: '#9353D3',
       light: '#a86dff',
@@ -20,14 +20,14 @@ const muiAdminTheme = createTheme({
     error: { main: '#ef4444', light: '#f87171', dark: '#dc2626' },
     info: { main: '#06b6d4' },
     background: {
-      default: '#0f0f0f',
-      paper: 'rgba(20,20,30,0.6)'
+      default: '#ffffff',
+      paper: '#ffffff'
     },
     text: {
-      primary: '#ffffff',
-      secondary: '#a8adc5'
+      primary: '#333333',
+      secondary: '#666666'
     },
-    divider: 'rgba(255,255,255,0.06)'
+    divider: 'rgba(0,0,0,0.1)'
   },
   typography: {
     fontFamily: ['Parkinsans', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'].join(','),
@@ -36,7 +36,7 @@ const muiAdminTheme = createTheme({
     h3: { fontWeight: 700, fontSize: '1.5rem' },
     h5: { fontWeight: 600, fontSize: '1.1rem' },
     h6: { fontWeight: 600, fontSize: '1.1rem' },
-    subtitle2: { fontWeight: 500, fontSize: '0.875rem', color: '#a8adc5' },
+    subtitle2: { fontWeight: 500, fontSize: '0.875rem', color: '#666666' },
     body2: { fontSize: '0.875rem' }
   },
   shape: { borderRadius: 12 },
@@ -53,18 +53,17 @@ const muiAdminTheme = createTheme({
         },
         contained: {
           background: 'linear-gradient(135deg, #9353D3 0%, #b06cff 100%)',
-          boxShadow: '0 8px 24px rgba(147, 83, 211, 0.3)',
-          '&:hover': { boxShadow: '0 12px 32px rgba(147, 83, 211, 0.4)' }
+          boxShadow: '0 4px 12px rgba(147, 83, 211, 0.2)',
+          '&:hover': { boxShadow: '0 6px 16px rgba(147, 83, 211, 0.3)' }
         }
       }
     },
     MuiPaper: {
       styleOverrides: {
         root: {
-          background: 'linear-gradient(135deg, rgba(20,20,30,0.8) 0%, rgba(20,20,30,0.4) 100%)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(147, 83, 211, 0.15)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
           transition: 'all 0.3s ease'
         }
       }
@@ -83,13 +82,14 @@ const muiAdminTheme = createTheme({
       styleOverrides: {
         head: {
           fontWeight: 700,
-          backgroundColor: 'rgba(147, 83, 211, 0.1)',
-          borderBottom: '2px solid rgba(147, 83, 211, 0.2)',
-          color: '#ffffff'
+          backgroundColor: '#f9fafb',
+          borderBottom: '1px solid #e5e7eb',
+          color: '#333333'
         },
         body: {
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-          padding: '14px 16px'
+          borderBottom: '1px solid #f3f4f6',
+          padding: '14px 16px',
+          color: '#333333'
         }
       }
     },
@@ -97,7 +97,7 @@ const muiAdminTheme = createTheme({
       styleOverrides: {
         root: {
           '&:hover': {
-            backgroundColor: 'rgba(147, 83, 211, 0.08)'
+            backgroundColor: '#f9fafb'
           }
         }
       }
@@ -115,10 +115,18 @@ const muiAdminTheme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
-            '& fieldset': { borderColor: 'rgba(147, 83, 211, 0.2)' },
-            '&:hover fieldset': { borderColor: 'rgba(147, 83, 211, 0.4)' },
+            backgroundColor: '#ffffff',
+            '& fieldset': { borderColor: '#e5e7eb' },
+            '&:hover fieldset': { borderColor: '#9353D3' },
             '&.Mui-focused fieldset': { borderColor: '#9353D3', boxShadow: '0 0 0 3px rgba(147, 83, 211, 0.1)' }
           }
+        }
+      }
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontWeight: 600
         }
       }
     }
