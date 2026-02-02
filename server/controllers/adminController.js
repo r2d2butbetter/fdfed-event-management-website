@@ -17,7 +17,7 @@ class adminController {
 
             // Get recent events
             const recentEvents = await Event.find()
-                .sort({ createdAt: -1 })
+                .sort({ _id: -1 })
                 .limit(5)
                 .populate('organizerId');
 
@@ -281,6 +281,89 @@ class adminController {
         }
     }
 
+    async getOrganizerRevenues(req, res) {
+        try {
+            // Calculate revenue from registrations × ticketPrice for each organizer
+            const data = await Registration.aggregate([
+                {
+                    // Join registration with event to get ticketPrice and organizerId
+                    $lookup: {
+                        from: 'event',
+                        localField: 'eventId',
+                        foreignField: '_id',
+                        as: 'event'
+                    }
+                },
+                {
+                    $unwind: '$event'
+                },
+                {
+                    // Group by organizerId and sum (ticketPrice per registration)
+                    $group: {
+                        _id: '$event.organizerId',
+                        totalRevenue: { $sum: '$event.ticketPrice' }
+                    }
+                },
+                {
+                    // Join with organizers to get organization name
+                    $lookup: {
+                        from: 'organizers',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'organizer'
+                    }
+                },
+                {
+                    $unwind: '$organizer'
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        organizationName: '$organizer.organizationName',
+                        totalRevenue: 1
+                    }
+                }
+            ]);
+
+            res.json(data);
+        } catch (error) {
+            console.error('Error getting organizer revenues:', error);
+            res.status(500).json({ message: 'Server error' });
+        }
+    }
+
+    async getUserRevenues(req, res) {
+        try {
+            // Calculate revenue from registrations × ticketPrice for each user
+            const data = await Registration.aggregate([
+                {
+                    // Join registration with event to get ticketPrice
+                    $lookup: {
+                        from: 'event',
+                        localField: 'eventId',
+                        foreignField: '_id',
+                        as: 'event'
+                    }
+                },
+                {
+                    $unwind: '$event'
+                },
+                {
+                    // Group by userId and sum (ticketPrice per registration)
+                    $group: {
+                        _id: '$userId',
+                        totalRevenue: { $sum: '$event.ticketPrice' }
+                    }
+                }
+            ]);
+
+            res.json(data);
+        } catch (error) {
+            console.error('Error getting user revenues:', error);
+            res.status(500).json({ message: 'Server error' });
+        }
+    }
+
     async getOrganizerVerificationStats(req, res) {
         try {
             // Get counts of verified and unverified organizers
@@ -306,6 +389,63 @@ class adminController {
         } catch (error) {
             console.error('Error getting users:', error);
             res.status(500).json({ message: 'Server error' });
+        }
+    }
+
+    async getUserDetails(req, res) {
+        try {
+            const { id } = req.params;
+            
+            // Get user details
+            const user = await User.findById(id);
+            
+            if (!user) {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+
+            // Get all registrations by this user with event details
+            const registrations = await Registration.find({ userId: id }).populate('eventId');
+            
+            // Group registrations by event
+            const eventMap = new Map();
+            registrations.forEach(reg => {
+                if (reg.eventId) {
+                    const eventId = reg.eventId._id.toString();
+                    if (eventMap.has(eventId)) {
+                        eventMap.get(eventId).registrationCount += 1;
+                    } else {
+                        eventMap.set(eventId, {
+                            _id: reg.eventId._id,
+                            title: reg.eventId.title,
+                            startDateTime: reg.eventId.startDateTime,
+                            venue: reg.eventId.venue,
+                            ticketPrice: reg.eventId.ticketPrice || 0,
+                            status: reg.eventId.status,
+                            registrationCount: 1
+                        });
+                    }
+                }
+            });
+            
+            const eventsWithRegistrations = Array.from(eventMap.values());
+
+            // Calculate total revenue from registrations × ticketPrice
+            let totalRevenue = 0;
+            eventsWithRegistrations.forEach(event => {
+                totalRevenue += (event.registrationCount || 0) * (event.ticketPrice || 0);
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    user: user,
+                    events: eventsWithRegistrations,
+                    totalRevenue: totalRevenue
+                }
+            });
+        } catch (error) {
+            console.error('Error getting user details:', error);
+            res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 
@@ -397,6 +537,55 @@ class adminController {
         } catch (error) {
             console.error('Error getting organizer:', error);
             res.status(500).json({ message: 'Server error' });
+        }
+    }
+
+    async getOrganizerDetails(req, res) {
+        try {
+            const { id } = req.params;
+            
+            // Get organizer with user details
+            const organizer = await Organizer.findById(id).populate('userId', 'name email');
+            
+            if (!organizer) {
+                return res.status(404).json({ success: false, message: 'Organizer not found' });
+            }
+
+            // Get all events by this organizer with registration counts
+            const events = await Event.aggregate([
+                { $match: { organizerId: organizer._id } },
+                {
+                    $lookup: {
+                        from: 'registrations',
+                        localField: '_id',
+                        foreignField: 'eventId',
+                        as: 'registrations'
+                    }
+                },
+                {
+                    $addFields: { registrationCount: { $size: '$registrations' } }
+                },
+                { $project: { registrations: 0 } },
+                { $sort: { _id: -1 } }
+            ]);
+
+            // Calculate total revenue from registrations × ticketPrice
+            let totalRevenue = 0;
+            events.forEach(event => {
+                totalRevenue += (event.registrationCount || 0) * (event.ticketPrice || 0);
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    organizer: organizer,
+                    events: events,
+                    totalRevenue: totalRevenue
+                }
+            });
+        } catch (error) {
+            console.error('Error getting organizer details:', error);
+            res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 
@@ -496,6 +685,95 @@ class adminController {
                 res.status(500).json({ error: 'Failed to calculate admin revenue' });
             }
         }
+
+    async getEventAttendees(req, res) {
+        try {
+            const { eventId } = req.params;
+
+            const event = await Event.findById(eventId).populate('organizerId');
+            if (!event) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Event not found.'
+                });
+            }
+
+            // Get all registrations for this event (same source as dashboard)
+            const registrations = await Registration.find({ eventId })
+                .populate('userId', 'name email')
+                .sort({ registrationDate: -1 })
+                .lean();
+
+            // Total registrations count - this MUST match dashboard registrationCount
+            const totalRegistrations = registrations.length;
+
+            // Group by unique user and sum their registrations as tickets
+            const attendeeMap = new Map();
+            let registrationsWithUser = 0;
+            
+            registrations.forEach(reg => {
+                if (!reg.userId) return; // Skip registrations without user
+                registrationsWithUser++;
+                const odUserId = reg.userId._id.toString();
+                if (!attendeeMap.has(odUserId)) {
+                    attendeeMap.set(odUserId, {
+                        odUserId: reg.userId._id,
+                        name: reg.userId.name,
+                        email: reg.userId.email,
+                        ticketCount: 1,
+                        registrationDate: reg.registrationDate
+                    });
+                } else {
+                    // Same user registered again, add ticket
+                    attendeeMap.get(odUserId).ticketCount += 1;
+                }
+            });
+
+            const attendees = Array.from(attendeeMap.values());
+            
+            // Sum of tickets in table (only users with valid userId)
+            const tableTicketSum = attendees.reduce((sum, a) => sum + (a.ticketCount || 0), 0);
+
+            // Calculate revenue: totalRegistrations * ticketPrice
+            // This is more reliable than checking payments collection
+            const eventRevenue = totalRegistrations * (event.ticketPrice || 0);
+
+            console.log('Event attendees debug:', { 
+                eventId, 
+                totalRegistrations: totalRegistrations,
+                ticketPrice: event.ticketPrice,
+                eventRevenue: eventRevenue
+            });
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    event: {
+                        _id: event._id,
+                        title: event.title,
+                        startDateTime: event.startDateTime,
+                        endDateTime: event.endDateTime,
+                        venue: event.venue,
+                        ticketPrice: event.ticketPrice,
+                        capacity: event.capacity,
+                        organizer: event.organizerId ? event.organizerId.organizationName : 'Unknown'
+                    },
+                    attendees: attendees,
+                    totalAttendees: attendees.length,
+                    totalRegistrations: totalRegistrations,
+                    totalTickets: totalRegistrations,
+                    totalRevenue: eventRevenue
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching event attendees:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'An error occurred while fetching attendees.',
+                error: error.message
+            });
+        }
+    }
 
 }
 

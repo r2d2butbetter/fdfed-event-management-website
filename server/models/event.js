@@ -41,7 +41,7 @@ const EventSchema = new mongoose.Schema({
   organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organizer', required: true },
   image: { type: String, required: false },
 
-}, { collection: 'event' });
+}, { collection: 'event', timestamps: true });
 
 const Event = mongoose.model('Event', EventSchema);
 
