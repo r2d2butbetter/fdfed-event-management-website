@@ -5,6 +5,9 @@ import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminEventAttendees from './pages/AdminEventAttendees';
+import AdminOrganizerDetails from './pages/AdminOrganizerDetails';
+import AdminUserDetails from './pages/AdminUserDetails';
 import UserDashboard from './pages/dashboards/UserDashboard';
 import OrganizerDashboard from './pages/dashboards/OrganizerDashboard';
 import Analytics from './pages/dashboards/Analytics';
@@ -32,6 +35,9 @@ function App() {
         <Route path='/contact-us' element={<ContactUs />} />
         <Route path='/login' element={<Login />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/events/:eventId/attendees" element={<AdminEventAttendees />} />
+        <Route path="/admin/organizers/:organizerId/details" element={<AdminOrganizerDetails />} />
+        <Route path="/admin/users/:userId/details" element={<AdminUserDetails />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
         <Route path="/organizer/create-event" element={<Createevent />} />
