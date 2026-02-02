@@ -46,7 +46,7 @@ class userController {
                     message: 'User not found'
                 });
             }
-            // Get user's bookings/registrations
+            // Get user's bookings/registrations (only active ones for stats, but return all for display)
             const registrations = await Registration.find({ userId })
                 .populate({
                     path: 'eventId',
@@ -54,60 +54,95 @@ class userController {
                     select: 'title description startDateTime endDateTime venue ticketPrice status'
                 }).sort({ registrationDate: -1 });
 
-            // Group registrations by event ID
+            // Group registrations by event for cleaner display
+            const currentDate = new Date();
             const eventRegistrationMap = new Map();
 
-            // Process each registration and count tickets per event
             registrations.forEach(registration => {
-                const eventId = registration.eventId._id.toString();
-                if (!eventRegistrationMap.has(eventId)) {
-                    eventRegistrationMap.set(eventId, {
-                        event: registration.eventId,
-                        registrations: [],
-                        count: 0,
-                        latestRegistrationId: registration._id, // Keep track of the latest registration for this event
-                        latestRegistrationDate: registration.registrationDate
+                const event = registration.eventId;
+                if (!event) return;
+
+                const eventId = event._id.toString();
+                const startDate = new Date(event.startDateTime);
+
+                // Determine display status
+                let displayStatus = 'upcoming';
+                if (registration.status === 'cancelled') {
+                    displayStatus = 'cancelled';
+                } else if (event.status === 'cancelled') {
+                    displayStatus = 'cancelled';
+                } else if (startDate < currentDate) {
+                    displayStatus = 'completed';
+                }
+
+                // Calculate refund info
+                const daysUntilEvent = Math.ceil((startDate - currentDate) / (1000 * 60 * 60 * 24));
+                let refundPercentage = 0;
+                if (daysUntilEvent > 7) {
+                    refundPercentage = 100;
+                } else if (daysUntilEvent >= 3) {
+                    refundPercentage = 50;
+                } else {
+                    refundPercentage = 0;
+                }
+
+                const canCancel = registration.status === 'active' && startDate > currentDate;
+
+                // Group by event AND status (active vs cancelled shown separately)
+                const groupKey = `${eventId}-${registration.status}`;
+
+                if (!eventRegistrationMap.has(groupKey)) {
+                    eventRegistrationMap.set(groupKey, {
+                        eventId: event._id,
+                        title: event.title,
+                        startDateTime: event.startDateTime,
+                        endDateTime: event.endDateTime,
+                        venue: event.venue,
+                        ticketType: 'Standard',
+                        price: event.ticketPrice,
+                        status: displayStatus,
+                        registrationStatus: registration.status,
+                        ticketCount: 0,
+                        activeTicketCount: 0,
+                        cancelledTicketCount: 0,
+                        registrationIds: [], // All registration IDs for this event
+                        activeRegistrationIds: [], // Only active registration IDs
+                        registrationDate: registration.registrationDate,
+                        canCancel: false,
+                        refundPercentage,
+                        refundAmountPerTicket: (event.ticketPrice * refundPercentage) / 100,
+                        totalRefundedAmount: 0
                     });
                 }
 
-                // Add registration to the event's registrations array
-                eventRegistrationMap.get(eventId).registrations.push(registration);
-                eventRegistrationMap.get(eventId).count++;
+                const group = eventRegistrationMap.get(groupKey);
+                group.ticketCount++;
+                group.registrationIds.push(registration._id);
 
-                // Update latest registration ID if this one is newer
-                if (registration.registrationDate > eventRegistrationMap.get(eventId).latestRegistrationDate) {
-                    eventRegistrationMap.get(eventId).latestRegistrationId = registration._id;
-                    eventRegistrationMap.get(eventId).latestRegistrationDate = registration.registrationDate;
+                if (registration.status === 'active') {
+                    group.activeTicketCount++;
+                    group.activeRegistrationIds.push(registration._id);
+                    if (canCancel) {
+                        group.canCancel = true;
+                    }
+                } else if (registration.status === 'cancelled') {
+                    group.cancelledTicketCount++;
+                    group.totalRefundedAmount += registration.refundAmount || 0;
+                }
+
+                // Keep the earliest registration date
+                if (registration.registrationDate < group.registrationDate) {
+                    group.registrationDate = registration.registrationDate;
                 }
             });
 
-            // Process events data to categorize as upcoming, completed, or cancelled
-            const currentDate = new Date();
-            const userBookings = Array.from(eventRegistrationMap.values()).map(eventData => {
-                const event = eventData.event;
-                const startDate = new Date(event.startDateTime);
+            const userBookings = Array.from(eventRegistrationMap.values());
 
-                // Determine status
-                let status = 'upcoming';
-                if (event.status === 'cancelled') {
-                    status = 'cancelled';
-                } else if (startDate < currentDate) {
-                    status = 'completed';
-                }
-
-                return {
-                    id: eventData.latestRegistrationId, // Use the latest registration ID
-                    title: event.title,
-                    startDateTime: event.startDateTime,
-                    endDateTime: event.endDateTime,
-                    venue: event.venue,
-                    ticketType: 'Standard', // Assuming a default if not available
-                    price: event.ticketPrice,
-                    status: status,
-                    eventId: event._id,
-                    ticketCount: eventData.count // Add the ticket count
-                };
-            });
+            // Calculate stats
+            const activeBookings = userBookings.filter(b => b.registrationStatus === 'active');
+            const cancelledBookings = userBookings.filter(b => b.registrationStatus === 'cancelled');
+            const totalActiveTickets = activeBookings.reduce((sum, b) => sum + b.ticketCount, 0);
+            const totalCancelledTickets = cancelledBookings.reduce((sum, b) => sum + b.ticketCount, 0);
 
             // Return JSON response
             return res.status(200).json({
@@ -120,10 +155,10 @@ class userController {
                     },
                     bookings: userBookings,
                     stats: {
-                        totalBookings: userBookings.length,
-                        upcomingEvents: userBookings.filter(b => b.status === 'upcoming').length,
-                        completedEvents: userBookings.filter(b => b.status === 'completed').length,
-                        cancelledEvents: userBookings.filter(b => b.status === 'cancelled').length
+                        totalBookings: totalActiveTickets,
+                        upcomingEvents: activeBookings.filter(b => b.status === 'upcoming').reduce((sum, b) => sum + b.ticketCount, 0),
+                        completedEvents: activeBookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + b.ticketCount, 0),
+                        cancelledEvents: totalCancelledTickets
                     }
                 }
             });
@@ -635,6 +670,623 @@ class userController {
             res.status(500).json({
                 success: false,
                 message: 'Failed to retrieve saved events',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Cancel a booking/registration
+     * Time-based refund policy:
+     * - >7 days before event: 100% refund
+     * - 3-7 days before event: 50% refund
+     * - <3 days before event: 0% refund
+     */
+    async cancelBooking(req, res) {
+        try {
+            const { registrationIds, ticketCount } = req.body;
+
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            // Validate input
+            if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Registration IDs are required'
+                });
+            }
+
+            const cancelCount = ticketCount || registrationIds.length;
+            if (cancelCount > registrationIds.length) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot cancel more tickets than available'
+                });
+            }
+
+            // Import required models
+            const Registration = (await import('../models/registration.js')).default;
+            const Event = (await import('../models/event.js')).default;
+            const Payment = (await import('../models/payment.js')).default;
+
+            // Get the registrations to cancel (take only the requested count)
+            const idsToCancel = registrationIds.slice(0, cancelCount);
+
+            // Fetch all registrations
+            const registrations = await Registration.find({
+                _id: { $in: idsToCancel },
+                userId: userId,
+                status: 'active'
+            }).populate('eventId').populate('paymentId');
+
+            if (registrations.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No active registrations found to cancel'
+                });
+            }
+
+            // Verify all registrations are for the same event
+            const eventId = registrations[0].eventId._id.toString();
+            const allSameEvent = registrations.every(r => r.eventId._id.toString() === eventId);
+            if (!allSameEvent) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'All registrations must be for the same event'
+                });
+            }
+
+            const event = registrations[0].eventId;
+            const eventStartDate = new Date(event.startDateTime);
+            const currentDate = new Date();
+
+            // Check if event has already started
+            if (eventStartDate <= currentDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot cancel booking for an event that has already started or passed'
+                });
+            }
+
+            // Calculate days until event
+            const daysUntilEvent = Math.ceil((eventStartDate - currentDate) / (1000 * 60 * 60 * 24));
+
+            // Determine refund percentage based on time-based policy
+            let refundPercentage = 0;
+            let refundMessage = '';
+            if (daysUntilEvent > 7) {
+                refundPercentage = 100;
+                refundMessage = 'Full refund (more than 7 days before event)';
+            } else if (daysUntilEvent >= 3) {
+                refundPercentage = 50;
+                refundMessage = '50% refund (3-7 days before event)';
+            } else {
+                refundPercentage = 0;
+                refundMessage = 'No refund (less than 3 days before event)';
+            }
+
+            // Calculate refund amount per ticket
+            const ticketPrice = event.ticketPrice;
+            const refundAmountPerTicket = (ticketPrice * refundPercentage) / 100;
+            let totalRefundAmount = 0;
+            let cancelledCount = 0;
+
+            // Cancel each registration
+            for (const registration of registrations) {
+                registration.status = 'cancelled';
+                registration.cancelledAt = new Date();
+                registration.refundAmount = refundAmountPerTicket;
+                await registration.save();
+
+                totalRefundAmount += refundAmountPerTicket;
+                cancelledCount++;
+
+                // Update Payment record if it exists
+                if (registration.paymentId) {
+                    const payment = await Payment.findById(registration.paymentId);
+                    if (payment) {
+                        payment.refundAmount = (payment.refundAmount || 0) + refundAmountPerTicket;
+                        payment.refundedTickets = (payment.refundedTickets || 0) + 1;
+                        payment.refundDate = new Date();
+
+                        // Update payment status based on refunds
+                        if (payment.refundedTickets >= payment.tickets) {
+                            payment.status = 'refunded';
+                        } else {
+                            payment.status = 'partial_refund';
+                        }
+
+                        // Adjust commission and revenue based on refund
+                        const refundCommission = refundAmountPerTicket * 0.05;
+                        const refundOrganizerRevenue = refundAmountPerTicket * 0.95;
+                        payment.adminCommission = payment.adminCommission - refundCommission;
+                        payment.organizerRevenue = payment.organizerRevenue - refundOrganizerRevenue;
+
+                        await payment.save();
+                    }
+                }
+            }
+
+            // Check if event can be reopened for selling (if it was sold out)
+            if (event.status === 'Not Selling') {
+                const activeRegistrations = await Registration.countDocuments({
+                    eventId: event._id,
+                    status: 'active'
+                });
+                if (activeRegistrations < event.capacity) {
+                    event.status = 'start_selling';
+                    await event.save();
+                }
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: `${cancelledCount} ticket(s) cancelled successfully`,
+                data: {
+                    cancelledCount,
+                    totalRefundAmount,
+                    refundAmountPerTicket,
+                    refundPercentage,
+                    refundMessage,
+                    cancelledAt: new Date()
+                }
+            });
+        } catch (error) {
+            console.error('Error cancelling booking:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to cancel booking',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Get refund preview for a booking (without actually cancelling)
+     */
+    async getRefundPreview(req, res) {
+        try {
+            const { registrationId } = req.params;
+
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            // Import required models
+            const Registration = (await import('../models/registration.js')).default;
+
+            // Find the registration
+            const registration = await Registration.findById(registrationId)
+                .populate('eventId');
+
+            if (!registration) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Registration not found'
+                });
+            }
+
+            // Verify the registration belongs to this user
+            if (registration.userId.toString() !== userId.toString()) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You are not authorized to view this booking'
+                });
+            }
+
+            // Check if already cancelled
+            if (registration.status === 'cancelled') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This booking has already been cancelled'
+                });
+            }
+
+            const event = registration.eventId;
+            const eventStartDate = new Date(event.startDateTime);
+            const currentDate = new Date();
+
+            // Check if event has already started
+            if (eventStartDate <= currentDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot cancel booking for an event that has already started or passed',
+                    canCancel: false
+                });
+            }
+
+            // Calculate days until event
+            const daysUntilEvent = Math.ceil((eventStartDate - currentDate) / (1000 * 60 * 60 * 24));
+
+            // Determine refund percentage based on time-based policy
+            let refundPercentage = 0;
+            let refundMessage = '';
+            if (daysUntilEvent > 7) {
+                refundPercentage = 100;
+                refundMessage = 'Full refund (more than 7 days before event)';
+            } else if (daysUntilEvent >= 3) {
+                refundPercentage = 50;
+                refundMessage = '50% refund (3-7 days before event)';
+            } else {
+                refundPercentage = 0;
+                refundMessage = 'No refund (less than 3 days before event)';
+            }
+
+            // Calculate refund amount for this ticket
+            const ticketPrice = event.ticketPrice;
+            const refundAmount = (ticketPrice * refundPercentage) / 100;
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    registrationId: registration._id,
+                    eventTitle: event.title,
+                    eventDate: event.startDateTime,
+                    ticketPrice,
+                    daysUntilEvent,
+                    refundPercentage,
+                    refundAmount,
+                    refundMessage,
+                    canCancel: true
+                }
+            });
+        } catch (error) {
+            console.error('Error getting refund preview:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to get refund preview',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Get user's payment history with pagination
+     */
+    async getPaymentHistory(req, res) {
+        try {
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            // Pagination parameters
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            // Optional filters
+            const { status, startDate, endDate } = req.query;
+
+            // Import Payment model
+            const Payment = (await import('../models/payment.js')).default;
+
+            // Build query
+            const query = { userId };
+            if (status && ['completed', 'refunded', 'partial_refund'].includes(status)) {
+                query.status = status;
+            }
+            if (startDate || endDate) {
+                query.paymentDate = {};
+                if (startDate) query.paymentDate.$gte = new Date(startDate);
+                if (endDate) query.paymentDate.$lte = new Date(endDate);
+            }
+
+            // Get total count for pagination
+            const totalCount = await Payment.countDocuments(query);
+            const totalPages = Math.ceil(totalCount / limit);
+
+            // Fetch payments with event details
+            const payments = await Payment.find(query)
+                .populate({
+                    path: 'eventId',
+                    model: 'Event',
+                    select: 'title startDateTime venue image'
+                })
+                .sort({ paymentDate: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean();
+
+            // Format payment data
+            const formattedPayments = payments.map(payment => ({
+                _id: payment._id,
+                transactionId: payment.transactionId || `TXN-${payment._id.toString().slice(-8).toUpperCase()}`,
+                eventTitle: payment.eventId?.title || 'Unknown Event',
+                eventDate: payment.eventId?.startDateTime,
+                eventVenue: payment.eventId?.venue,
+                eventImage: payment.eventId?.image,
+                tickets: payment.tickets,
+                totalPrice: payment.totalPrice,
+                paymentDate: payment.paymentDate,
+                status: payment.status,
+                refundAmount: payment.refundAmount,
+                refundDate: payment.refundDate,
+                refundedTickets: payment.refundedTickets,
+                netAmount: payment.totalPrice - (payment.refundAmount || 0)
+            }));
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    payments: formattedPayments,
+                    pagination: {
+                        currentPage: page,
+                        totalPages,
+                        totalCount,
+                        hasMore: page < totalPages
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching payment history:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to fetch payment history',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Get notification preferences
+     */
+    async getNotificationPreferences(req, res) {
+        try {
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            const User = (await import('../models/user.js')).default;
+            const user = await User.findById(userId).select('notificationPreferences').lean();
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            // Return default preferences if not set
+            const preferences = user.notificationPreferences || {
+                emailUpdates: true,
+                eventReminders: true,
+                promotionalEmails: false
+            };
+
+            return res.status(200).json({
+                success: true,
+                data: preferences
+            });
+        } catch (error) {
+            console.error('Error fetching notification preferences:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to fetch notification preferences',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Update notification preferences
+     */
+    async updateNotificationPreferences(req, res) {
+        try {
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            const { emailUpdates, eventReminders, promotionalEmails } = req.body;
+
+            const User = (await import('../models/user.js')).default;
+
+            const updateData = {
+                notificationPreferences: {
+                    emailUpdates: emailUpdates !== undefined ? Boolean(emailUpdates) : true,
+                    eventReminders: eventReminders !== undefined ? Boolean(eventReminders) : true,
+                    promotionalEmails: promotionalEmails !== undefined ? Boolean(promotionalEmails) : false
+                }
+            };
+
+            const user = await User.findByIdAndUpdate(
+                userId,
+                updateData,
+                { new: true, runValidators: true }
+            ).select('notificationPreferences');
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: 'Notification preferences updated successfully',
+                data: user.notificationPreferences
+            });
+        } catch (error) {
+            console.error('Error updating notification preferences:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to update notification preferences',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Get activity stats for charts (events attended over time, spending by category)
+     */
+    async getActivityStats(req, res) {
+        try {
+            // Get user ID
+            let userId = null;
+            if (req.user) {
+                userId = req.user._id;
+            } else if (req.session.userId) {
+                userId = req.session.userId;
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+
+            const Registration = (await import('../models/registration.js')).default;
+            const Payment = (await import('../models/payment.js')).default;
+            const Event = (await import('../models/event.js')).default;
+
+            // Get registrations for last 12 months
+            const twelveMonthsAgo = new Date();
+            twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+            // Monthly event attendance
+            const registrations = await Registration.find({
+                userId,
+                registrationDate: { $gte: twelveMonthsAgo },
+                status: 'active'
+            }).populate({
+                path: 'eventId',
+                model: 'Event',
+                select: 'category startDateTime'
+            }).lean();
+
+            // Group by month for attendance chart
+            const monthlyAttendance = {};
+            const currentDate = new Date();
+
+            // Initialize all 12 months with 0
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date(currentDate);
+                date.setMonth(date.getMonth() - i);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthlyAttendance[monthKey] = { month: monthKey, events: 0 };
+            }
+
+            // Count events per month
+            registrations.forEach(reg => {
+                if (reg.eventId && reg.eventId.startDateTime) {
+                    const eventDate = new Date(reg.eventId.startDateTime);
+                    const monthKey = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}`;
+                    if (monthlyAttendance[monthKey]) {
+                        monthlyAttendance[monthKey].events++;
+                    }
+                }
+            });
+
+            // Get payments for spending by category
+            const payments = await Payment.find({
+                userId,
+                paymentDate: { $gte: twelveMonthsAgo },
+                status: { $in: ['completed', 'partial_refund'] }
+            }).populate({
+                path: 'eventId',
+                model: 'Event',
+                select: 'category'
+            }).lean();
+
+            // Group spending by category
+            const spendingByCategory = {};
+            payments.forEach(payment => {
+                const category = payment.eventId?.category || 'Other';
+                const netSpent = payment.totalPrice - (payment.refundAmount || 0);
+                if (!spendingByCategory[category]) {
+                    spendingByCategory[category] = { category, amount: 0, count: 0 };
+                }
+                spendingByCategory[category].amount += netSpent;
+                spendingByCategory[category].count++;
+            });
+
+            // Monthly spending trend
+            const monthlySpending = {};
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date(currentDate);
+                date.setMonth(date.getMonth() - i);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthlySpending[monthKey] = { month: monthKey, amount: 0 };
+            }
+
+            payments.forEach(payment => {
+                const paymentDate = new Date(payment.paymentDate);
+                const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+                if (monthlySpending[monthKey]) {
+                    monthlySpending[monthKey].amount += payment.totalPrice - (payment.refundAmount || 0);
+                }
+            });
+
+            // Summary stats
+            const totalSpent = payments.reduce((sum, p) => sum + p.totalPrice - (p.refundAmount || 0), 0);
+            const totalEvents = registrations.length;
+            const avgSpentPerEvent = totalEvents > 0 ? totalSpent / totalEvents : 0;
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    monthlyAttendance: Object.values(monthlyAttendance),
+                    monthlySpending: Object.values(monthlySpending),
+                    spendingByCategory: Object.values(spendingByCategory),
+                    summary: {
+                        totalSpent: Math.round(totalSpent * 100) / 100,
+                        totalEvents,
+                        avgSpentPerEvent: Math.round(avgSpentPerEvent * 100) / 100,
+                        categoriesExplored: Object.keys(spendingByCategory).length
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching activity stats:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to fetch activity stats',
                 error: error.message
             });
         }
