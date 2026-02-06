@@ -189,19 +189,20 @@ class orgController {
       // Get upcoming events and populate with registration counts
       const upcomingEvents = events.filter(event => event.status === 'start_selling');
 
-      // Add registration counts to each upcoming event (only active)
+      // Add registration counts to each upcoming event
       for (let event of upcomingEvents) {
-        const registrationCount = await Registration.countDocuments({ eventId: event._id, status: 'active' });
+        const registrationCount = await Registration.countDocuments({ eventId: event._id });
         event.registrationCount = registrationCount;
         event.ticketsLeft = event.capacity - registrationCount;
       }
 
-      // Calculate total revenue (only from active registrations)
-      let totalRevenue = 0;
-      for (const event of events) {
-        const registrationCount = await Registration.countDocuments({ eventId: event._id, status: 'active' });
-        totalRevenue += event.ticketPrice * registrationCount;
-      }
+      // Calculate total revenue from Payment model (organizerRevenue is 95% of ticket sales)
+      const eventIds = events.map(event => event._id);
+      const totalRevenueResult = await Payment.aggregate([
+        { $match: { eventId: { $in: eventIds }, status: 'completed' } },
+        { $group: { _id: null, totalRevenue: { $sum: '$organizerRevenue' } } }
+      ]);
+      const totalRevenue = totalRevenueResult.length > 0 ? totalRevenueResult[0].totalRevenue : 0;
 
       // Calculate last month's revenue for comparison
       const lastMonth = new Date();
@@ -209,35 +210,32 @@ class orgController {
       const twoMonthsAgo = new Date();
       twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
 
-      // Get registrations from last month (only active)
-      const lastMonthRegistrations = await Registration.find({
-        eventId: { $in: events.map(event => event._id) },
-        registrationDate: { $gte: twoMonthsAgo, $lt: lastMonth },
-        status: 'active'
-      }).populate('eventId');
-
-      let lastMonthRevenue = 0;
-      for (const reg of lastMonthRegistrations) {
-        if (reg.eventId && reg.eventId.ticketPrice) {
-          lastMonthRevenue += reg.eventId.ticketPrice;
-        }
-      }
+      // Get payments from last month (completed payments only)
+      const lastMonthRevenueResult = await Payment.aggregate([
+        {
+          $match: {
+            eventId: { $in: eventIds },
+            paymentDate: { $gte: twoMonthsAgo, $lt: lastMonth },
+            status: 'completed'
+          }
+        },
+        { $group: { _id: null, totalRevenue: { $sum: '$organizerRevenue' } } }
+      ]);
+      const lastMonthRevenue = lastMonthRevenueResult.length > 0 ? lastMonthRevenueResult[0].totalRevenue : 0;
 
       // Calculate revenue change percentage
       const revenueChange = lastMonthRevenue > 0 ?
         Math.round(((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) : 0;
 
-      // Get total number of attendees (active registrations only)
+      // Get total number of attendees (registrations)
       const totalAttendees = await Registration.countDocuments({
-        eventId: { $in: events.map(event => event._id) },
-        status: 'active'
+        eventId: { $in: events.map(event => event._id) }
       });
 
-      // Get last month's attendees (active only)
+      // Get last month's attendees
       const lastMonthAttendees = await Registration.countDocuments({
         eventId: { $in: events.map(event => event._id) },
-        registrationDate: { $gte: twoMonthsAgo, $lt: lastMonth },
-        status: 'active'
+        registrationDate: { $gte: twoMonthsAgo, $lt: lastMonth }
       });
 
       // Calculate attendee change percentage
@@ -256,10 +254,9 @@ class orgController {
         // Create an object to track ticket sales per event
         const eventSales = {};
 
-        // Get all active registrations for this organizer's events
+        // Get all registrations for this organizer's events
         const allRegistrations = await Registration.find({
-          eventId: { $in: events.map(event => event._id) },
-          status: 'active'
+          eventId: { $in: events.map(event => event._id) }
         });
 
         // Count registrations per event
@@ -311,25 +308,30 @@ class orgController {
         const startOfWeek = new Date();
         startOfWeek.setDate(startOfWeek.getDate() - (i * 7 + 6));
         startOfWeek.setHours(0, 0, 0, 0);
-
+        
         const endOfWeek = new Date();
         endOfWeek.setDate(endOfWeek.getDate() - (i * 7));
         endOfWeek.setHours(23, 59, 59, 999);
 
-        const weekRegistrations = await Registration.find({
-          eventId: { $in: events.map(event => event._id) },
-          registrationDate: { $gte: startOfWeek, $lte: endOfWeek },
-          status: 'active'
-        }).populate('eventId');
-
-        let weekTickets = weekRegistrations.length;
-        let weekRevenue = 0;
-
-        weekRegistrations.forEach(reg => {
-          if (reg.eventId && reg.eventId.ticketPrice) {
-            weekRevenue += reg.eventId.ticketPrice;
+        const weekPayments = await Payment.aggregate([
+          {
+            $match: {
+              eventId: { $in: eventIds },
+              paymentDate: { $gte: startOfWeek, $lte: endOfWeek },
+              status: 'completed'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              weekTickets: { $sum: '$tickets' },
+              weekRevenue: { $sum: '$organizerRevenue' }
+            }
           }
-        });
+        ]);
+
+        const weekTickets = weekPayments.length > 0 ? weekPayments[0].weekTickets : 0;
+        const weekRevenue = weekPayments.length > 0 ? weekPayments[0].weekRevenue : 0;
 
         weeklySalesData.push({
           name: `Week ${5 - i}`,
@@ -345,7 +347,7 @@ class orgController {
         monthStart.setMonth(monthStart.getMonth() - i);
         monthStart.setDate(1);
         monthStart.setHours(0, 0, 0, 0);
-
+        
         const monthEnd = new Date(monthStart);
         monthEnd.setMonth(monthEnd.getMonth() + 1);
         monthEnd.setDate(0);
@@ -353,21 +355,33 @@ class orgController {
 
         const monthRegistrations = await Registration.find({
           eventId: { $in: events.map(event => event._id) },
-          registrationDate: { $gte: monthStart, $lte: monthEnd },
-          status: 'active'
+          registrationDate: { $gte: monthStart, $lte: monthEnd }
         }).populate('eventId');
 
-        let monthRevenue = 0;
-        monthRegistrations.forEach(reg => {
-          if (reg.eventId && reg.eventId.ticketPrice) {
-            monthRevenue += reg.eventId.ticketPrice;
+        const monthPayments = await Payment.aggregate([
+          {
+            $match: {
+              eventId: { $in: eventIds },
+              paymentDate: { $gte: monthStart, $lte: monthEnd },
+              status: 'completed'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              monthTickets: { $sum: '$tickets' },
+              monthRevenue: { $sum: '$organizerRevenue' }
+            }
           }
-        });
+        ]);
+
+        const monthRevenue = monthPayments.length > 0 ? monthPayments[0].monthRevenue : 0;
+        const monthTickets = monthPayments.length > 0 ? monthPayments[0].monthTickets : 0;
 
         monthlyRevenueData.push({
           name: monthStart.toLocaleString('default', { month: 'short', year: 'numeric' }),
           revenue: monthRevenue,
-          tickets: monthRegistrations.length
+          tickets: monthTickets
         });
       }
 
@@ -381,21 +395,33 @@ class orgController {
 
         const quarterRegistrations = await Registration.find({
           eventId: { $in: events.map(event => event._id) },
-          registrationDate: { $gte: quarterStart, $lte: quarterEnd },
-          status: 'active'
+          registrationDate: { $gte: quarterStart, $lte: quarterEnd }
         }).populate('eventId');
 
-        let quarterRevenue = 0;
-        quarterRegistrations.forEach(reg => {
-          if (reg.eventId && reg.eventId.ticketPrice) {
-            quarterRevenue += reg.eventId.ticketPrice;
+        const quarterPayments = await Payment.aggregate([
+          {
+            $match: {
+              eventId: { $in: eventIds },
+              paymentDate: { $gte: quarterStart, $lte: quarterEnd },
+              status: 'completed'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              quarterTickets: { $sum: '$tickets' },
+              quarterRevenue: { $sum: '$organizerRevenue' }
+            }
           }
-        });
+        ]);
+
+        const quarterRevenue = quarterPayments.length > 0 ? quarterPayments[0].quarterRevenue : 0;
+        const quarterTickets = quarterPayments.length > 0 ? quarterPayments[0].quarterTickets : 0;
 
         quarterlyRevenueData.push({
           name: `Q${Math.floor(quarterMonth / 3) + 1} ${quarterStart.getFullYear()}`,
           revenue: quarterRevenue,
-          tickets: quarterRegistrations.length
+          tickets: quarterTickets
         });
       }
 
@@ -408,35 +434,46 @@ class orgController {
 
         const yearRegistrations = await Registration.find({
           eventId: { $in: events.map(event => event._id) },
-          registrationDate: { $gte: yearStart, $lte: yearEnd },
-          status: 'active'
+          registrationDate: { $gte: yearStart, $lte: yearEnd }
         }).populate('eventId');
 
-        let yearRevenue = 0;
-        yearRegistrations.forEach(reg => {
-          if (reg.eventId && reg.eventId.ticketPrice) {
-            yearRevenue += reg.eventId.ticketPrice;
+        const yearPayments = await Payment.aggregate([
+          {
+            $match: {
+              eventId: { $in: eventIds },
+              paymentDate: { $gte: yearStart, $lte: yearEnd },
+              status: 'completed'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              yearTickets: { $sum: '$tickets' },
+              yearRevenue: { $sum: '$organizerRevenue' }
+            }
           }
-        });
+        ]);
+
+        const yearRevenue = yearPayments.length > 0 ? yearPayments[0].yearRevenue : 0;
+        const yearTickets = yearPayments.length > 0 ? yearPayments[0].yearTickets : 0;
 
         yearlyRevenueData.push({
           name: (currentYear - i).toString(),
           revenue: yearRevenue,
-          tickets: yearRegistrations.length
+          tickets: yearTickets
         });
       }
 
-      // Calculate peak registration times (by hour and day of week) - active only
-      const allRegistrationsForPeak = await Registration.find({
-        eventId: { $in: events.map(event => event._id) },
-        status: 'active'
+      // Calculate peak registration times (by hour and day of week)
+      const allRegistrations = await Registration.find({
+        eventId: { $in: events.map(event => event._id) }
       });
 
       const hourlyRegistrations = Array(24).fill(0);
       const dailyRegistrations = Array(7).fill(0);
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-      allRegistrationsForPeak.forEach(reg => {
+      allRegistrations.forEach(reg => {
         const regDate = new Date(reg.registrationDate);
         hourlyRegistrations[regDate.getHours()]++;
         dailyRegistrations[regDate.getDay()]++;
@@ -452,19 +489,32 @@ class orgController {
         count
       }));
 
-      // Calculate revenue per event (active registrations only)
+      // Calculate revenue per event using Payment model (organizerRevenue is 95% of ticket sales)
       const revenuePerEvent = [];
       for (const event of events) {
-        const eventRegistrations = await Registration.countDocuments({ eventId: event._id, status: 'active' });
-        const eventRevenue = event.ticketPrice * eventRegistrations;
+        // Get total organizer revenue for this event from completed payments
+        const eventRevenueResult = await Payment.aggregate([
+          { $match: { eventId: event._id, status: 'completed' } },
+          {
+            $group: {
+              _id: null,
+              eventRevenue: { $sum: '$organizerRevenue' },
+              ticketsSold: { $sum: '$tickets' }
+            }
+          }
+        ]);
+
+        const eventRevenue = eventRevenueResult.length > 0 ? eventRevenueResult[0].eventRevenue : 0;
+        const ticketsSold = eventRevenueResult.length > 0 ? eventRevenueResult[0].ticketsSold : 0;
+
         revenuePerEvent.push({
           eventId: event._id,
           title: event.title,
           revenue: eventRevenue,
           ticketPrice: event.ticketPrice,
-          ticketsSold: eventRegistrations,
+          ticketsSold: ticketsSold,
           capacity: event.capacity,
-          fillRate: event.capacity > 0 ? Math.round((eventRegistrations / event.capacity) * 100) : 0
+          fillRate: event.capacity > 0 ? Math.round((ticketsSold / event.capacity) * 100) : 0
         });
       }
       revenuePerEvent.sort((a, b) => b.revenue - a.revenue);
@@ -869,8 +919,8 @@ class orgController {
       const Registration = (await import('../models/registration.js')).default;
       const User = (await import('../models/user.js')).default;
 
-      // Get all active registrations for this event
-      const registrations = await Registration.find({ eventId, status: 'active' })
+      // Get all registrations for this event
+      const registrations = await Registration.find({ eventId })
         .populate('userId', 'name email')
         .sort({ registrationDate: -1 })
         .lean();
@@ -961,7 +1011,7 @@ class orgController {
       }
 
       const Registration = (await import('../models/registration.js')).default;
-      const registrations = await Registration.find({ eventId, status: 'active' })
+      const registrations = await Registration.find({ eventId })
         .populate('userId', 'name email')
         .sort({ registrationDate: -1 })
         .lean();
@@ -1076,6 +1126,117 @@ class orgController {
       });
     }
   }
+
+
+
+  async getOrganizerRevenue(req, res) {
+    try {
+      const userId = req.session.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const organizer = await Organizer.findOne({ userId: req.session.userId });
+
+      if (!organizer) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not registered as an organizer.'
+        });
+      }
+
+      const events = await Event.find({ organizerId: organizer._id });
+      const eventIds = events.map(event => event._id);
+
+      const result = await Payment.aggregate([
+        { $match: { eventId: { $in: eventIds } } },
+        { $group: { _id: null, totalRevenue: { $sum: '$organizerRevenue' }, totalTicketsSold: { $sum: '$tickets' } } }
+      ]);
+
+      const totalRevenue = result.length > 0 ? result[0].totalRevenue : 0;
+      const totalTicketsSold = result.length > 0 ? result[0].totalTicketsSold : 0;
+
+      return res.status(200).json({
+        success: true,
+        data: { totalRevenue, totalTicketsSold }
+      });
+    } catch (error) {
+      console.error('Error calculating organizer revenue:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while calculating revenue.',
+        error: error.message
+      });
+    }
+  }
+
+  async getMonthlyRevenue(req, res) {
+    try {
+      const userId = req.session.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const organizer = await Organizer.findOne({ userId: req.session.userId });
+
+      if (!organizer) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not registered as an organizer.'
+        });
+      }
+
+      const events = await Event.find({ organizerId: organizer._id });
+      const eventIds = events.map(event => event._id);
+
+      const now = new Date();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(now.getMonth() - 6);
+
+      const monthlyData = await Payment.aggregate([
+        { $match: { eventId: { $in: eventIds }, paymentDate: { $gte: sixMonthsAgo, $lte: now } } },
+        { $group: { _id: { year: { $year: '$paymentDate' }, month: { $month: '$paymentDate' } }, revenue: { $sum: '$organizerRevenue' }, tickets: { $sum: '$tickets' } } },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]);
+
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const formattedData = [];
+
+      for (let i = 0; i < 6; i++) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 5 + i);
+        formattedData.push({ name: months[d.getMonth()], year: d.getFullYear(), revenue: 0, tickets: 0 });
+      }
+
+      monthlyData.forEach(item => {
+        const monthIndex = item._id.month - 1;
+        const label = months[monthIndex];
+        const dataIndex = formattedData.findIndex(d => d.name === label && d.year === item._id.year);
+        if (dataIndex !== -1) {
+          formattedData[dataIndex].revenue = item.revenue;
+          formattedData[dataIndex].tickets = item.tickets;
+        }
+      });
+
+      return res.status(200).json({ success: true, data: formattedData });
+    } catch (error) {
+      console.error('Error getting monthly revenue:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while getting monthly revenue.',
+        error: error.message
+      });
+    }
+  }
+
 }
 
 export default new orgController();

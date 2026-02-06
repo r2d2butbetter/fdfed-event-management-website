@@ -298,54 +298,6 @@ function Analytics() {
                             </Grid>
                         </Grid>
 
-                        {/* Revenue Per Event */}
-                        <Grid item xs={12}>
-                            <Paper
-                                sx={{
-                                    p: 3,
-                                    background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.9) 100%)',
-                                    border: '1px solid rgba(147, 83, 211, 0.2)',
-                                    borderRadius: 3,
-                                }}
-                            >
-                                <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600, mb: 3 }}>
-                                    Revenue Per Event
-                                </Typography>
-                                <Box sx={{ width: '100%', height: 400 }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart
-                                            data={(stats.revenuePerEvent || []).slice(0, 10)}
-                                            margin={{ top: 5, right: 30, left: 20, bottom: 80 }}
-                                            layout="vertical"
-                                        >
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                                            <XAxis type="number" stroke="rgba(255,255,255,0.5)" tick={{ fill: 'rgba(255,255,255,0.5)' }} />
-                                            <YAxis
-                                                type="category"
-                                                dataKey="title"
-                                                stroke="rgba(255,255,255,0.5)"
-                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-                                                width={200}
-                                            />
-                                            <Tooltip
-                                                contentStyle={{
-                                                    background: '#1a1a2e',
-                                                    border: '1px solid rgba(147, 83, 211, 0.3)',
-                                                    borderRadius: 8,
-                                                    color: '#fff',
-                                                }}
-                                                formatter={(value, name) => {
-                                                    if (name === 'revenue') return [`₹${value.toLocaleString()}`, 'Revenue'];
-                                                    return [value, name];
-                                                }}
-                                            />
-                                            <Bar dataKey="revenue" fill="#9353d3" radius={[0, 8, 8, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </Box>
-                            </Paper>
-                        </Grid>
-
                         {/* Revenue Per Event Table */}
                         <Grid item xs={12}>
                             <Paper
@@ -372,34 +324,42 @@ function Analytics() {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {(stats.revenuePerEvent || []).map((event) => (
-                                                <TableRow key={event.eventId} sx={{ '&:hover': { background: 'rgba(147, 83, 211, 0.05)' } }}>
-                                                    <TableCell sx={{ color: '#fff' }}>{event.title}</TableCell>
-                                                    <TableCell sx={{ color: '#10b981', fontWeight: 600 }} align="right">
-                                                        ₹{event.revenue.toLocaleString()}
-                                                    </TableCell>
-                                                    <TableCell sx={{ color: 'rgba(255,255,255,0.8)' }} align="right">
-                                                        {event.ticketsSold}
-                                                    </TableCell>
-                                                    <TableCell sx={{ color: 'rgba(255,255,255,0.8)' }} align="right">
-                                                        ₹{event.ticketPrice}
-                                                    </TableCell>
-                                                    <TableCell sx={{ color: 'rgba(255,255,255,0.8)' }} align="right">
-                                                        {event.capacity}
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        <Chip
-                                                            label={`${event.fillRate}%`}
-                                                            size="small"
-                                                            sx={{
-                                                                background: event.fillRate >= 80 ? 'rgba(16, 185, 129, 0.2)' : event.fillRate >= 50 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(244, 63, 94, 0.2)',
-                                                                color: event.fillRate >= 80 ? '#10b981' : event.fillRate >= 50 ? '#f59e0b' : '#f43f5e',
-                                                                fontWeight: 600
-                                                            }}
-                                                        />
+                                            {(!stats.revenuePerEvent || stats.revenuePerEvent.length === 0) ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={6} sx={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', py: 4 }}>
+                                                        No revenue data available yet
                                                     </TableCell>
                                                 </TableRow>
-                                            ))}
+                                            ) : (
+                                                stats.revenuePerEvent.map((event) => (
+                                                    <TableRow key={event.eventId || event._id} sx={{ '&:hover': { background: 'rgba(147, 83, 211, 0.05)' } }}>
+                                                        <TableCell sx={{ color: '#fff' }}>{event.title || 'N/A'}</TableCell>
+                                                        <TableCell sx={{ color: '#10b981', fontWeight: 600 }} align="right">
+                                                            ₹{((event.revenue || 0)).toLocaleString()}
+                                                        </TableCell>
+                                                        <TableCell sx={{ color: 'rgba(255,255,255,0.8)' }} align="right">
+                                                            {event.ticketsSold || 0}
+                                                        </TableCell>
+                                                        <TableCell sx={{ color: 'rgba(255,255,255,0.8)' }} align="right">
+                                                            ₹{event.ticketPrice || 0}
+                                                        </TableCell>
+                                                        <TableCell sx={{ color: 'rgba(255,255,255,0.8)' }} align="right">
+                                                            {event.capacity || 0}
+                                                        </TableCell>
+                                                        <TableCell align="right">
+                                                            <Chip
+                                                                label={`${event.fillRate || 0}%`}
+                                                                size="small"
+                                                                sx={{
+                                                                    background: (event.fillRate || 0) >= 80 ? 'rgba(16, 185, 129, 0.2)' : (event.fillRate || 0) >= 50 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(244, 63, 94, 0.2)',
+                                                                    color: (event.fillRate || 0) >= 80 ? '#10b981' : (event.fillRate || 0) >= 50 ? '#f59e0b' : '#f43f5e',
+                                                                    fontWeight: 600
+                                                                }}
+                                                            />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
