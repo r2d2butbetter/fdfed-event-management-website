@@ -19,18 +19,67 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import methodOverride from 'method-override';
 import cors from 'cors';
+import morgan from 'morgan';
+import helmet from 'helmet';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import logger from './config/logger.js';
 
 // for getting the events on home page
 import Event from './models/event.js';
 import Organizer from './models/organizer.js';
 
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
+
+// Create logs directory if it doesn't exist (Winston will also create it, but we do it here for Morgan)
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+  logger.info('Logs directory created');
+}
+
+// Create a write stream for access log file (append mode)
+const accessLogStream = fs.createWriteStream(
+  path.join(logsDir, 'access.log'),
+  { flags: 'a' } // 'a' means append mode
+);
+
+// Security middleware - Helmet sets various HTTP headers to help protect the app
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Disable for CORS compatibility
+}));
 
 // CORS configuration for React frontend
 app.use(cors({
   origin: 'http://localhost:5173', // React dev server (Vite default port)
   credentials: true // Allow cookies to be sent
+}));
+
+// HTTP request logger middleware
+// Log to console in 'dev' format (colored, concise output for development)
+app.use(morgan('dev'));
+
+// Log to file in 'combined' format (Apache combined log format - better for file storage)
+// This includes: IP, date, method, URL, status, response time, referrer, user agent
+app.use(morgan('combined', {
+  stream: accessLogStream,
+  skip: (req, res) => {
+    // Skip logging static file requests to reduce log noise
+    return req.url.startsWith('/uploads/') || req.url.startsWith('/Public/');
+  }
 }));
 
 app.use(express.json());
@@ -116,7 +165,7 @@ app.get('/stats', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    logger.error('Error fetching stats:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching statistics.'
@@ -145,5 +194,6 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  logger.info(`Server running at http://localhost:${port}`);
+  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

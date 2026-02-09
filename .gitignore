@@ -56,6 +56,7 @@ temp/
 # Logs
 logs
 *.log
+server/logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
