@@ -1065,7 +1065,8 @@ class orgController {
 
   async sendBulkEmail(req, res) {
     try {
-      const { eventId, subject, message, recipientEmails } = req.body;
+      const { subject, message, recipientEmails } = req.body;
+      const { eventId } = req.params;
       const userId = req.session.userId;
 
       if (!userId) {
@@ -1105,16 +1106,41 @@ class orgController {
         });
       }
 
-      // Here you would integrate with an email service like Nodemailer, SendGrid, etc.
-      // For now, we'll just simulate sending emails
-      // TODO: Integrate actual email service
+      if (!recipientEmails || recipientEmails.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'At least one recipient is required.'
+        });
+      }
+
+      // Import email service
+      const { sendBulkEmails } = await import('../config/emailConfig.js');
+
+      // Send emails
+      console.log(`📧 Sending bulk email to ${recipientEmails.length} recipients for event: ${event.title}`);
+      
+      const results = await sendBulkEmails(
+        recipientEmails,
+        subject,
+        message,
+        event.title
+      );
+
+      // Log results
+      console.log(`✅ Successfully sent: ${results.successful.length}`);
+      if (results.failed.length > 0) {
+        console.log(`❌ Failed to send: ${results.failed.length}`);
+        console.log('Failed emails:', results.failed.map(f => f.email).join(', '));
+      }
 
       return res.status(200).json({
         success: true,
-        message: `Email sent successfully to ${recipientEmails?.length || 0} recipients.`,
+        message: `Email sent successfully to ${results.successful.length} out of ${results.total} recipients.`,
         data: {
-          emailsSent: recipientEmails?.length || 0,
-          recipients: recipientEmails || []
+          emailsSent: results.successful.length,
+          failed: results.failed.length,
+          total: results.total,
+          recipients: recipientEmails
         }
       });
     } catch (error) {
