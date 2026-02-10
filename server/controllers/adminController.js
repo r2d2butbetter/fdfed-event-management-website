@@ -39,7 +39,7 @@ class adminController {
                 },
                 {
                     $lookup: {
-                        from: 'events',
+                        from: 'event',
                         localField: 'eventId',
                         foreignField: '_id',
                         as: 'event'
@@ -56,8 +56,40 @@ class adminController {
                 }
             ]);
 
-            // Calculate this month's statistics
+            // Calculate this week's statistics
             const currentDate = new Date();
+            const dayOfWeek = currentDate.getDay();
+            const firstDayOfWeek = new Date(currentDate);
+            firstDayOfWeek.setDate(currentDate.getDate() - dayOfWeek);
+            firstDayOfWeek.setHours(0, 0, 0, 0);
+
+            const thisWeekRegistrations = await Registration.countDocuments({
+                registrationDate: { $gte: firstDayOfWeek }
+            });
+
+            // Calculate this week's revenue
+            const thisWeekRevenue = await Registration.aggregate([
+                {
+                    $match: { registrationDate: { $gte: firstDayOfWeek } }
+                },
+                {
+                    $lookup: {
+                        from: 'event',
+                        localField: 'eventId',
+                        foreignField: '_id',
+                        as: 'event'
+                    }
+                },
+                { $unwind: '$event' },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: '$event.ticketPrice' }
+                    }
+                }
+            ]);
+
+            // Calculate this month's statistics
             const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
 
             const thisMonthUsers = await User.countDocuments({
@@ -72,6 +104,91 @@ class adminController {
                 registrationDate: { $gte: firstDayOfMonth }
             });
 
+            // Calculate this month's revenue
+            const thisMonthRevenue = await Registration.aggregate([
+                {
+                    $match: { registrationDate: { $gte: firstDayOfMonth } }
+                },
+                {
+                    $lookup: {
+                        from: 'event',
+                        localField: 'eventId',
+                        foreignField: '_id',
+                        as: 'event'
+                    }
+                },
+                { $unwind: '$event' },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: '$event.ticketPrice' }
+                    }
+                }
+            ]);
+
+            // Calculate this quarter's statistics
+            const currentQuarter = Math.floor(currentDate.getMonth() / 3);
+            const firstDayOfQuarter = new Date(currentDate.getFullYear(), currentQuarter * 3, 1);
+            const thisQuarterEvents = await Event.countDocuments({
+                createdAt: { $gte: firstDayOfQuarter }
+            });
+            const thisQuarterRegistrations = await Registration.countDocuments({
+                registrationDate: { $gte: firstDayOfQuarter }
+            });
+
+            // Calculate this quarter's revenue
+            const thisQuarterRevenue = await Registration.aggregate([
+                {
+                    $match: { registrationDate: { $gte: firstDayOfQuarter } }
+                },
+                {
+                    $lookup: {
+                        from: 'event',
+                        localField: 'eventId',
+                        foreignField: '_id',
+                        as: 'event'
+                    }
+                },
+                { $unwind: '$event' },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: '$event.ticketPrice' }
+                    }
+                }
+            ]);
+
+            // Calculate this year's statistics
+            const firstDayOfYear = new Date(currentDate.getFullYear(), 0, 1);
+            const thisYearEvents = await Event.countDocuments({
+                createdAt: { $gte: firstDayOfYear }
+            });
+            const thisYearRegistrations = await Registration.countDocuments({
+                registrationDate: { $gte: firstDayOfYear }
+            });
+
+            // Calculate this year's revenue
+            const thisYearRevenue = await Registration.aggregate([
+                {
+                    $match: { registrationDate: { $gte: firstDayOfYear } }
+                },
+                {
+                    $lookup: {
+                        from: 'event',
+                        localField: 'eventId',
+                        foreignField: '_id',
+                        as: 'event'
+                    }
+                },
+                { $unwind: '$event' },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: '$event.ticketPrice' }
+                    }
+                }
+            ]);
+
             return res.status(200).json({
                 success: true,
                 message: 'Admin dashboard data retrieved successfully',
@@ -83,10 +200,25 @@ class adminController {
                         verifiedOrganizerCount,
                         adminCount,
                         totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].totalRevenue : 0,
+                        thisWeek: {
+                            registrations: thisWeekRegistrations,
+                            revenue: thisWeekRevenue.length > 0 ? thisWeekRevenue[0].total : 0
+                        },
                         thisMonth: {
                             users: thisMonthUsers,
                             events: thisMonthEvents,
-                            registrations: thisMonthRegistrations
+                            registrations: thisMonthRegistrations,
+                            revenue: thisMonthRevenue.length > 0 ? thisMonthRevenue[0].total : 0
+                        },
+                        thisQuarter: {
+                            events: thisQuarterEvents,
+                            registrations: thisQuarterRegistrations,
+                            revenue: thisQuarterRevenue.length > 0 ? thisQuarterRevenue[0].total : 0
+                        },
+                        thisYear: {
+                            events: thisYearEvents,
+                            registrations: thisYearRegistrations,
+                            revenue: thisYearRevenue.length > 0 ? thisYearRevenue[0].total : 0
                         }
                     },
                     recentEvents: recentEvents.map(event => ({
