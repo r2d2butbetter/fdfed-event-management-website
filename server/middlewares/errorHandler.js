@@ -1,3 +1,4 @@
+// 404 handler for undefined routes
 const handle404 = (req, res) => {
     res.status(404).json({
         success: false,
@@ -29,4 +30,3 @@ const errorHandler = (err, req, res, next) => {
 };
 
 export { handle404, errorHandler };
-export default handle404;

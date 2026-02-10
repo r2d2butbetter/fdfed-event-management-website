@@ -50,23 +50,30 @@ async function isAuth(req, res, next) {
 }
 
 async function optionalAuth(req, res, next) {
-    const userId = req.cookies.uid;
+    try {
+        const userId = req.cookies.uid;
 
-    // Try to fetch the user if the session exists
-    if (userId) {
-        const user = getUser(userId);
-        if (user) {
-            req.user = user;
-            // res.locals.user = user; // Optional: Make user globally available in templates
-            res.locals.isAuth = true;
+        // Try to fetch the user if the session exists
+        if (userId) {
+            const user = getUser(userId);
+            if (user) {
+                req.user = user;
+                // res.locals.user = user; // Optional: Make user globally available in templates
+                res.locals.isAuth = true;
+            }
         }
+
+        // If no user is found, just proceed without redirect
+        res.locals.isAuth = !!req.user;
+
+        // Proceed to the next middleware
+        next();
+    } catch (error) {
+        console.error('Error in optionalAuth middleware:', error);
+        // Don't block request, just proceed without auth
+        res.locals.isAuth = false;
+        next();
     }
-
-    // If no user is found, just proceed without redirect
-    res.locals.isAuth = !!req.user;
-
-    // Proceed to the next middleware
-    next();
 }
 export { isAuth, optionalAuth };
 
