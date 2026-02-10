@@ -56,10 +56,11 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "https:", "http://localhost:3000"],
     },
   },
   crossOriginEmbedderPolicy: false, // Disable for CORS compatibility
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resource sharing
 }));
 
 // CORS configuration for React frontend
