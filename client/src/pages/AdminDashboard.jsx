@@ -1,4 +1,4 @@
-// import React, { useEffect, useState } from "react";
+﻿// import React, { useEffect, useState } from "react";
 // import "../css/admin.css";
 // import Chart from "chart.js/auto";
 // import profilePic from "../assets/images/proflepic.jpeg";
@@ -876,6 +876,7 @@
 
 
 import React, { useEffect, useState, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline, TextField, Button, Box, Grid, Paper, Typography, Avatar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
@@ -883,6 +884,9 @@ import { Visibility, Delete as DeleteIcon, Dashboard as DashboardIcon, People as
 import muiAdminTheme from '../styles/muiAdminTheme';
 
 function AdminDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   // State Management
   const [stats, setStats] = useState({
     userCount: 0,
@@ -890,8 +894,19 @@ function AdminDashboard() {
     organizerCount: 0,
     verifiedOrganizerCount: 0,
     totalRevenue: 0,
+    thisWeek: {
+      registrations: 0
+    },
     thisMonth: {
       users: 0,
+      events: 0,
+      registrations: 0
+    },
+    thisQuarter: {
+      events: 0,
+      registrations: 0
+    },
+    thisYear: {
       events: 0,
       registrations: 0
     }
@@ -902,6 +917,8 @@ function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [events, setEvents] = useState([]);
   const [organizers, setOrganizers] = useState([]);
+  const [organizerRevenues, setOrganizerRevenues] = useState([]);
+  const [userRevenues, setUserRevenues] = useState([]);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [searchTerms, setSearchTerms] = useState({
     users: "",
@@ -928,6 +945,21 @@ function AdminDashboard() {
   const organizerVerificationChartRef = useRef(null);
 
   const API = "http://localhost:3000/admin";
+
+  // Handle section query parameter from URL (e.g., ?section=events)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section');
+    if (section && ['dashboard', 'users', 'events', 'organizers', 'settings', 'accountSettings'].includes(section)) {
+      setActiveSection(section);
+    }
+  }, [location.search]);
+
+  // Helper function to change section and update URL
+  const changeSection = (section) => {
+    setActiveSection(section);
+    navigate(`/admin/dashboard?section=${section}`, { replace: true });
+  };
 
   // Fetch Dashboard Data
   useEffect(() => {
@@ -971,6 +1003,38 @@ function AdminDashboard() {
     fetch(`${API}/organizers`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setOrganizers(data));
+    
+    // Fetch organizer revenues
+    fetch(`${API}/organizers/revenue`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setOrganizerRevenues(data);
+        } else {
+          console.warn('Organizer revenues response is not an array:', data);
+          setOrganizerRevenues([]);
+        }
+      })
+      .catch(err => {
+        console.error('Organizer revenues fetch error:', err);
+        setOrganizerRevenues([]);
+      });
+
+    // Fetch user revenues
+    fetch(`${API}/users/revenue`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setUserRevenues(data);
+        } else {
+          console.warn('User revenues response is not an array:', data);
+          setUserRevenues([]);
+        }
+      })
+      .catch(err => {
+        console.error('User revenues fetch error:', err);
+        setUserRevenues([]);
+      });
   }, []);
 
   // Load Charts
@@ -1328,28 +1392,8 @@ function AdminDashboard() {
     }
   };
 
-  const handleViewOrganizer = async (organizerId) => {
-    try {
-      console.log('Fetching organizer:', organizerId);
-      const response = await fetch(`${API}/organizers/${organizerId}`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error response:', errorData);
-        alert(`Failed to load organizer: ${errorData.message || response.statusText}`);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('Organizer data:', data);
-      setSelectedOrganizer(data);
-      setShowModal(true);
-    } catch (error) {
-      console.error('Error fetching organizer:', error);
-      alert(`Error loading organizer details: ${error.message}`);
-    }
+  const handleViewOrganizer = (organizerId) => {
+    navigate(`/admin/organizers/${organizerId}/details`);
   };
 
   const handleVerifyOrganizer = async () => {
@@ -1491,7 +1535,7 @@ function AdminDashboard() {
                     startIcon={<DashboardIcon />}
                     variant={activeSection === 'dashboard' ? 'contained' : 'text'}
                     color="primary"
-                    onClick={() => setActiveSection('dashboard')}
+                    onClick={() => changeSection('dashboard')}
                     fullWidth
                     sx={{ justifyContent: 'flex-start' }}
                   >
@@ -1501,7 +1545,7 @@ function AdminDashboard() {
                     startIcon={<PeopleIcon />}
                     variant={activeSection === 'users' ? 'contained' : 'text'}
                     color="primary"
-                    onClick={() => setActiveSection('users')}
+                    onClick={() => changeSection('users')}
                     fullWidth
                     sx={{ justifyContent: 'flex-start' }}
                   >
@@ -1511,7 +1555,7 @@ function AdminDashboard() {
                     startIcon={<EventIcon />}
                     variant={activeSection === 'events' ? 'contained' : 'text'}
                     color="primary"
-                    onClick={() => setActiveSection('events')}
+                    onClick={() => changeSection('events')}
                     fullWidth
                     sx={{ justifyContent: 'flex-start' }}
                   >
@@ -1521,7 +1565,7 @@ function AdminDashboard() {
                     startIcon={<OrganizerIcon />}
                     variant={activeSection === 'organizers' ? 'contained' : 'text'}
                     color="primary"
-                    onClick={() => setActiveSection('organizers')}
+                    onClick={() => changeSection('organizers')}
                     fullWidth
                     sx={{ justifyContent: 'flex-start' }}
                   >
@@ -1534,7 +1578,7 @@ function AdminDashboard() {
                     startIcon={<SettingsIcon />}
                     variant={activeSection === 'accountSettings' ? 'contained' : 'text'}
                     color="primary"
-                    onClick={() => setActiveSection('accountSettings')}
+                    onClick={() => changeSection('accountSettings')}
                     fullWidth
                     sx={{ justifyContent: 'flex-start' }}
                   >
@@ -1630,23 +1674,42 @@ function AdminDashboard() {
                       </Paper>
                     </Grid>
 
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Paper sx={{ p: 3.5, background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.02) 100%)', border: '1.5px solid rgba(34, 197, 94, 0.3)', borderRadius: 2.5, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'pointer', '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 16px 32px rgba(147, 83, 211, 0.12)', borderColor: 'rgba(34, 197, 94, 0.5)' } }}>
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, fontWeight: 600, fontSize: '0.9rem' }}>📌 Monthly Events</Typography>
-                          <Typography variant="h3" sx={{ fontWeight: 800, color: '#22c55e', mb: 1.5, letterSpacing: '-0.5px' }}>{stats.thisMonth?.events || 0}</Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>Events created this month</Typography>
-                      </Paper>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Paper sx={{ p: 3.5, background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.02) 100%)', border: '1.5px solid rgba(168, 85, 247, 0.3)', borderRadius: 2.5, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'pointer', '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 16px 32px rgba(147, 83, 211, 0.12)', borderColor: 'rgba(168, 85, 247, 0.5)' } }}>
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, fontWeight: 600, fontSize: '0.9rem' }}>🎟️ Monthly Registrations</Typography>
-                          <Typography variant="h3" sx={{ fontWeight: 800, color: '#a855f7', mb: 1.5, letterSpacing: '-0.5px' }}>{stats.thisMonth?.registrations || 0}</Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>User registrations this month</Typography>
+                    <Grid item xs={12} sm={6} md={8}>
+                      <Paper sx={{ p: 4, background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.02) 100%)', border: '1.5px solid rgba(168, 85, 247, 0.3)', borderRadius: 2.5, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', '&:hover': { boxShadow: '0 16px 32px rgba(147, 83, 211, 0.12)', borderColor: 'rgba(168, 85, 247, 0.5)' }, height: '100%' }}>
+                        <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, fontSize: '1.1rem', color: '#1a1a1a' }}>🎟️ Registration Statistics</Typography>
+                        <TableContainer>
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1a1a1a', borderBottom: '2px solid rgba(147, 83, 211, 0.3)', py: 2 }}>Period</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem', color: '#1a1a1a', borderBottom: '2px solid rgba(147, 83, 211, 0.3)', py: 2 }}>Registrations</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem', color: '#1a1a1a', borderBottom: '2px solid rgba(147, 83, 211, 0.3)', py: 2 }}>Revenue</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              <TableRow sx={{ '&:hover': { backgroundColor: 'rgba(168, 85, 247, 0.05)' } }}>
+                                <TableCell sx={{ borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5, fontSize: '0.95rem', color: '#1a1a1a' }}>Weekly</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>{stats.thisWeek?.registrations || 0}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>₹{(stats.thisWeek?.revenue || 0).toLocaleString('en-IN')}</TableCell>
+                              </TableRow>
+                              <TableRow sx={{ '&:hover': { backgroundColor: 'rgba(168, 85, 247, 0.05)' } }}>
+                                <TableCell sx={{ borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5, fontSize: '0.95rem', color: '#1a1a1a' }}>Monthly</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>{stats.thisMonth?.registrations || 0}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>₹{(stats.thisMonth?.revenue || 0).toLocaleString('en-IN')}</TableCell>
+                              </TableRow>
+                              <TableRow sx={{ '&:hover': { backgroundColor: 'rgba(168, 85, 247, 0.05)' } }}>
+                                <TableCell sx={{ borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5, fontSize: '0.95rem', color: '#1a1a1a' }}>Quarterly</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>{stats.thisQuarter?.registrations || 0}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>₹{(stats.thisQuarter?.revenue || 0).toLocaleString('en-IN')}</TableCell>
+                              </TableRow>
+                              <TableRow sx={{ '&:hover': { backgroundColor: 'rgba(168, 85, 247, 0.05)' } }}>
+                                <TableCell sx={{ borderBottom: 'none', py: 2.5, fontSize: '0.95rem', color: '#1a1a1a' }}>Yearly</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: 'none', py: 2.5 }}>{stats.thisYear?.registrations || 0}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: 'none', py: 2.5 }}>₹{(stats.thisYear?.revenue || 0).toLocaleString('en-IN')}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
                       </Paper>
                     </Grid>
                   </Grid>
@@ -1764,11 +1827,13 @@ function AdminDashboard() {
                               <Chip
                                 label={
                                   event.status === 'completed' || new Date(event.startDateTime) < new Date() ? 'Completed' :
-                                    (event.status === 'start_selling' || event.status === 'active' ? 'Active' : 'Pending')
+                                    (event.status === 'start_selling' ? 'Start Selling' : 
+                                      (event.status === 'active' ? 'Active' : 'Pending'))
                                 }
                                 color={
                                   event.status === 'completed' || new Date(event.startDateTime) < new Date() ? 'default' :
-                                    (event.status === 'start_selling' || event.status === 'active' ? 'success' : 'warning')
+                                    (event.status === 'start_selling' ? 'info' : 
+                                      (event.status === 'active' ? 'success' : 'warning'))
                                 }
                                 size="small"
                                 variant="filled"
@@ -1850,6 +1915,7 @@ function AdminDashboard() {
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>User ID</TableCell>
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Name</TableCell>
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Email</TableCell>
+                          <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Revenue</TableCell>
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Role</TableCell>
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Actions</TableCell>
                         </TableRow>
@@ -1860,6 +1926,9 @@ function AdminDashboard() {
                             <TableCell sx={{ fontWeight: 500 }}>{u._id}</TableCell>
                             <TableCell sx={{ fontWeight: 500 }}>{u.name}</TableCell>
                             <TableCell>{u.email}</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#22c55e' }}>
+                              ₹{(Array.isArray(userRevenues) ? userRevenues.find(r => r._id === u._id)?.totalRevenue : 0)?.toLocaleString() || 0}
+                            </TableCell>
                             <TableCell>
                               <Chip
                                 label={u.role || 'User'}
@@ -1870,6 +1939,15 @@ function AdminDashboard() {
                               />
                             </TableCell>
                             <TableCell>
+                              <IconButton 
+                                color="primary" 
+                                size="small" 
+                                onClick={() => navigate(`/admin/users/${u._id}/details`)} 
+                                sx={{ transition: 'all 0.2s', '&:hover': { transform: 'scale(1.15)', bgcolor: 'rgba(147, 83, 211, 0.1)' } }}
+                                title="View Details"
+                              >
+                                <Visibility />
+                              </IconButton>
                               <IconButton color="error" size="small" onClick={() => handleDeleteUser(u._id)} sx={{ transition: 'all 0.2s', '&:hover': { transform: 'scale(1.15)', bgcolor: 'rgba(239, 68, 68, 0.1)' } }}>
                                 <DeleteIcon />
                               </IconButton>
@@ -1922,8 +2000,8 @@ function AdminDashboard() {
                             <TableCell>{e.venue}</TableCell>
                             <TableCell>
                               <Chip
-                                label={e.status}
-                                color={e.status === 'active' ? 'success' : 'warning'}
+                                label={e.status === 'start_selling' ? 'Start Selling' : e.status}
+                                color={e.status === 'start_selling' ? 'info' : (e.status === 'active' ? 'success' : 'warning')}
                                 size="small"
                                 variant="filled"
                                 sx={{ fontWeight: 600 }}
@@ -1932,6 +2010,9 @@ function AdminDashboard() {
                             <TableCell>
                               <IconButton size="small" color="primary" onClick={() => window.location.href = `/events/${e._id}`} sx={{ transition: 'all 0.2s', '&:hover': { transform: 'scale(1.15)' } }}>
                                 <Visibility />
+                              </IconButton>
+                              <IconButton size="small" color="secondary" onClick={() => window.location.href = `/admin/events/${e._id}/attendees`} sx={{ transition: 'all 0.2s', '&:hover': { transform: 'scale(1.15)', bgcolor: 'rgba(147, 83, 211, 0.1)' } }} title="View Attendees">
+                                <PeopleIcon />
                               </IconButton>
                               <IconButton color="error" size="small" onClick={() => handleDeleteEvent(e._id)} sx={{ transition: 'all 0.2s', '&:hover': { transform: 'scale(1.15)', bgcolor: 'rgba(239, 68, 68, 0.1)' } }}>
                                 <DeleteIcon />
@@ -1967,9 +2048,10 @@ function AdminDashboard() {
                   <TableContainer sx={{ overflow: 'visible' }}>
                     <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
                       <TableHead>
-                        <TableRow sx={{ backgroundColor: 'rgba(147, 83, 211, 0.1)' }}>
+                          <TableRow sx={{ backgroundColor: 'rgba(147, 83, 211, 0.1)' }}>
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>ID</TableCell>
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Organization Name</TableCell>
+                          <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Revenue</TableCell>
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Status</TableCell>
                           <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Actions</TableCell>
                         </TableRow>
@@ -1979,6 +2061,7 @@ function AdminDashboard() {
                           <TableRow key={o._id} hover sx={{ '&:hover': { bgcolor: 'rgba(147, 83, 211, 0.08)' } }}>
                             <TableCell sx={{ fontWeight: 500 }}>{o._id}</TableCell>
                             <TableCell sx={{ fontWeight: 500 }}>{o.organizationName}</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#22c55e' }}>₹{(Array.isArray(organizerRevenues) ? (organizerRevenues.find(r => String(r._id) === String(o._id))?.totalRevenue || 0) : 0).toLocaleString()}</TableCell>
                             <TableCell>
                               <Chip
                                 label={o.verified ? 'Verified' : 'Pending'}
