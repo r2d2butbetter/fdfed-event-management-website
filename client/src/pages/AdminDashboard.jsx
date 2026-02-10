@@ -1,4 +1,4 @@
-// import React, { useEffect, useState } from "react";
+﻿// import React, { useEffect, useState } from "react";
 // import "../css/admin.css";
 // import Chart from "chart.js/auto";
 // import profilePic from "../assets/images/proflepic.jpeg";
@@ -894,8 +894,19 @@ function AdminDashboard() {
     organizerCount: 0,
     verifiedOrganizerCount: 0,
     totalRevenue: 0,
+    thisWeek: {
+      registrations: 0
+    },
     thisMonth: {
       users: 0,
+      events: 0,
+      registrations: 0
+    },
+    thisQuarter: {
+      events: 0,
+      registrations: 0
+    },
+    thisYear: {
       events: 0,
       registrations: 0
     }
@@ -1663,13 +1674,42 @@ function AdminDashboard() {
                       </Paper>
                     </Grid>
 
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Paper sx={{ p: 3.5, background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.02) 100%)', border: '1.5px solid rgba(168, 85, 247, 0.3)', borderRadius: 2.5, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'pointer', '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 16px 32px rgba(147, 83, 211, 0.12)', borderColor: 'rgba(168, 85, 247, 0.5)' } }}>
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, fontWeight: 600, fontSize: '0.9rem' }}>🎟️ Monthly Registrations</Typography>
-                          <Typography variant="h3" sx={{ fontWeight: 800, color: '#a855f7', mb: 1.5, letterSpacing: '-0.5px' }}>{stats.thisMonth?.registrations || 0}</Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>User registrations this month</Typography>
+                    <Grid item xs={12} sm={6} md={8}>
+                      <Paper sx={{ p: 4, background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.02) 100%)', border: '1.5px solid rgba(168, 85, 247, 0.3)', borderRadius: 2.5, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', '&:hover': { boxShadow: '0 16px 32px rgba(147, 83, 211, 0.12)', borderColor: 'rgba(168, 85, 247, 0.5)' }, height: '100%' }}>
+                        <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, fontSize: '1.1rem', color: '#1a1a1a' }}>🎟️ Registration Statistics</Typography>
+                        <TableContainer>
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1a1a1a', borderBottom: '2px solid rgba(147, 83, 211, 0.3)', py: 2 }}>Period</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem', color: '#1a1a1a', borderBottom: '2px solid rgba(147, 83, 211, 0.3)', py: 2 }}>Registrations</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1rem', color: '#1a1a1a', borderBottom: '2px solid rgba(147, 83, 211, 0.3)', py: 2 }}>Revenue</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              <TableRow sx={{ '&:hover': { backgroundColor: 'rgba(168, 85, 247, 0.05)' } }}>
+                                <TableCell sx={{ borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5, fontSize: '0.95rem', color: '#1a1a1a' }}>Weekly</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>{stats.thisWeek?.registrations || 0}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>₹{(stats.thisWeek?.revenue || 0).toLocaleString('en-IN')}</TableCell>
+                              </TableRow>
+                              <TableRow sx={{ '&:hover': { backgroundColor: 'rgba(168, 85, 247, 0.05)' } }}>
+                                <TableCell sx={{ borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5, fontSize: '0.95rem', color: '#1a1a1a' }}>Monthly</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>{stats.thisMonth?.registrations || 0}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>₹{(stats.thisMonth?.revenue || 0).toLocaleString('en-IN')}</TableCell>
+                              </TableRow>
+                              <TableRow sx={{ '&:hover': { backgroundColor: 'rgba(168, 85, 247, 0.05)' } }}>
+                                <TableCell sx={{ borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5, fontSize: '0.95rem', color: '#1a1a1a' }}>Quarterly</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>{stats.thisQuarter?.registrations || 0}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: '1px solid rgba(147, 83, 211, 0.15)', py: 2.5 }}>₹{(stats.thisQuarter?.revenue || 0).toLocaleString('en-IN')}</TableCell>
+                              </TableRow>
+                              <TableRow sx={{ '&:hover': { backgroundColor: 'rgba(168, 85, 247, 0.05)' } }}>
+                                <TableCell sx={{ borderBottom: 'none', py: 2.5, fontSize: '0.95rem', color: '#1a1a1a' }}>Yearly</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: 'none', py: 2.5 }}>{stats.thisYear?.registrations || 0}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#1a1a1a', borderBottom: 'none', py: 2.5 }}>₹{(stats.thisYear?.revenue || 0).toLocaleString('en-IN')}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
                       </Paper>
                     </Grid>
                   </Grid>
