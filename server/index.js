@@ -12,6 +12,7 @@ import adminRouter from './routes/admin.js'
 import userRouter from './routes/user.js';
 import organizerRouter from './routes/organizer.js';
 import connectDB from './connection.js';
+import { handle404, errorHandler } from './middlewares/errorHandler.js';
 
 import session from "express-session";
 import MongoStore from "connect-mongo";
@@ -82,17 +83,21 @@ app.use(
 
 
 // Route for Contact Us page - Simple JSON response
-app.get('/contact', optionalAuth, (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      contactInfo: {
-        email: 'contact@eventmanagement.com',
-        phone: '+1-234-567-8900',
-        address: '123 Event Street, City, Country'
+app.get('/contact', optionalAuth, (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        contactInfo: {
+          email: 'contact@eventmanagement.com',
+          phone: '+1-234-567-8900',
+          address: '123 Event Street, City, Country'
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    next(error);
+  }
 })
 
 app.use('/', authRouter);
@@ -103,7 +108,7 @@ app.use('/user', userRouter);
 app.use('/organizer', organizerRouter);
 
 // Stats endpoint - returns total events and organizers
-app.get('/stats', async (req, res) => {
+app.get('/stats', async (req, res, next) => {
   try {
     const totalEvents = await Event.countDocuments();
     const totalOrganizers = await Organizer.countDocuments();
@@ -116,11 +121,7 @@ app.get('/stats', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'An error occurred while fetching statistics.'
-    });
+    next(error);
   }
 });
 
@@ -143,6 +144,12 @@ app.get('/', (req, res) => {
     }
   });
 });
+
+// 404 handler - must come after all routes
+app.use(handle404);
+
+// Global error handler - must be the last middleware
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);

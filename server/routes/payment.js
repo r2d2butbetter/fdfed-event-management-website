@@ -4,37 +4,43 @@ import User from '../models/user.js';
 import Registration from '../models/registration.js';
 import Payment from '../models/payment.js';
 import { isAuth, optionalAuth } from '../middlewares/auth.js';
+import mongoose from 'mongoose';
 const router = express.Router();
 
 // Route for payment page with event ID
-router.get('/:id', optionalAuth, async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
     const eventId = req.params.id;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      const error = new Error('Invalid event ID format');
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const event = await Event.findById(eventId);
 
     if (!event) {
-      return res.status(404).json({
-        success: false,
-        message: 'Event not found'
-      });
+      const error = new Error('Event not found');
+      error.statusCode = 404;
+      return next(error);
     }
 
     console.log('Path of image', event.image);
 
     const userId = req.session.userId; // Assuming userId is stored in session
     if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized: Please log in.'
-      });
+      const error = new Error('Unauthorized: Please log in.');
+      error.statusCode = 401;
+      return next(error);
     }
 
     const user = await User.findById(userId); // Fetch user details using userId
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.'
-      });
+      const error = new Error('User not found.');
+      error.statusCode = 404;
+      return next(error);
     }
 
     const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
@@ -70,12 +76,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching event for payment:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'An error occurred while processing your payment request.',
-      error: error.message
-    });
+    next(error);
   }
 });
 
@@ -119,43 +120,76 @@ router.get('/:id', optionalAuth, async (req, res) => {
 //         res.status(500).send('An error occurred while processing your payment and registration.');
 //     }
 // });
-router.get('/events/:id/tickets-left', async (req, res) => {
+router.get('/events/:id/tickets-left', async (req, res, next) => {
   try {
     const eventId = req.params.id;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      const error = new Error('Invalid event ID format');
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const event = await Event.findById(eventId);
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (!event) {
+      const error = new Error('Event not found');
+      error.statusCode = 404;
+      return next(error);
+    }
 
     // Only count active registrations
     const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
     const ticketsLeft = event.capacity - totalRegistrations;
     res.json({ ticketsLeft });
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 });
 
 // New: Process payment asynchronously
 
-router.post('/process-payment', optionalAuth, async (req, res) => {
+router.post('/process-payment', optionalAuth, async (req, res, next) => {
   try {
     const { eventId, tickets } = req.body;
     const userId = req.session.userId;
 
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!userId) {
+      const error = new Error('Unauthorized');
+      error.statusCode = 401;
+      return next(error);
+    }
 
     const ticketCount = parseInt(tickets, 10);
-    if (isNaN(ticketCount) || ticketCount <= 0)
-      return res.status(400).json({ error: 'Invalid ticket count' });
+    if (isNaN(ticketCount) || ticketCount <= 0) {
+      const error = new Error('Invalid ticket count');
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      const error = new Error('Invalid event ID format');
+      error.statusCode = 400;
+      return next(error);
+    }
 
     const event = await Event.findById(eventId);
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (!event) {
+      const error = new Error('Event not found');
+      error.statusCode = 404;
+      return next(error);
+    }
 
     // Only count active registrations
     const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
     const ticketsLeft = event.capacity - totalRegistrations;
 
-    if (ticketCount > ticketsLeft)
-      return res.status(400).json({ error: 'Not enough tickets left' });
+    if (ticketCount > ticketsLeft) {
+      const error = new Error('Not enough tickets left');
+      error.statusCode = 400;
+      return next(error);
+    }
 
     // Calculate payment amounts
     const totalPrice = ticketCount * event.ticketPrice;
@@ -202,8 +236,7 @@ router.post('/process-payment', optionalAuth, async (req, res) => {
       registrationIds
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 });
 
