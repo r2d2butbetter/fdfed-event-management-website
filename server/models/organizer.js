@@ -24,6 +24,86 @@ const OrganizerSchema = new mongoose.Schema({
   organizationName: { type: String, required: true },
   description: { type: String },
   contactNo: { type: String, required: true },
+
+  // Common organization profile / verification-related details
+  orgType: {
+    type: String,
+    enum: [
+      'Individual',
+      'Company',
+      'NGO',
+      'College/University',
+      'Government',
+      'Hospital',
+      'Clinic',
+      'Event Company',
+      'Artist Management',
+    ],
+  },
+  registeredAddress: {
+    line1: { type: String },
+    line2: { type: String },
+    city: { type: String },
+    state: { type: String },
+    postalCode: { type: String },
+    country: { type: String },
+  },
+  website: { type: String },
+  socialLinks: {
+    facebook: { type: String },
+    instagram: { type: String },
+    twitter: { type: String },
+    linkedin: { type: String },
+    youtube: { type: String },
+  },
+  registrationNumber: { type: String },
+  yearEstablished: { type: Number },
+
+  // TEDx specific information
+  tedxInfo: {
+    licenseId: { type: String },
+    licenseOwnerName: { type: String },
+    licenseOwnerEmail: { type: String },
+    licenseScope: { type: String }, // city/region
+    licenseExpiryDate: { type: Date },
+    documentLinks: { type: String }, // URLs to license/approval docs
+  },
+
+  // Health Camp specific information
+  healthCampInfo: {
+    organizerType: {
+      type: String,
+      enum: ['Hospital', 'Clinic', 'NGO', 'Individual Doctor Group'],
+    },
+    medicalDirectorName: { type: String },
+    medicalRegistrationNumber: { type: String },
+    partnerHospitalName: { type: String },
+    emergencyContact: { type: String },
+    documentLinks: { type: String }, // registration/permission docs
+  },
+
+  // Concerts specific information
+  concertInfo: {
+    organizerType: {
+      type: String,
+      enum: ['Event Company', 'Artist Management', 'Individual'],
+    },
+    primaryArtists: { type: String }, // comma-separated list or free text
+    venueNameConfirmation: { type: String },
+    venueCapacityConfirmation: { type: String },
+    ageRestrictions: { type: String },
+    documentLinks: { type: String }, // venue contract / permits links
+  },
+
+  // Exhibitions specific information
+  exhibitionInfo: {
+    venueDetails: { type: String },
+    hallDetails: { type: String },
+    keyExhibitors: { type: String },
+    documentLinks: { type: String }, // venue agreement / trade license links
+  },
+
+  // Simple verified flag (actual verification flow handled elsewhere)
   verified: { type: Boolean, default: false },
 });
 
