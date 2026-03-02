@@ -640,7 +640,64 @@ class orgController {
         });
       }
 
-      const { category, title, description, startDateTime, endDateTime, venue, capacity, price, status } = req.body;
+      const {
+        category,
+        title,
+        description,
+        startDateTime,
+        endDateTime,
+        venue,
+        capacity,
+        price,
+        status,
+
+        // Common organizer profile fields
+        orgType,
+        registeredAddressLine1,
+        registeredAddressLine2,
+        registeredCity,
+        registeredState,
+        registeredPostalCode,
+        registeredCountry,
+        website,
+        registrationNumber,
+        yearEstablished,
+        facebook,
+        instagram,
+        twitter,
+        linkedin,
+        youtube,
+
+        // TEDx fields
+        tedxLicenseId,
+        tedxLicenseOwnerName,
+        tedxLicenseOwnerEmail,
+        tedxLicenseScope,
+        tedxLicenseExpiryDate,
+        tedxDocumentLinks,
+
+        // Health Camp fields
+        healthOrganizerType,
+        healthDirectorName,
+        healthRegistrationNumber,
+        healthPartnerHospitalName,
+        healthEmergencyContact,
+        healthDocumentLinks,
+
+        // Concerts fields
+        concertOrganizerType,
+        concertPrimaryArtists,
+        concertVenueNameConfirm,
+        concertVenueCapacityConfirm,
+        concertAgeRestrictions,
+        concertDocumentLinks,
+
+        // Exhibitions fields
+        exhibitionVenueDetails,
+        exhibitionHallDetails,
+        exhibitionKeyExhibitors,
+        exhibitionDocumentLinks,
+      } = req.body;
 
       if (!category || !title || !description || !startDateTime || !endDateTime || !venue || !capacity || !price) {
         return res.status(400).json({
@@ -648,6 +705,80 @@ class orgController {
           message: 'All fields are required.'
         });
       }
+
+      // Update organizer profile details from the submitted form (without changing verification status)
+      if (orgType) organizer.orgType = orgType;
+      if (website) organizer.website = website;
+      if (registrationNumber) organizer.registrationNumber = registrationNumber;
+      if (yearEstablished) {
+        const yearNum = Number(yearEstablished);
+        if (!Number.isNaN(yearNum)) {
+          organizer.yearEstablished = yearNum;
+        }
+      }
+
+      // Registered address pieces
+      organizer.registeredAddress = organizer.registeredAddress || {};
+      if (registeredAddressLine1) organizer.registeredAddress.line1 = registeredAddressLine1;
+      if (registeredAddressLine2) organizer.registeredAddress.line2 = registeredAddressLine2;
+      if (registeredCity) organizer.registeredAddress.city = registeredCity;
+      if (registeredState) organizer.registeredAddress.state = registeredState;
+      if (registeredPostalCode) organizer.registeredAddress.postalCode = registeredPostalCode;
+      if (registeredCountry) organizer.registeredAddress.country = registeredCountry;
+
+      // Social links
+      organizer.socialLinks = organizer.socialLinks || {};
+      if (facebook) organizer.socialLinks.facebook = facebook;
+      if (instagram) organizer.socialLinks.instagram = instagram;
+      if (twitter) organizer.socialLinks.twitter = twitter;
+      if (linkedin) organizer.socialLinks.linkedin = linkedin;
+      if (youtube) organizer.socialLinks.youtube = youtube;
+
+      // Category-specific blocks
+      if (category === 'TEDx') {
+        organizer.tedxInfo = organizer.tedxInfo || {};
+        if (tedxLicenseId) organizer.tedxInfo.licenseId = tedxLicenseId;
+        if (tedxLicenseOwnerName) organizer.tedxInfo.licenseOwnerName = tedxLicenseOwnerName;
+        if (tedxLicenseOwnerEmail) organizer.tedxInfo.licenseOwnerEmail = tedxLicenseOwnerEmail;
+        if (tedxLicenseScope) organizer.tedxInfo.licenseScope = tedxLicenseScope;
+        if (tedxLicenseExpiryDate) {
+          const expDate = new Date(tedxLicenseExpiryDate);
+          if (!Number.isNaN(expDate.getTime())) {
+            organizer.tedxInfo.licenseExpiryDate = expDate;
+          }
+        }
+        if (tedxDocumentLinks) organizer.tedxInfo.documentLinks = tedxDocumentLinks;
+      }
+
+      if (category === 'Health Camp') {
+        organizer.healthCampInfo = organizer.healthCampInfo || {};
+        if (healthOrganizerType) organizer.healthCampInfo.organizerType = healthOrganizerType;
+        if (healthDirectorName) organizer.healthCampInfo.medicalDirectorName = healthDirectorName;
+        if (healthRegistrationNumber) organizer.healthCampInfo.medicalRegistrationNumber = healthRegistrationNumber;
+        if (healthPartnerHospitalName) organizer.healthCampInfo.partnerHospitalName = healthPartnerHospitalName;
+        if (healthEmergencyContact) organizer.healthCampInfo.emergencyContact = healthEmergencyContact;
+        if (healthDocumentLinks) organizer.healthCampInfo.documentLinks = healthDocumentLinks;
+      }
+
+      if (category === 'Concerts') {
+        organizer.concertInfo = organizer.concertInfo || {};
+        if (concertOrganizerType) organizer.concertInfo.organizerType = concertOrganizerType;
+        if (concertPrimaryArtists) organizer.concertInfo.primaryArtists = concertPrimaryArtists;
+        if (concertVenueNameConfirm) organizer.concertInfo.venueNameConfirmation = concertVenueNameConfirm;
+        if (concertVenueCapacityConfirm) organizer.concertInfo.venueCapacityConfirmation = concertVenueCapacityConfirm;
+        if (concertAgeRestrictions) organizer.concertInfo.ageRestrictions = concertAgeRestrictions;
+        if (concertDocumentLinks) organizer.concertInfo.documentLinks = concertDocumentLinks;
+      }
+
+      if (category === 'Exhibitions') {
+        organizer.exhibitionInfo = organizer.exhibitionInfo || {};
+        if (exhibitionVenueDetails) organizer.exhibitionInfo.venueDetails = exhibitionVenueDetails;
+        if (exhibitionHallDetails) organizer.exhibitionInfo.hallDetails = exhibitionHallDetails;
+        if (exhibitionKeyExhibitors) organizer.exhibitionInfo.keyExhibitors = exhibitionKeyExhibitors;
+        if (exhibitionDocumentLinks) organizer.exhibitionInfo.documentLinks = exhibitionDocumentLinks;
+      }
+
+      await organizer.save();
 
       // Check if an image was uploaded
       const imagePath = req.file ? `/events/${req.file.filename}` : null;
