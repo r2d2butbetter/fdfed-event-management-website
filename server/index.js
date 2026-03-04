@@ -11,6 +11,7 @@ import eventRouter from './routes/event.js';
 import adminRouter from './routes/admin.js'
 import userRouter from './routes/user.js';
 import organizerRouter from './routes/organizer.js';
+import managerRouter from './routes/manager.js';
 import connectDB from './connection.js';
 import { handle404, errorHandler } from './middlewares/errorHandler.js';
 
@@ -93,6 +94,7 @@ app.use(methodOverride('_method')); // Enable method override using _method quer
 app.use(express.static("Public"));
 //for multer - serve uploaded files
 app.use(express.static('uploads'));
+app.use('/uploads', express.static('uploads'));
 
 
 // Connect to MongoDB
@@ -156,6 +158,7 @@ app.use('/events', eventRouter);
 app.use('/admin', adminRouter);
 app.use('/user', userRouter);
 app.use('/organizer', organizerRouter);
+app.use('/manager', managerRouter);
 
 // Stats endpoint - returns total events and organizers
 app.get('/stats', async (req, res, next) => {

@@ -262,9 +262,10 @@
 
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
-import User from "../models/user.js"; // Assuming User is a Mongoose model
-import Organizer from "../models/organizer.js"; // Assuming Organizer is a Mongoose model
-import Admin from "../models/admin.js"; // Admin model
+import User from "../models/user.js";
+import Organizer from "../models/organizer.js";
+import Admin from "../models/admin.js";
+import Manager from "../models/manager.js";
 import { setUser } from '../services/auth.js';
 
 class authController {
@@ -375,6 +376,9 @@ class authController {
       // Check if user is an admin
       const admin = await Admin.findOne({ userId: user._id });
 
+      // Check if user is a manager
+      const manager = await Manager.findOne({ userId: user._id });
+
       // Check if user is an organizer
       const organizer = await Organizer.findOne({ userId: user._id });
 
@@ -385,11 +389,15 @@ class authController {
       if (admin) {
         role = 'admin';
         additionalData.adminId = admin._id;
+      } else if (manager) {
+        role = 'manager';
+        additionalData.managerId = manager._id;
       } else if (organizer) {
         role = 'organizer';
         additionalData.organizerId = organizer._id;
         additionalData.organizationName = organizer.organizationName;
         additionalData.verified = organizer.verified;
+        additionalData.verificationStatus = organizer.verificationStatus;
       }
 
       // Return JSON response for React frontend
@@ -426,7 +434,7 @@ class authController {
 
       // Find the user in the database
       const user = await User.findById(req.session.userId);
-      
+
       if (!user) {
         // Session exists but user not found, clear the session
         req.session.destroy();
@@ -440,6 +448,9 @@ class authController {
       // Check if user is an admin
       const admin = await Admin.findOne({ userId: user._id });
 
+      // Check if user is a manager
+      const manager = await Manager.findOne({ userId: user._id });
+
       // Check if user is an organizer
       const organizer = await Organizer.findOne({ userId: user._id });
 
@@ -450,11 +461,15 @@ class authController {
       if (admin) {
         role = 'admin';
         additionalData.adminId = admin._id;
+      } else if (manager) {
+        role = 'manager';
+        additionalData.managerId = manager._id;
       } else if (organizer) {
         role = 'organizer';
         additionalData.organizerId = organizer._id;
         additionalData.organizationName = organizer.organizationName;
         additionalData.verified = organizer.verified;
+        additionalData.verificationStatus = organizer.verificationStatus;
       }
 
       // Return user session data

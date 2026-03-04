@@ -10,6 +10,7 @@ import AdminOrganizerDetails from './pages/AdminOrganizerDetails';
 import AdminUserDetails from './pages/AdminUserDetails';
 import UserDashboard from './pages/dashboards/UserDashboard';
 import OrganizerDashboard from './pages/dashboards/OrganizerDashboard';
+import ManagerDashboard from './pages/dashboards/ManagerDashboard';
 import Analytics from './pages/dashboards/Analytics';
 import Settings from './pages/dashboards/Settings';
 import EventAttendees from './pages/dashboards/EventAttendees';
@@ -39,6 +40,7 @@ function App() {
         <Route path="/admin/organizers/:organizerId/details" element={<AdminOrganizerDetails />} />
         <Route path="/admin/users/:userId/details" element={<AdminUserDetails />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route path="/manager/dashboard" element={<ManagerDashboard />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
         <Route path="/organizer/create-event" element={<Createevent />} />
         <Route path="/organizer/analytics" element={<Analytics />} />
