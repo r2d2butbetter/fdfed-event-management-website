@@ -103,8 +103,18 @@ const OrganizerSchema = new mongoose.Schema({
     documentLinks: { type: String }, // venue agreement / trade license links
   },
 
-  // Simple verified flag (actual verification flow handled elsewhere)
+  // Verification system
   verified: { type: Boolean, default: false },
+  verificationStatus: {
+    type: String,
+    enum: ['not_submitted', 'pending', 'approved', 'rejected'],
+    default: 'not_submitted'
+  },
+  verificationDocument: { type: String }, // file path to uploaded document
+  verificationRequestDate: { type: Date },
+  verificationReviewDate: { type: Date },
+  rejectionReason: { type: String },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Manager' },
 });
 
 const Organizer = mongoose.model('Organizer', OrganizerSchema);

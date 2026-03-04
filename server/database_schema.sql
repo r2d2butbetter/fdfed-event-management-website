@@ -157,3 +157,24 @@ db.users.createIndex({ "email": 1 }, { unique: true });
 db.registrations.createIndex({ "userId": 1, "eventId": 1 }, { unique: true });
 db.savedevents.createIndex({ "userId": 1, "eventId": 1 }, { unique: true });
 db.admins.createIndex({ "userId": 1 }, { unique: true });
+
+db.createCollection("managers", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId"],
+      properties: {
+        userId: {
+          bsonType: "objectId"
+        },
+        role: {
+          bsonType: "string"
+        },
+        createdAt: {
+          bsonType: "date"
+        }
+      }
+    }
+  }
+});
+db.managers.createIndex({ "userId": 1 }, { unique: true });

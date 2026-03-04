@@ -43,6 +43,7 @@ export function AuthProvider({ children }) {
 
 				const canAccessRole = (userRole, requestedRole) => {
 					if (userRole === 'admin') return true; // Admin can access all roles
+					if (userRole === 'manager' && requestedRole === 'manager') return true;
 					if (userRole === 'organizer' && (requestedRole === 'organizer' || requestedRole === 'user')) return true;
 					if (userRole === 'user' && requestedRole === 'user') return true;
 					return false;

@@ -14,7 +14,7 @@ import {
     InputAdornment,
     IconButton
 } from '@mui/material';
-import { Visibility, VisibilityOff, Person, AdminPanelSettings, Business } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Person, AdminPanelSettings, Business, SupervisorAccount } from '@mui/icons-material';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import './Login.css';
@@ -23,7 +23,7 @@ import { useAuth } from '../context/AuthContext';
 // Validation Schema
 const loginSchema = Yup.object().shape({
     role: Yup.string()
-        .oneOf(['user', 'organizer', 'admin'], 'Please select a valid role')
+        .oneOf(['user', 'organizer', 'admin', 'manager'], 'Please select a valid role')
         .required('Please select a role'),
     email: Yup.string()
         .email('Please enter a valid email address')
@@ -68,6 +68,10 @@ function Login() {
                     case 'admin':
                         console.log('Navigating to /admin/dashboard');
                         navigate('/admin/dashboard');
+                        break;
+                    case 'manager':
+                        console.log('Navigating to /manager/dashboard');
+                        navigate('/manager/dashboard');
                         break;
                     default:
                         console.log('Navigating to /');
@@ -143,6 +147,10 @@ function Login() {
                                     <ToggleButton value="organizer" aria-label="organizer" className="role-toggle-btn">
                                         <Business sx={{ mr: 1 }} />
                                         Organizer
+                                    </ToggleButton>
+                                    <ToggleButton value="manager" aria-label="manager" className="role-toggle-btn">
+                                        <SupervisorAccount sx={{ mr: 1 }} />
+                                        Manager
                                     </ToggleButton>
                                     <ToggleButton value="admin" aria-label="admin" className="role-toggle-btn">
                                         <AdminPanelSettings sx={{ mr: 1 }} />

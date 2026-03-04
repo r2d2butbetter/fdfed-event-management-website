@@ -24,6 +24,7 @@ import { fetchEvents, deleteEvent, setFilter } from '../../redux/slices/eventSli
 import Sidebar from '../../components/organizer/Sidebar';
 import StatsCard from '../../components/organizer/StatsCard';
 import EventTable from '../../components/organizer/EventTable';
+import OrganizerVerification from '../../components/organizer/OrganizerVerification';
 
 const drawerWidth = 260;
 
@@ -130,6 +131,13 @@ function OrganizerDashboard() {
                         <Alert severity="error" sx={{ mb: 3 }}>
                             {error}
                         </Alert>
+                    )}
+
+                    {/* Verification Section - shown if not verified */}
+                    {(!user?.verified || user?.verificationStatus !== 'approved') && (
+                        <OrganizerVerification
+                            onVerified={() => dispatch(fetchDashboardData())}
+                        />
                     )}
 
                     {/* Stats Cards */}

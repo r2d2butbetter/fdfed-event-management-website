@@ -151,6 +151,8 @@ import { getUser } from '../services/auth.js';
 import Organizer from '../models/organizer.js';
 import Event from '../models/event.js';
 import Payment from '../models/payment.js';
+import User from '../models/user.js';
+import { sendEmail } from '../config/emailConfig.js';
 
 class orgController {
   async loadDashboard(req, res) {
@@ -308,7 +310,7 @@ class orgController {
         const startOfWeek = new Date();
         startOfWeek.setDate(startOfWeek.getDate() - (i * 7 + 6));
         startOfWeek.setHours(0, 0, 0, 0);
-        
+
         const endOfWeek = new Date();
         endOfWeek.setDate(endOfWeek.getDate() - (i * 7));
         endOfWeek.setHours(23, 59, 59, 999);
@@ -347,7 +349,7 @@ class orgController {
         monthStart.setMonth(monthStart.getMonth() - i);
         monthStart.setDate(1);
         monthStart.setHours(0, 0, 0, 0);
-        
+
         const monthEnd = new Date(monthStart);
         monthEnd.setMonth(monthEnd.getMonth() + 1);
         monthEnd.setDate(0);
@@ -800,6 +802,69 @@ class orgController {
 
       const savedEvent = await newEvent.save();
 
+      // Send email notifications to users who have opted in
+      try {
+        const subscribedUsers = await User.find({
+          'notificationPreferences.emailUpdates': true
+        }, 'email name').lean();
+
+        if (subscribedUsers.length > 0) {
+          const eventDate = new Date(startDateTime).toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+          });
+
+          for (const subscriber of subscribedUsers) {
+            const html = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <style>
+                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background: linear-gradient(135deg, #9353d3 0%, #643d88 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+                  .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
+                  .event-details { background: #fff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #9353d3; }
+                  .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h2>New Event Published!</h2>
+                  </div>
+                  <div class="content">
+                    <p>Hi ${subscriber.name},</p>
+                    <p>A new event has been published that you might be interested in:</p>
+                    <div class="event-details">
+                      <h3>${title}</h3>
+                      <p><strong>Category:</strong> ${category}</p>
+                      <p><strong>Date:</strong> ${eventDate}</p>
+                      <p><strong>Venue:</strong> ${venue}</p>
+                      <p><strong>Price:</strong> ₹${price}</p>
+                    </div>
+                    <p>Log in to your dashboard to book tickets!</p>
+                  </div>
+                  <div class="footer">
+                    <p>You received this email because you opted in to event updates.</p>
+                    <p>You can manage your notification preferences in your dashboard settings.</p>
+                    <p>&copy; ${new Date().getFullYear()} Event Management Platform. All rights reserved.</p>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `;
+            const text = `New event: ${title} | ${category} | ${eventDate} at ${venue} | ₹${price}`;
+            // Fire and forget - don't block event creation
+            sendEmail(subscriber.email, `New Event: ${title}`, text, html).catch(err =>
+              console.error(`Failed to notify ${subscriber.email}:`, err.message)
+            );
+          }
+        }
+      } catch (notifyError) {
+        // Log but don't fail the event creation
+        console.error('Error sending new event notifications:', notifyError.message);
+      }
+
       return res.status(201).json({
         success: true,
         message: 'Event created successfully!',
@@ -1249,7 +1314,7 @@ class orgController {
 
       // Send emails
       console.log(`📧 Sending bulk email to ${recipientEmails.length} recipients for event: ${event.title}`);
-      
+
       const results = await sendBulkEmails(
         recipientEmails,
         subject,
@@ -1391,6 +1456,79 @@ class orgController {
         message: 'An error occurred while getting monthly revenue.',
         error: error.message
       });
+    }
+  }
+
+  // Submit verification request with document
+  async submitVerificationRequest(req, res) {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ success: false, message: 'Please log in.' });
+      }
+
+      const organizer = await Organizer.findOne({ userId: req.session.userId });
+      if (!organizer) {
+        return res.status(404).json({ success: false, message: 'Organizer profile not found.' });
+      }
+
+      if (organizer.verificationStatus === 'pending') {
+        return res.status(400).json({ success: false, message: 'A verification request is already pending.' });
+      }
+
+      if (organizer.verificationStatus === 'approved') {
+        return res.status(400).json({ success: false, message: 'You are already verified.' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Please upload a verification document.' });
+      }
+
+      organizer.verificationDocument = req.file.path.replace(/\\/g, '/');
+      organizer.verificationStatus = 'pending';
+      organizer.verificationRequestDate = new Date();
+      organizer.rejectionReason = undefined;
+      await organizer.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Verification request submitted successfully. A manager will review your document.',
+        data: {
+          verificationStatus: organizer.verificationStatus,
+          verificationRequestDate: organizer.verificationRequestDate,
+        }
+      });
+    } catch (error) {
+      console.error('Error submitting verification request:', error);
+      return res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+
+  // Get verification status
+  async getVerificationStatus(req, res) {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ success: false, message: 'Please log in.' });
+      }
+
+      const organizer = await Organizer.findOne({ userId: req.session.userId });
+      if (!organizer) {
+        return res.status(404).json({ success: false, message: 'Organizer profile not found.' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          verified: organizer.verified,
+          verificationStatus: organizer.verificationStatus,
+          verificationRequestDate: organizer.verificationRequestDate,
+          verificationReviewDate: organizer.verificationReviewDate,
+          rejectionReason: organizer.rejectionReason,
+          hasDocument: !!organizer.verificationDocument,
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching verification status:', error);
+      return res.status(500).json({ success: false, message: 'Server error' });
     }
   }
 
