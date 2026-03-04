@@ -94,6 +94,7 @@ app.use(methodOverride('_method')); // Enable method override using _method quer
 app.use(express.static("Public"));
 //for multer - serve uploaded files
 app.use(express.static('uploads'));
+app.use('/uploads', express.static('uploads'));
 
 
 // Connect to MongoDB

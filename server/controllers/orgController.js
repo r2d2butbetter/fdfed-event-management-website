@@ -1483,7 +1483,7 @@ class orgController {
         return res.status(400).json({ success: false, message: 'Please upload a verification document.' });
       }
 
-      organizer.verificationDocument = req.file.path.replace(/\\/g, '/');
+      organizer.verificationDocument = `/events/${req.file.filename}`;
       organizer.verificationStatus = 'pending';
       organizer.verificationRequestDate = new Date();
       organizer.rejectionReason = undefined;
