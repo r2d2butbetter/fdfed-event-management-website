@@ -36,6 +36,30 @@ const swaggerDocument = {
         {
             name: 'Contact Us',
             description: 'Endpoints consumed by contact information and contact form.'
+        },
+        {
+            name: 'Authentication',
+            description: 'Sign in, sign up, session, and logout endpoints.'
+        },
+        {
+            name: 'Event Detail Page',
+            description: 'Endpoints consumed by event detail pages.'
+        },
+        {
+            name: 'Organizer Dashboard',
+            description: 'Endpoints consumed by organizer dashboard and event management screens.'
+        },
+        {
+            name: 'Manager Dashboard',
+            description: 'Endpoints consumed by manager verification dashboard.'
+        },
+        {
+            name: 'Admin Dashboard',
+            description: 'Endpoints consumed by admin dashboard, moderation, and analytics screens.'
+        },
+        {
+            name: 'System',
+            description: 'General API metadata endpoints.'
         }
     ],
     components: {
@@ -902,6 +926,16 @@ const swaggerDocument = {
             }
         },
         '/user/profile': {
+            get: {
+                tags: ['User Dashboard'],
+                summary: 'Get current user profile',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'User profile fetched.' },
+                    401: { description: 'User not authenticated.' },
+                    404: { description: 'User not found.' }
+                }
+            },
             put: {
                 tags: ['User Dashboard'],
                 summary: 'Update user profile basics',
@@ -1111,6 +1145,841 @@ const swaggerDocument = {
                     },
                     401: { description: 'User not authenticated.' },
                     404: { description: 'No matching active registrations found.' }
+                }
+            }
+        },
+        '/user/events': {
+            get: {
+                tags: ['User Dashboard'],
+                summary: 'Get events from user registrations',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'User events fetched.' },
+                    401: { description: 'User not authenticated.' }
+                }
+            }
+        },
+        '/user/save-event': {
+            post: {
+                tags: ['User Dashboard'],
+                summary: 'Save an event for user',
+                security: [{ sessionCookie: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['eventId'],
+                                properties: {
+                                    eventId: { type: 'string', example: '67fa7a1f0c551c9170b9bfe1' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: { description: 'Event saved.' },
+                    400: { description: 'Already saved or invalid payload.' },
+                    401: { description: 'User not authenticated.' }
+                }
+            }
+        },
+        '/user/check-saved-status': {
+            get: {
+                tags: ['User Dashboard'],
+                summary: 'Check whether an event is saved by user',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'query',
+                        name: 'eventId',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Saved status fetched.' },
+                    400: { description: 'eventId is required.' },
+                    401: { description: 'User not authenticated.' }
+                }
+            }
+        },
+        '/user/refund-preview/{registrationId}': {
+            get: {
+                tags: ['User Dashboard'],
+                summary: 'Get refund preview for a registration',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'registrationId',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Refund preview fetched.' },
+                    400: { description: 'Invalid registration id.' },
+                    401: { description: 'User not authenticated.' },
+                    404: { description: 'Registration not found.' }
+                }
+            }
+        },
+        '/events/{id}': {
+            get: {
+                tags: ['Event Detail Page'],
+                summary: 'Get event detail payload by ID',
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Event detail fetched with related events.' },
+                    404: { description: 'Event not found.' }
+                }
+            },
+            delete: {
+                tags: ['Event Detail Page'],
+                summary: 'Delete event by ID (authenticated)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Event deleted.' },
+                    401: { description: 'Unauthorized.' },
+                    404: { description: 'Event not found.' }
+                }
+            }
+        },
+        '/sign-up': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Sign up a user account',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['name', 'email', 'password'],
+                                properties: {
+                                    name: { type: 'string', example: 'Aarav Sharma' },
+                                    email: { type: 'string', format: 'email', example: 'aarav@example.com' },
+                                    password: { type: 'string', example: 'StrongPass@123' },
+                                    phone: { type: 'string', example: '+91-9876543210' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    201: { description: 'User created.' },
+                    400: { description: 'Validation failure or duplicate email.' }
+                }
+            }
+        },
+        '/login': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Sign in user',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['email', 'password'],
+                                properties: {
+                                    email: { type: 'string', format: 'email' },
+                                    password: { type: 'string' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: { description: 'Login success and session created.' },
+                    401: { description: 'Invalid credentials.' }
+                }
+            }
+        },
+        '/check-session': {
+            get: {
+                tags: ['Authentication'],
+                summary: 'Check active session and role info',
+                responses: {
+                    200: { description: 'Session status returned.' }
+                }
+            }
+        },
+        '/organizer-login': {
+            get: {
+                tags: ['Authentication'],
+                summary: 'Get organizer login status/entry endpoint',
+                responses: {
+                    200: { description: 'Organizer login endpoint response.' }
+                }
+            }
+        },
+        '/host_with_us': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Register organizer profile',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    organizationName: { type: 'string' },
+                                    contactNo: { type: 'string' },
+                                    description: { type: 'string' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: { description: 'Organizer registration submitted.' },
+                    400: { description: 'Invalid payload.' },
+                    401: { description: 'Unauthorized.' }
+                }
+            }
+        },
+        '/logout': {
+            get: {
+                tags: ['Authentication'],
+                summary: 'Logout current user session',
+                responses: {
+                    200: { description: 'Logged out.' }
+                }
+            }
+        },
+        '/organizer/dashboard': {
+            get: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Get organizer dashboard overview',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Organizer dashboard fetched.' },
+                    401: { description: 'Unauthorized.' }
+                }
+            }
+        },
+        '/organizer/events': {
+            get: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Get organizer events listing payload',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Organizer events fetched.' }
+                }
+            },
+            post: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Create organizer event (multipart)',
+                security: [{ sessionCookie: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'multipart/form-data': {
+                            schema: {
+                                type: 'object',
+                                required: ['title', 'category', 'startDateTime', 'endDateTime', 'venue', 'capacity', 'ticketPrice'],
+                                properties: {
+                                    title: { type: 'string' },
+                                    category: { type: 'string' },
+                                    description: { type: 'string' },
+                                    startDateTime: { type: 'string', format: 'date-time' },
+                                    endDateTime: { type: 'string', format: 'date-time' },
+                                    venue: { type: 'string' },
+                                    capacity: { type: 'integer' },
+                                    ticketPrice: { type: 'number' },
+                                    image: { type: 'string', format: 'binary' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    201: { description: 'Event created.' },
+                    400: { description: 'Validation failed.' }
+                }
+            }
+        },
+        '/organizer/events/{id}': {
+            put: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Update organizer event (multipart)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'multipart/form-data': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    title: { type: 'string' },
+                                    category: { type: 'string' },
+                                    description: { type: 'string' },
+                                    startDateTime: { type: 'string', format: 'date-time' },
+                                    endDateTime: { type: 'string', format: 'date-time' },
+                                    venue: { type: 'string' },
+                                    capacity: { type: 'integer' },
+                                    ticketPrice: { type: 'number' },
+                                    image: { type: 'string', format: 'binary' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: { description: 'Event updated.' },
+                    404: { description: 'Event not found.' }
+                }
+            },
+            delete: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Delete organizer event',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Event deleted.' },
+                    404: { description: 'Event not found.' }
+                }
+            }
+        },
+        '/organizer/profile': {
+            put: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Update organizer profile',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Organizer profile updated.' },
+                    401: { description: 'Unauthorized.' }
+                }
+            }
+        },
+        '/organizer/change-password': {
+            put: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Change organizer account password',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Password updated.' },
+                    400: { description: 'Invalid payload or old password mismatch.' },
+                    401: { description: 'Unauthorized.' }
+                }
+            }
+        },
+        '/organizer/events/{eventId}/attendees': {
+            get: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Get attendees for organizer event',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'eventId',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Attendees fetched.' },
+                    404: { description: 'Event not found.' }
+                }
+            }
+        },
+        '/organizer/events/{eventId}/attendees/export': {
+            get: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Export organizer attendees list',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'eventId',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Export file generated.' }
+                }
+            }
+        },
+        '/organizer/events/{eventId}/send-email': {
+            post: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Send bulk email to attendees of organizer event',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'eventId',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Bulk email sent.' },
+                    400: { description: 'Invalid payload.' }
+                }
+            }
+        },
+        '/organizer/submit-verification': {
+            post: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Submit organizer verification document (multipart)',
+                security: [{ sessionCookie: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'multipart/form-data': {
+                            schema: {
+                                type: 'object',
+                                required: ['verificationDocument'],
+                                properties: {
+                                    verificationDocument: { type: 'string', format: 'binary' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: { description: 'Verification request submitted.' },
+                    400: { description: 'Invalid submission.' },
+                    401: { description: 'Unauthorized.' }
+                }
+            }
+        },
+        '/organizer/verification-status': {
+            get: {
+                tags: ['Organizer Dashboard'],
+                summary: 'Get organizer verification status',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Verification status fetched.' },
+                    401: { description: 'Unauthorized.' }
+                }
+            }
+        },
+        '/manager/dashboard': {
+            get: {
+                tags: ['Manager Dashboard'],
+                summary: 'Get manager dashboard overview',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Manager dashboard fetched.' },
+                    401: { description: 'Unauthorized.' }
+                }
+            }
+        },
+        '/manager/organizers': {
+            get: {
+                tags: ['Manager Dashboard'],
+                summary: 'Get organizer list for manager',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Organizers fetched.' }
+                }
+            }
+        },
+        '/manager/organizers/{id}': {
+            get: {
+                tags: ['Manager Dashboard'],
+                summary: 'Get organizer detail for manager review',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Organizer detail fetched.' },
+                    404: { description: 'Organizer not found.' }
+                }
+            }
+        },
+        '/manager/organizers/{id}/approve': {
+            put: {
+                tags: ['Manager Dashboard'],
+                summary: 'Approve organizer verification request',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Organizer approved.' },
+                    400: { description: 'Invalid state transition.' },
+                    404: { description: 'Organizer not found.' }
+                }
+            }
+        },
+        '/manager/organizers/{id}/reject': {
+            put: {
+                tags: ['Manager Dashboard'],
+                summary: 'Reject organizer verification request',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                requestBody: {
+                    required: false,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    reason: { type: 'string', example: 'Document unreadable' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: { description: 'Organizer rejected.' },
+                    400: { description: 'Invalid state transition.' },
+                    404: { description: 'Organizer not found.' }
+                }
+            }
+        },
+        '/manager/chart/verification-stats': {
+            get: {
+                tags: ['Manager Dashboard'],
+                summary: 'Get manager verification statistics chart data',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Verification stats fetched.' }
+                }
+            }
+        },
+        '/admin/dashboard': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get admin dashboard overview',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Admin dashboard fetched.' },
+                    401: { description: 'Unauthorized.' }
+                }
+            }
+        },
+        '/admin/users': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get all users (admin)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Users fetched.' }
+                }
+            },
+            post: {
+                tags: ['Admin Dashboard'],
+                summary: 'Create user (admin)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    201: { description: 'User created.' },
+                    400: { description: 'Invalid payload.' }
+                }
+            }
+        },
+        '/admin/users/revenue': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get users revenue data',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'User revenues fetched.' }
+                }
+            }
+        },
+        '/admin/users/{id}': {
+            put: {
+                tags: ['Admin Dashboard'],
+                summary: 'Update user (admin)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'User updated.' },
+                    404: { description: 'User not found.' }
+                }
+            },
+            delete: {
+                tags: ['Admin Dashboard'],
+                summary: 'Delete user (admin)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'User deleted.' },
+                    404: { description: 'User not found.' }
+                }
+            }
+        },
+        '/admin/users/{id}/details': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get user detail with profile and stats (admin)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'User details fetched.' },
+                    404: { description: 'User not found.' }
+                }
+            }
+        },
+        '/admin/events': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get all events (admin moderation list)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Events fetched.' }
+                }
+            }
+        },
+        '/admin/events/{eventId}/attendees': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get attendees for specific event (admin)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'eventId',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Attendees fetched.' },
+                    404: { description: 'Event not found.' }
+                }
+            }
+        },
+        '/admin/organizers': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get all organizers (admin)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Organizers fetched.' }
+                }
+            }
+        },
+        '/admin/organizers/revenue': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get organizers revenue data (admin)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Organizer revenues fetched.' }
+                }
+            }
+        },
+        '/admin/organizers/{id}': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get organizer basic detail by id (admin)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Organizer fetched.' },
+                    404: { description: 'Organizer not found.' }
+                }
+            }
+        },
+        '/admin/organizers/{id}/details': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get organizer full detail (admin)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Organizer details fetched.' },
+                    404: { description: 'Organizer not found.' }
+                }
+            }
+        },
+        '/admin/organizers/{id}/verify': {
+            put: {
+                tags: ['Admin Dashboard'],
+                summary: 'Verify organizer (admin)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Organizer verified.' },
+                    404: { description: 'Organizer not found.' }
+                }
+            }
+        },
+        '/admin/organizers/{id}/reject': {
+            put: {
+                tags: ['Admin Dashboard'],
+                summary: 'Reject organizer (admin)',
+                security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'path',
+                        name: 'id',
+                        required: true,
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    200: { description: 'Organizer rejected.' },
+                    404: { description: 'Organizer not found.' }
+                }
+            }
+        },
+        '/admin/chart/monthly-events': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get monthly event stats (admin chart)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Monthly event stats fetched.' }
+                }
+            }
+        },
+        '/admin/chart/event-categories': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get event category distribution (admin chart)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Event category stats fetched.' }
+                }
+            }
+        },
+        '/admin/chart/revenue-analysis': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get revenue analysis chart data (admin)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Revenue analysis fetched.' }
+                }
+            }
+        },
+        '/admin/chart/organizer-verification': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get organizer verification stats (admin chart)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Organizer verification stats fetched.' }
+                }
+            }
+        },
+        '/admin/revenue': {
+            get: {
+                tags: ['Admin Dashboard'],
+                summary: 'Get platform commission revenue (admin)',
+                security: [{ sessionCookie: [] }],
+                responses: {
+                    200: { description: 'Commission revenue fetched.' }
+                }
+            }
+        },
+        '/': {
+            get: {
+                tags: ['System'],
+                summary: 'Get API root metadata',
+                responses: {
+                    200: { description: 'API metadata fetched.' }
+                }
+            }
+        },
+        '/api-docs.json': {
+            get: {
+                tags: ['System'],
+                summary: 'Get OpenAPI document JSON',
+                responses: {
+                    200: { description: 'OpenAPI JSON returned.' }
                 }
             }
         },
