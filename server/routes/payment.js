@@ -10,11 +10,32 @@ import crypto from 'crypto';
 const router = express.Router();
 
 function getRazorpayClient() {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const sanitizeEnv = (value) =>
+    (value || '')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width/BOM chars
+      .replace(/^['"]|['"]$/g, '') // Remove wrapping single/double quotes
+      .trim();
+
+  const keyId = sanitizeEnv(process.env.RAZORPAY_KEY_ID);
+  const keySecret = sanitizeEnv(process.env.RAZORPAY_KEY_SECRET);
 
   if (!keyId || !keySecret) {
     const error = new Error('Razorpay keys are not configured on the server');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const isValidKeyId = /^rzp_(test|live)_[A-Za-z0-9]+$/i.test(keyId);
+  if (!isValidKeyId) {
+    const keyIdPrefix = keyId ? keyId.slice(0, 12) : 'empty';
+    const error = new Error(`Invalid Razorpay key ID format. Expected rzp_test_* or rzp_live_*. Received prefix: ${keyIdPrefix}`);
+    error.statusCode = 500;
+    throw error;
+  }
+
+  // Secrets should never look like key IDs; this usually means env values were swapped.
+  if (/^rzp_(test|live)_/.test(keySecret)) {
+    const error = new Error('Razorpay key secret appears invalid or swapped with key ID.');
     error.statusCode = 500;
     throw error;
   }
@@ -215,10 +236,12 @@ router.post('/create-order', optionalAuth, async (req, res, next) => {
 
     const amountInPaise = Math.round(Number(totalPrice) * 100);
     const razorpay = getRazorpayClient();
+    // Razorpay receipt must be <= 40 chars.
+    const compactReceipt = `evt_${String(eventId).slice(-8)}_${Date.now().toString(36)}`;
     const order = await razorpay.orders.create({
       amount: amountInPaise,
       currency: 'INR',
-      receipt: `evt_${eventId}_${Date.now()}`,
+      receipt: compactReceipt,
       notes: {
         eventId: String(eventId),
         userId: String(userId),
@@ -285,8 +308,9 @@ router.post('/verify-payment', optionalAuth, async (req, res, next) => {
       return next(error);
     }
 
-    const ticketCount = parseInt(tickets, 10);
-    if (isNaN(ticketCount) || ticketCount <= 0) {
+    // If client sends ticket count, validate format but do not trust it for fulfillment.
+    const requestedTicketCount = tickets !== undefined ? parseInt(tickets, 10) : null;
+    if (requestedTicketCount !== null && (isNaN(requestedTicketCount) || requestedTicketCount <= 0)) {
       const error = new Error('Invalid ticket count');
       error.statusCode = 400;
       return next(error);
@@ -323,7 +347,13 @@ router.post('/verify-payment', optionalAuth, async (req, res, next) => {
       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
       .digest('hex');
 
-    if (generatedSignature !== razorpaySignature) {
+    const generatedSignatureBuffer = Buffer.from(generatedSignature, 'utf8');
+    const receivedSignatureBuffer = Buffer.from(razorpaySignature, 'utf8');
+    const isSignatureValid =
+      generatedSignatureBuffer.length === receivedSignatureBuffer.length &&
+      crypto.timingSafeEqual(generatedSignatureBuffer, receivedSignatureBuffer);
+
+    if (!isSignatureValid) {
       const pendingPayment = await Payment.findOne({ userId, eventId, razorpayOrderId, status: 'pending' });
       if (pendingPayment) {
         pendingPayment.status = 'failed';
@@ -344,71 +374,136 @@ router.post('/verify-payment', optionalAuth, async (req, res, next) => {
       return next(error);
     }
 
+    const ticketCount = payment.tickets;
+    if (!ticketCount || ticketCount <= 0) {
+      const error = new Error('Stored payment ticket count is invalid');
+      error.statusCode = 500;
+      return next(error);
+    }
+
+    if (requestedTicketCount !== null && requestedTicketCount !== ticketCount) {
+      const error = new Error('Ticket count mismatch detected');
+      error.statusCode = 400;
+      return next(error);
+    }
+
     if (payment.status === 'completed') {
       const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
       const ticketsLeft = event.capacity - totalRegistrations;
+      const existingRegistrations = await Registration.find({ paymentId: payment._id })
+        .select('_id')
+        .lean();
       return res.json({
         success: true,
         ticketsLeft,
         paymentId: payment._id,
         transactionId: payment.transactionId,
         totalPrice: payment.totalPrice,
-        registrationIds: []
+        registrationIds: existingRegistrations.map((registration) => registration._id)
       });
     }
 
-    // Re-check availability before creating registrations
-    const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
-    const ticketsLeft = event.capacity - totalRegistrations;
+    let responsePayload = null;
+    const session = await mongoose.startSession();
 
-    if (ticketCount > ticketsLeft) {
-      payment.status = 'failed';
-      payment.razorpayPaymentId = razorpayPaymentId;
-      payment.razorpaySignature = razorpaySignature;
-      await payment.save();
+    try {
+      await session.withTransaction(async () => {
+        const latestEvent = await Event.findById(eventId).session(session);
+        if (!latestEvent) {
+          const notFoundError = new Error('Event not found');
+          notFoundError.statusCode = 404;
+          throw notFoundError;
+        }
 
-      const error = new Error('Payment captured but tickets sold out. Please contact support for refund.');
-      error.statusCode = 409;
-      return next(error);
-    }
+        // Re-check availability in the same transaction before finalizing.
+        const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' }).session(session);
+        const ticketsLeft = latestEvent.capacity - totalRegistrations;
 
-    payment.status = 'completed';
-    payment.transactionId = razorpayPaymentId;
-    payment.razorpayPaymentId = razorpayPaymentId;
-    payment.razorpaySignature = razorpaySignature;
-    payment.preferredMethod = paymentMethod || payment.preferredMethod;
-    payment.leadName = leadName || payment.leadName;
-    payment.leadEmail = leadEmail || payment.leadEmail;
-    payment.additionalEmails = additionalEmails;
-    await payment.save();
+        if (ticketCount > ticketsLeft) {
+          await Payment.findOneAndUpdate(
+            { _id: payment._id, status: 'pending' },
+            {
+              status: 'failed',
+              razorpayPaymentId,
+              razorpaySignature
+            },
+            { session }
+          );
 
-    // Create registrations linked to this payment
-    const registrationIds = [];
-    for (let i = 0; i < ticketCount; i++) {
-      const registration = await Registration.create({
-        userId,
-        eventId,
-        paymentId: payment._id,
-        status: 'active'
+          const soldOutError = new Error('Payment captured but tickets sold out. Please contact support for refund.');
+          soldOutError.statusCode = 409;
+          throw soldOutError;
+        }
+
+        // Idempotent state transition: only one request can move pending -> completed.
+        const completedPayment = await Payment.findOneAndUpdate(
+          { _id: payment._id, status: 'pending' },
+          {
+            status: 'completed',
+            transactionId: razorpayPaymentId,
+            razorpayPaymentId,
+            razorpaySignature,
+            preferredMethod: paymentMethod || payment.preferredMethod,
+            leadName: leadName || payment.leadName,
+            leadEmail: leadEmail || payment.leadEmail,
+            additionalEmails
+          },
+          { new: true, session }
+        );
+
+        if (!completedPayment) {
+          const existingCompletedPayment = await Payment.findOne({ _id: payment._id, status: 'completed' }).session(session);
+          if (existingCompletedPayment) {
+            const existingRegistrations = await Registration.find({ paymentId: payment._id })
+              .select('_id')
+              .session(session)
+              .lean();
+            responsePayload = {
+              success: true,
+              ticketsLeft,
+              paymentId: existingCompletedPayment._id,
+              transactionId: existingCompletedPayment.transactionId,
+              totalPrice: existingCompletedPayment.totalPrice,
+              registrationIds: existingRegistrations.map((registration) => registration._id)
+            };
+            return;
+          }
+
+          const stateError = new Error('Payment is not in a verifiable state');
+          stateError.statusCode = 409;
+          throw stateError;
+        }
+
+        const registrationsToCreate = Array.from({ length: ticketCount }, () => ({
+          userId,
+          eventId,
+          paymentId: completedPayment._id,
+          status: 'active'
+        }));
+
+        const createdRegistrations = await Registration.insertMany(registrationsToCreate, { session });
+
+        // Update event status if sold out
+        const newTotalRegistrations = totalRegistrations + ticketCount;
+        if (newTotalRegistrations >= latestEvent.capacity) {
+          latestEvent.status = 'Not Selling';
+          await latestEvent.save({ session });
+        }
+
+        responsePayload = {
+          success: true,
+          ticketsLeft: ticketsLeft - ticketCount,
+          paymentId: completedPayment._id,
+          transactionId: completedPayment.transactionId,
+          totalPrice: completedPayment.totalPrice,
+          registrationIds: createdRegistrations.map((registration) => registration._id)
+        };
       });
-      registrationIds.push(registration._id);
+    } finally {
+      await session.endSession();
     }
 
-    // Update event status if sold out
-    const newTotalRegistrations = totalRegistrations + ticketCount;
-    if (newTotalRegistrations >= event.capacity) {
-      event.status = 'Not Selling';
-      await event.save();
-    }
-
-    res.json({
-      success: true,
-      ticketsLeft: ticketsLeft - ticketCount,
-      paymentId: payment._id,
-      transactionId: payment.transactionId,
-      totalPrice: payment.totalPrice,
-      registrationIds
-    });
+    return res.json(responsePayload);
   } catch (error) {
     next(error);
   }

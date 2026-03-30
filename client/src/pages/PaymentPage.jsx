@@ -9,46 +9,19 @@ import {
     CardContent,
     Button,
     TextField,
-    ToggleButton,
-    ToggleButtonGroup,
     Alert,
     Snackbar,
     Stack,
     Divider,
     Paper
 } from '@mui/material';
-import { CreditCard, AccountBalance } from '@mui/icons-material';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 
-// Validation schemas for different payment methods
-const cardSchema = Yup.object().shape({
-    leadName: Yup.string()
-        .min(2, 'Name must be at least 2 characters')
-        .required('Lead guest name is required'),
+const checkoutSchema = Yup.object().shape({
     leadEmail: Yup.string()
         .email('Invalid email address')
-        .required('Email address is required'),
-    tickets: Yup.number()
-        .integer('Tickets must be a whole number')
-        .min(1, 'At least 1 ticket required')
-        .required('Number of tickets is required')
-});
-
-const upiSchema = Yup.object().shape({
-    leadName: Yup.string()
-        .min(2, 'Name must be at least 2 characters')
-        .required('Lead guest name is required'),
-    leadEmail: Yup.string()
-        .email('Invalid email address')
-        .required('Email address is required'),
-    upiId: Yup.string()
-        .matches(/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/, 'Invalid UPI ID format (e.g., user@bank)')
-        .required('UPI ID is required'),
-    tickets: Yup.number()
-        .integer('Tickets must be a whole number')
-        .min(1, 'At least 1 ticket required')
-        .required('Number of tickets is required')
+        .required('Email address is required')
 });
 
 function formatDate(dateStr) {
@@ -80,7 +53,6 @@ function PaymentPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [paymentData, setPaymentData] = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState('card');
     const [ticketsLeft, setTicketsLeft] = useState(null);
     const [ticketQuantity, setTicketQuantity] = useState(1);
     const [additionalEmails, setAdditionalEmails] = useState([]);
@@ -156,12 +128,9 @@ function PaymentPage() {
 
             const createOrderResponse = await api.post('/payments/create-order', {
                 eventId: id,
-                tickets: values.tickets,
-                paymentMethod,
-                leadName: values.leadName,
+                tickets: ticketQuantity,
                 leadEmail: values.leadEmail,
-                additionalEmails: additionalEmails.filter(email => email.trim() !== ''),
-                ...(paymentMethod === 'upi' ? { upiId: values.upiId } : {})
+                additionalEmails: additionalEmails.filter(email => email.trim() !== '')
             });
 
             if (!createOrderResponse?.success || !createOrderResponse?.order?.id) {
@@ -176,15 +145,20 @@ function PaymentPage() {
                     name: 'Event Management',
                     description: `Tickets for ${event.title}`,
                     order_id: createOrderResponse.order.id,
+                    method: {
+                        upi: true,
+                        card: true,
+                        netbanking: true,
+                        wallet: true,
+                        paylater: true
+                    },
                     prefill: {
                         name: values.leadName,
                         email: values.leadEmail
                     },
                     notes: {
                         eventId: id,
-                        tickets: String(values.tickets),
-                        preferredMethod: paymentMethod,
-                        ...(values.upiId ? { upiId: values.upiId } : {})
+                        tickets: String(ticketQuantity)
                     },
                     theme: {
                         color: '#1d4ed8'
@@ -196,9 +170,6 @@ function PaymentPage() {
                         try {
                             const verifyResponse = await api.post('/payments/verify-payment', {
                                 eventId: id,
-                                tickets: values.tickets,
-                                paymentMethod,
-                                leadName: values.leadName,
                                 leadEmail: values.leadEmail,
                                 additionalEmails: additionalEmails.filter(email => email.trim() !== ''),
                                 razorpayOrderId: razorpayResponse.razorpay_order_id,
@@ -211,17 +182,6 @@ function PaymentPage() {
                         }
                     }
                 };
-
-                if (paymentMethod === 'upi') {
-                    options.method = {
-                        upi: true,
-                        card: false,
-                        netbanking: false,
-                        wallet: false,
-                        emi: false,
-                        paylater: false
-                    };
-                }
 
                 const rzp = new window.Razorpay(options);
                 rzp.on('payment.failed', function (response) {
@@ -320,152 +280,46 @@ function PaymentPage() {
                                     Payment Details
                                 </Typography>
 
-                                <ToggleButtonGroup
-                                    value={paymentMethod}
-                                    exclusive
-                                    onChange={(event, newMethod) => {
-                                        if (newMethod !== null) {
-                                            setPaymentMethod(newMethod);
-                                        }
+                                <Formik
+                                    initialValues={{
+                                        leadEmail: user?.email || ''
                                     }}
-                                    fullWidth
-                                    sx={{ mt: 2, mb: 3 }}
+                                    enableReinitialize
+                                    validationSchema={checkoutSchema}
+                                    onSubmit={handlePaymentSubmit}
                                 >
-                                    <ToggleButton value="card">
-                                        <CreditCard sx={{ mr: 1 }} />
-                                        Card
-                                    </ToggleButton>
-                                    <ToggleButton value="upi">
-                                        <AccountBalance sx={{ mr: 1 }} />
-                                        UPI
-                                    </ToggleButton>
-                                </ToggleButtonGroup>
+                                    {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (
+                                        <Form>
+                                            <Stack spacing={3}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Email Address"
+                                                    name="leadEmail"
+                                                    type="email"
+                                                    value={values.leadEmail}
+                                                    onChange={handleChange}
+                                                    onBlur={handleBlur}
+                                                    error={touched.leadEmail && Boolean(errors.leadEmail)}
+                                                    helperText={touched.leadEmail && errors.leadEmail}
+                                                />
 
-                                {/* Payment Forms */}
-                                {paymentMethod === 'card' ? (
-                                    <Formik
-                                        initialValues={{
-                                            leadName: user?.name || '',
-                                            leadEmail: user?.email || '',
-                                            tickets: ticketQuantity
-                                        }}
-                                        enableReinitialize
-                                        validationSchema={cardSchema}
-                                        onSubmit={handlePaymentSubmit}
-                                    >
-                                        {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (
-                                            <Form>
-                                                <Stack spacing={3}>
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Lead Guest Name"
-                                                        name="leadName"
-                                                        value={values.leadName}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.leadName && Boolean(errors.leadName)}
-                                                        helperText={touched.leadName && errors.leadName}
-                                                    />
+                                                <Alert severity="info">
+                                                    Choose UPI/Card/NetBanking directly in Razorpay Checkout.
+                                                </Alert>
 
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Email Address"
-                                                        name="leadEmail"
-                                                        type="email"
-                                                        value={values.leadEmail}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.leadEmail && Boolean(errors.leadEmail)}
-                                                        helperText={touched.leadEmail && errors.leadEmail}
-                                                        disabled
-                                                    />
-
-                                                    <Alert severity="info">
-                                                        Card details will be entered securely in Razorpay Checkout.
-                                                    </Alert>
-
-                                                    <Button
-                                                        type="submit"
-                                                        variant="contained"
-                                                        size="large"
-                                                        fullWidth
-                                                        disabled={isSubmitting || isProcessing || ticketsLeft < ticketQuantity}
-                                                    >
-                                                        {isProcessing ? 'Processing Payment...' : `Pay INR ${(Number(event.ticketPrice || 0) * ticketQuantity).toFixed(2)}`}
-                                                    </Button>
-                                                </Stack>
-                                            </Form>
-                                        )}
-                                    </Formik>
-                                ) : (
-                                    <Formik
-                                        initialValues={{
-                                            leadName: user?.name || '',
-                                            leadEmail: user?.email || '',
-                                            upiId: '',
-                                            tickets: ticketQuantity
-                                        }}
-                                        enableReinitialize
-                                        validationSchema={upiSchema}
-                                        onSubmit={handlePaymentSubmit}
-                                    >
-                                        {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (
-                                            <Form>
-                                                <Stack spacing={3}>
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Lead Guest Name"
-                                                        name="leadName"
-                                                        value={values.leadName}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.leadName && Boolean(errors.leadName)}
-                                                        helperText={touched.leadName && errors.leadName}
-                                                    />
-
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Email Address"
-                                                        name="leadEmail"
-                                                        type="email"
-                                                        value={values.leadEmail}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.leadEmail && Boolean(errors.leadEmail)}
-                                                        helperText={touched.leadEmail && errors.leadEmail}
-                                                        disabled
-                                                    />
-
-                                                    <TextField
-                                                        fullWidth
-                                                        label="UPI ID"
-                                                        name="upiId"
-                                                        value={values.upiId}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.upiId && Boolean(errors.upiId)}
-                                                        helperText={touched.upiId && errors.upiId}
-                                                        placeholder="username@bank"
-                                                    />
-
-                                                    <Alert severity="info">
-                                                        You will complete this payment in Razorpay Checkout.
-                                                    </Alert>
-
-                                                    <Button
-                                                        type="submit"
-                                                        variant="contained"
-                                                        size="large"
-                                                        fullWidth
-                                                        disabled={isSubmitting || isProcessing || ticketsLeft < ticketQuantity}
-                                                    >
-                                                        {isProcessing ? 'Processing Payment...' : `Pay INR ${(Number(event.ticketPrice || 0) * ticketQuantity).toFixed(2)}`}
-                                                    </Button>
-                                                </Stack>
-                                            </Form>
-                                        )}
-                                    </Formik>
-                                )}
+                                                <Button
+                                                    type="submit"
+                                                    variant="contained"
+                                                    size="large"
+                                                    fullWidth
+                                                    disabled={isSubmitting || isProcessing || ticketsLeft < ticketQuantity}
+                                                >
+                                                    {isProcessing ? 'Processing Payment...' : `Pay INR ${(Number(event.ticketPrice || 0) * ticketQuantity).toFixed(2)}`}
+                                                </Button>
+                                            </Stack>
+                                        </Form>
+                                    )}
+                                </Formik>
                             </CardContent>
                         </Paper>
                     </Grid>
