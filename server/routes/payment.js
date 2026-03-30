@@ -5,7 +5,25 @@ import Registration from '../models/registration.js';
 import Payment from '../models/payment.js';
 import { isAuth, optionalAuth } from '../middlewares/auth.js';
 import mongoose from 'mongoose';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 const router = express.Router();
+
+function getRazorpayClient() {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    const error = new Error('Razorpay keys are not configured on the server');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  return new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret
+  });
+}
 
 // Route for payment page with event ID
 router.get('/:id', optionalAuth, async (req, res, next) => {
@@ -147,11 +165,10 @@ router.get('/events/:id/tickets-left', async (req, res, next) => {
   }
 });
 
-// New: Process payment asynchronously
-
-router.post('/process-payment', optionalAuth, async (req, res, next) => {
+// Create Razorpay order and store pending payment record
+router.post('/create-order', optionalAuth, async (req, res, next) => {
   try {
-    const { eventId, tickets } = req.body;
+    const { eventId, tickets, paymentMethod, leadName, leadEmail, additionalEmails = [] } = req.body;
     const userId = req.session.userId;
 
     if (!userId) {
@@ -196,19 +213,176 @@ router.post('/process-payment', optionalAuth, async (req, res, next) => {
     const adminCommission = totalPrice * 0.05; // 5% commission
     const organizerRevenue = totalPrice * 0.95; // 95% to organizer
 
-    // Create Payment record
+    const amountInPaise = Math.round(Number(totalPrice) * 100);
+    const razorpay = getRazorpayClient();
+    const order = await razorpay.orders.create({
+      amount: amountInPaise,
+      currency: 'INR',
+      receipt: `evt_${eventId}_${Date.now()}`,
+      notes: {
+        eventId: String(eventId),
+        userId: String(userId),
+        tickets: String(ticketCount)
+      }
+    });
+
+    // Create pending payment record
     const payment = await Payment.create({
       userId,
       eventId,
+      gateway: 'razorpay',
       tickets: ticketCount,
       totalPrice,
       adminCommission,
       organizerRevenue,
-      transactionId: `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      status: 'completed'
+      transactionId: order.id,
+      razorpayOrderId: order.id,
+      preferredMethod: paymentMethod,
+      leadName,
+      leadEmail,
+      additionalEmails,
+      status: 'pending'
     });
 
-    // Create registrations linked to the payment
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency
+      },
+      key: process.env.RAZORPAY_KEY_ID,
+      paymentId: payment._id,
+      event: {
+        title: event.title,
+        ticketPrice: event.ticketPrice
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Verify Razorpay payment signature and finalize registrations
+router.post('/verify-payment', optionalAuth, async (req, res, next) => {
+  try {
+    const {
+      eventId,
+      tickets,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+      paymentMethod,
+      leadName,
+      leadEmail,
+      additionalEmails = []
+    } = req.body;
+    const userId = req.session.userId;
+
+    if (!userId) {
+      const error = new Error('Unauthorized');
+      error.statusCode = 401;
+      return next(error);
+    }
+
+    const ticketCount = parseInt(tickets, 10);
+    if (isNaN(ticketCount) || ticketCount <= 0) {
+      const error = new Error('Invalid ticket count');
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      const error = new Error('Missing Razorpay verification details');
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      const error = new Error('Invalid event ID format');
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      const error = new Error('Event not found');
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) {
+      const error = new Error('Razorpay secret is not configured on the server');
+      error.statusCode = 500;
+      return next(error);
+    }
+
+    const generatedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest('hex');
+
+    if (generatedSignature !== razorpaySignature) {
+      const pendingPayment = await Payment.findOne({ userId, eventId, razorpayOrderId, status: 'pending' });
+      if (pendingPayment) {
+        pendingPayment.status = 'failed';
+        pendingPayment.razorpayPaymentId = razorpayPaymentId;
+        pendingPayment.razorpaySignature = razorpaySignature;
+        await pendingPayment.save();
+      }
+
+      const error = new Error('Payment signature verification failed');
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const payment = await Payment.findOne({ userId, eventId, razorpayOrderId });
+    if (!payment) {
+      const error = new Error('Payment order not found');
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    if (payment.status === 'completed') {
+      const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
+      const ticketsLeft = event.capacity - totalRegistrations;
+      return res.json({
+        success: true,
+        ticketsLeft,
+        paymentId: payment._id,
+        transactionId: payment.transactionId,
+        totalPrice: payment.totalPrice,
+        registrationIds: []
+      });
+    }
+
+    // Re-check availability before creating registrations
+    const totalRegistrations = await Registration.countDocuments({ eventId, status: 'active' });
+    const ticketsLeft = event.capacity - totalRegistrations;
+
+    if (ticketCount > ticketsLeft) {
+      payment.status = 'failed';
+      payment.razorpayPaymentId = razorpayPaymentId;
+      payment.razorpaySignature = razorpaySignature;
+      await payment.save();
+
+      const error = new Error('Payment captured but tickets sold out. Please contact support for refund.');
+      error.statusCode = 409;
+      return next(error);
+    }
+
+    payment.status = 'completed';
+    payment.transactionId = razorpayPaymentId;
+    payment.razorpayPaymentId = razorpayPaymentId;
+    payment.razorpaySignature = razorpaySignature;
+    payment.preferredMethod = paymentMethod || payment.preferredMethod;
+    payment.leadName = leadName || payment.leadName;
+    payment.leadEmail = leadEmail || payment.leadEmail;
+    payment.additionalEmails = additionalEmails;
+    await payment.save();
+
+    // Create registrations linked to this payment
     const registrationIds = [];
     for (let i = 0; i < ticketCount; i++) {
       const registration = await Registration.create({
@@ -232,9 +406,20 @@ router.post('/process-payment', optionalAuth, async (req, res, next) => {
       ticketsLeft: ticketsLeft - ticketCount,
       paymentId: payment._id,
       transactionId: payment.transactionId,
-      totalPrice,
+      totalPrice: payment.totalPrice,
       registrationIds
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Backward compatibility endpoint: old clients using process-payment continue to work
+router.post('/process-payment', optionalAuth, async (req, res, next) => {
+  try {
+    const error = new Error('Deprecated endpoint. Use /payments/create-order and /payments/verify-payment.');
+    error.statusCode = 410;
+    return next(error);
   } catch (error) {
     next(error);
   }

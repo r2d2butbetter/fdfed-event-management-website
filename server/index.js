@@ -57,8 +57,10 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://checkout.razorpay.com"],
       imgSrc: ["'self'", "data:", "https:", "http://localhost:3000"],
+      connectSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
     },
   },
   crossOriginEmbedderPolicy: false, // Disable for CORS compatibility
