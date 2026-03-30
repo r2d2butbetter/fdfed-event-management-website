@@ -28,7 +28,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './config/logger.js';
 import swaggerUi from 'swagger-ui-express';
-import swaggerDocument from './docs/swagger.js';
 
 // for getting the events on home page
 import Event from './models/event.js';
@@ -37,6 +36,9 @@ import Organizer from './models/organizer.js';
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const swaggerDocument = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'docs', 'openapi.json'), 'utf8')
+);
 
 dotenv.config();
 
@@ -95,7 +97,7 @@ app.use(methodOverride('_method')); // Enable method override using _method quer
 
 // API documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-  explorer: true,
+  explorer: false,
   customSiteTitle: 'Event Management API Docs'
 }));
 app.get('/api-docs.json', (req, res) => {
