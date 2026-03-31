@@ -144,7 +144,7 @@ class managerController {
             organizer.verified = true;
             organizer.verificationStatus = 'approved';
             organizer.verificationReviewDate = new Date();
-            organizer.reviewedBy = req.manager._id;
+            organizer.reviewedBy = req.manager?._id;
             organizer.rejectionReason = undefined;
             await organizer.save();
 
@@ -220,7 +220,7 @@ class managerController {
             organizer.verified = false;
             organizer.verificationStatus = 'rejected';
             organizer.verificationReviewDate = new Date();
-            organizer.reviewedBy = req.manager._id;
+            organizer.reviewedBy = req.manager?._id;
             organizer.rejectionReason = reason || 'No reason provided';
             await organizer.save();
 

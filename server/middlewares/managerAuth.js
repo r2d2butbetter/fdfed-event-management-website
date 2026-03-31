@@ -1,4 +1,5 @@
 import Manager from '../models/manager.js';
+import Admin from '../models/admin.js';
 import User from '../models/user.js';
 
 async function isManager(req, res, next) {
@@ -20,9 +21,13 @@ async function isManager(req, res, next) {
             });
         }
 
-        const manager = await Manager.findOne({ userId: userId });
+        const [manager, admin] = await Promise.all([
+            Manager.findOne({ userId: userId }),
+            Admin.findOne({ userId: userId })
+        ]);
 
-        if (!manager) {
+        // Hierarchical access: admin can access manager routes as well.
+        if (!manager && !admin) {
             return res.status(403).json({
                 success: false,
                 message: 'Access Denied: You do not have permission to access the manager dashboard.'
@@ -30,6 +35,7 @@ async function isManager(req, res, next) {
         }
 
         req.manager = manager;
+        req.admin = admin;
         req.user = user;
         next();
     } catch (error) {
