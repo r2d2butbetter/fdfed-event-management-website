@@ -1200,7 +1200,7 @@ const swaggerDocument = {
                                     type: 'object',
                                     properties: {
                                         success: { type: 'boolean', example: true },
-                                        data: { $ref: '#/components/schemas/UserProfile' }
+                                        user: { $ref: '#/components/schemas/UserProfile' }
                                     }
                                 }
                             }
@@ -1428,7 +1428,23 @@ const swaggerDocument = {
                 summary: 'Get events from user registrations',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'User events fetched.' },
+                    200: {
+                        description: 'User events fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        events: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/EventListItem' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'User not authenticated.' }
                 }
             }
@@ -1453,7 +1469,21 @@ const swaggerDocument = {
                     }
                 },
                 responses: {
-                    200: { description: 'Event saved.' },
+                    200: {
+                        description: 'Event saved or already saved.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        alreadySaved: { type: 'boolean', example: false },
+                                        message: { type: 'string', example: 'Event saved successfully!' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'Already saved or invalid payload.' },
                     401: { description: 'User not authenticated.' }
                 }
@@ -1473,9 +1503,22 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Saved status fetched.' },
+                    200: {
+                        description: 'Saved status fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        isSaved: { type: 'boolean', example: false }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'eventId is required.' },
-                    401: { description: 'User not authenticated.' }
+                    500: { description: 'Server error while checking saved status.' }
                 }
             }
         },
@@ -1496,6 +1539,7 @@ const swaggerDocument = {
                     200: { description: 'Refund preview fetched.' },
                     400: { description: 'Invalid registration id.' },
                     401: { description: 'User not authenticated.' },
+                    403: { description: 'Booking does not belong to current user.' },
                     404: { description: 'Registration not found.' }
                 }
             }
@@ -1553,7 +1597,20 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Event deleted.' },
+                    200: {
+                        description: 'Event deleted.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Event deleted successfully.' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'Unauthorized.' },
                     404: { description: 'Event not found.' }
                 }
@@ -1569,12 +1626,12 @@ const swaggerDocument = {
                         'application/json': {
                             schema: {
                                 type: 'object',
-                                required: ['name', 'email', 'password'],
+                                required: ['name', 'email', 'password1', 'password2'],
                                 properties: {
                                     name: { type: 'string', example: 'Aarav Sharma' },
                                     email: { type: 'string', format: 'email', example: 'aarav@example.com' },
-                                    password: { type: 'string', example: 'StrongPass@123' },
-                                    phone: { type: 'string', example: '+91-9876543210' }
+                                    password1: { type: 'string', example: 'StrongPass@123' },
+                                    password2: { type: 'string', example: 'StrongPass@123' }
                                 }
                             }
                         }
@@ -1606,7 +1663,35 @@ const swaggerDocument = {
                     }
                 },
                 responses: {
-                    200: { description: 'Login success and session created.' },
+                    200: {
+                        description: 'Login success and session created.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Login successful.' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                userId: { type: 'string' },
+                                                name: { type: 'string' },
+                                                email: { type: 'string', format: 'email' },
+                                                role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'] },
+                                                adminId: { type: 'string', nullable: true },
+                                                managerId: { type: 'string', nullable: true },
+                                                organizerId: { type: 'string', nullable: true },
+                                                organizationName: { type: 'string', nullable: true },
+                                                verified: { type: 'boolean', nullable: true },
+                                                verificationStatus: { type: 'string', nullable: true }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'Invalid credentials.' }
                 }
             }
@@ -1625,21 +1710,22 @@ const swaggerDocument = {
                                     properties: {
                                         success: { type: 'boolean', example: true },
                                         isAuthenticated: { type: 'boolean', example: true },
-                                        user: { $ref: '#/components/schemas/UserSessionData' }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    401: {
-                        description: 'User not authenticated.',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: false },
-                                        isAuthenticated: { type: 'boolean', example: false }
+                                        message: { type: 'string', example: 'No active session.' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                userId: { type: 'string' },
+                                                name: { type: 'string' },
+                                                email: { type: 'string', format: 'email' },
+                                                role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'] },
+                                                adminId: { type: 'string', nullable: true },
+                                                managerId: { type: 'string', nullable: true },
+                                                organizerId: { type: 'string', nullable: true },
+                                                organizationName: { type: 'string', nullable: true },
+                                                verified: { type: 'boolean', nullable: true },
+                                                verificationStatus: { type: 'string', nullable: true }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1661,13 +1747,25 @@ const swaggerDocument = {
                                     type: 'object',
                                     properties: {
                                         success: { type: 'boolean', example: true },
-                                        isOrganizerLoggedIn: { type: 'boolean', example: false },
-                                        organizer: { $ref: '#/components/schemas/OrganizerProfile', nullable: true }
+                                        message: { type: 'string' },
+                                        isOrganizer: { type: 'boolean', example: false },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizerId: { type: 'string', nullable: true },
+                                                organizationName: { type: 'string', nullable: true },
+                                                verified: { type: 'boolean', nullable: true },
+                                                userId: { type: 'string', nullable: true },
+                                                name: { type: 'string', nullable: true },
+                                                email: { type: 'string', format: 'email', nullable: true }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
+                    },
+                    401: { description: 'Please log in to continue.' }
                 }
             }
         },
@@ -1738,14 +1836,30 @@ const swaggerDocument = {
                                             type: 'object',
                                             properties: {
                                                 organizer: { $ref: '#/components/schemas/OrganizerProfile' },
+                                                user: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        name: { type: 'string', example: 'Aarav Sharma' },
+                                                        email: { type: 'string', format: 'email', example: 'aarav@example.com' }
+                                                    }
+                                                },
+                                                events: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/EventDetail' }
+                                                },
                                                 stats: {
                                                     type: 'object',
                                                     properties: {
                                                         totalEvents: { type: 'integer', example: 12 },
-                                                        activeEvents: { type: 'integer', example: 5 },
+                                                        totalActiveEvents: { type: 'integer', example: 5 },
                                                         totalAttendees: { type: 'integer', example: 342 },
                                                         totalRevenue: { type: 'number', example: 15234.50 },
-                                                        verified: { type: 'boolean', example: false }
+                                                        revenueChange: { type: 'number', example: 12 },
+                                                        attendeeChange: { type: 'number', example: 8 },
+                                                        totalTicketsSold: { type: 'integer', example: 420 },
+                                                        ticketsSoldChange: { type: 'number', example: 8 },
+                                                        avgTicketPrice: { type: 'number', example: 299 },
+                                                        topSellingEvent: { type: 'object', nullable: true }
                                                     }
                                                 },
                                                 upcomingEvents: {
@@ -1772,7 +1886,7 @@ const swaggerDocument = {
                 security: [{ sessionCookie: [] }],
                 responses: {
                     200: {
-                        description: 'Organizer events fetched.',
+                        description: 'Organizer dashboard fetched via alias route.',
                         content: {
                             'application/json': {
                                 schema: {
@@ -1782,11 +1896,38 @@ const swaggerDocument = {
                                         data: {
                                             type: 'object',
                                             properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' },
+                                                user: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        name: { type: 'string', example: 'Aarav Sharma' },
+                                                        email: { type: 'string', format: 'email', example: 'aarav@example.com' }
+                                                    }
+                                                },
                                                 events: {
                                                     type: 'array',
                                                     items: { $ref: '#/components/schemas/EventDetail' }
                                                 },
-                                                pagination: { $ref: '#/components/schemas/PaginationMeta' }
+                                                stats: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        totalEvents: { type: 'integer', example: 12 },
+                                                        totalActiveEvents: { type: 'integer', example: 5 },
+                                                        totalAttendees: { type: 'integer', example: 342 },
+                                                        totalRevenue: { type: 'number', example: 15234.50 },
+                                                        revenueChange: { type: 'number', example: 12 },
+                                                        attendeeChange: { type: 'number', example: 8 },
+                                                        totalTicketsSold: { type: 'integer', example: 420 },
+                                                        ticketsSoldChange: { type: 'number', example: 8 },
+                                                        avgTicketPrice: { type: 'number', example: 299 },
+                                                        topSellingEvent: { type: 'object', nullable: true }
+                                                    }
+                                                },
+                                                upcomingEvents: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/EventListItem' },
+                                                    maxItems: 5
+                                                }
                                             }
                                         }
                                     }
@@ -1974,7 +2115,7 @@ const swaggerDocument = {
                 summary: 'Update organizer profile',
                 security: [{ sessionCookie: [] }],
                 requestBody: {
-                    required: true,
+                    required: false,
                     content: {
                         'application/json': {
                             schema: {
@@ -1984,8 +2125,7 @@ const swaggerDocument = {
                                     description: { type: 'string', example: 'We organize TEDx events globally' },
                                     contactNo: { type: 'string', example: '+91-9999988888' },
                                     orgType: { type: 'string', enum: ['Individual', 'Company', 'NGO', 'College/University', 'Government', 'Hospital'], example: 'Company' }
-                                },
-                                required: ['organizationName', 'contactNo']
+                                }
                             }
                         }
                     }
@@ -2131,13 +2271,31 @@ const swaggerDocument = {
                 ],
                 responses: {
                     200: {
-                        description: 'Export file generated.',
+                        description: 'CSV file generated, or JSON data returned for non-csv format.',
                         content: {
                             'text/csv': {
                                 schema: { type: 'string', format: 'binary' }
                             },
-                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
-                                schema: { type: 'string', format: 'binary' }
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'array',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    name: { type: 'string' },
+                                                    email: { type: 'string', format: 'email' },
+                                                    ticketCount: { type: 'integer' },
+                                                    registrationDate: { type: 'string', format: 'date-time' }
+                                                }
+                                            }
+                                        },
+                                        eventTitle: { type: 'string' }
+                                    }
+                                }
                             }
                         }
                     },
@@ -2164,7 +2322,7 @@ const swaggerDocument = {
                         'application/json': {
                             schema: {
                                 type: 'object',
-                                required: ['subject', 'message'],
+                                required: ['subject', 'message', 'recipientEmails'],
                                 properties: {
                                     subject: { type: 'string', minLength: 3, maxLength: 200, example: 'Event Reminder: TEDx Future of AI' },
                                     message: { type: 'string', minLength: 10, maxLength: 5000, example: 'Dear attendee, we are glad to have you at our event!' },
@@ -2277,15 +2435,31 @@ const swaggerDocument = {
                                         data: {
                                             type: 'object',
                                             properties: {
-                                                stats: { $ref: '#/components/schemas/ManagerDashboardStats' },
-                                                recentVerifications: {
+                                                stats: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        totalOrganizers: { type: 'integer', example: 42 },
+                                                        pendingVerifications: { type: 'integer', example: 2 },
+                                                        approvedOrganizers: { type: 'integer', example: 35 },
+                                                        rejectedOrganizers: { type: 'integer', example: 5 },
+                                                        notSubmitted: { type: 'integer', example: 3 }
+                                                    }
+                                                },
+                                                recentRequests: {
                                                     type: 'array',
                                                     items: { $ref: '#/components/schemas/OrganizerProfile' },
-                                                    maxItems: 5
+                                                    maxItems: 10
                                                 },
-                                                pendingVerfications: {
+                                                recentReviews: {
                                                     type: 'array',
                                                     items: { $ref: '#/components/schemas/OrganizerProfile' }
+                                                },
+                                                manager: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        name: { type: 'string', example: 'Manager Name' },
+                                                        email: { type: 'string', format: 'email', example: 'manager@example.com' }
+                                                    }
                                                 }
                                             }
                                         }
@@ -2317,7 +2491,13 @@ const swaggerDocument = {
                     {
                         in: 'query',
                         name: 'status',
-                        schema: { type: 'string', enum: ['pending', 'approved', 'rejected'] }
+                        schema: { type: 'string', enum: ['all', 'pending', 'approved', 'rejected', 'not_submitted'] }
+                    },
+                    {
+                        in: 'query',
+                        name: 'search',
+                        schema: { type: 'string' },
+                        description: 'Case-insensitive search by organization name.'
                     }
                 ],
                 responses: {
@@ -2336,7 +2516,15 @@ const swaggerDocument = {
                                                     type: 'array',
                                                     items: { $ref: '#/components/schemas/OrganizerProfile' }
                                                 },
-                                                pagination: { $ref: '#/components/schemas/PaginationMeta' }
+                                                pagination: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        total: { type: 'integer', example: 42 },
+                                                        page: { type: 'integer', example: 1 },
+                                                        limit: { type: 'integer', example: 10 },
+                                                        totalPages: { type: 'integer', example: 5 }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -2373,16 +2561,7 @@ const swaggerDocument = {
                                             type: 'object',
                                             properties: {
                                                 organizer: { $ref: '#/components/schemas/OrganizerProfile' },
-                                                user: { $ref: '#/components/schemas/UserProfile' },
-                                                verificationDocument: { type: 'string', nullable: true, example: 'uploads/verifications/doc-12345.pdf' },
-                                                stats: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        totalEvents: { type: 'integer', example: 12 },
-                                                        totalAttendees: { type: 'integer', example: 342 },
-                                                        totalRevenue: { type: 'number', example: 15234.50 }
-                                                    }
-                                                }
+                                                eventCount: { type: 'integer', example: 12 }
                                             }
                                         }
                                     }
@@ -2407,19 +2586,6 @@ const swaggerDocument = {
                         schema: { type: 'string' }
                     }
                 ],
-                requestBody: {
-                    required: false,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    notes: { type: 'string', example: 'Documents verified' }
-                                }
-                            }
-                        }
-                    }
-                },
                 responses: {
                     200: {
                         description: 'Organizer approved.',
@@ -2429,8 +2595,13 @@ const swaggerDocument = {
                                     type: 'object',
                                     properties: {
                                         success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Organizer approved successfully' },
-                                        data: { $ref: '#/components/schemas/OrganizerProfile' }
+                                        message: { type: 'string', example: 'Organizer approved and notified via email.' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -2468,7 +2639,26 @@ const swaggerDocument = {
                     }
                 },
                 responses: {
-                    200: { description: 'Organizer rejected.' },
+                    200: {
+                        description: 'Organizer rejected.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Organizer rejected and notified via email.' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'Invalid state transition.' },
                     404: { description: 'Organizer not found.' }
                 }
@@ -2489,18 +2679,20 @@ const swaggerDocument = {
                                     properties: {
                                         success: { type: 'boolean', example: true },
                                         data: {
-                                            type: 'object',
-                                            properties: {
-                                                verificationStats: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        total: { type: 'integer', example: 42 },
-                                                        approved: { type: 'integer', example: 35 },
-                                                        pending: { type: 'integer', example: 2 },
-                                                        rejected: { type: 'integer', example: 5 }
-                                                    }
-                                                },
-                                                monthlyApprovals: { $ref: '#/components/schemas/ChartData' }
+                                            type: 'array',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    _id: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            month: { type: 'integer', example: 3 },
+                                                            year: { type: 'integer', example: 2026 },
+                                                            status: { type: 'string', example: 'approved' }
+                                                        }
+                                                    },
+                                                    count: { type: 'integer', example: 5 }
+                                                }
                                             }
                                         }
                                     }
@@ -2525,14 +2717,37 @@ const swaggerDocument = {
                                     type: 'object',
                                     properties: {
                                         success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Admin dashboard data retrieved successfully' },
                                         data: {
                                             type: 'object',
                                             properties: {
-                                                stats: { $ref: '#/components/schemas/AdminDashboardStats' },
+                                                statistics: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        userCount: { type: 'integer', example: 1250 },
+                                                        eventCount: { type: 'integer', example: 94 },
+                                                        organizerCount: { type: 'integer', example: 42 },
+                                                        verifiedOrganizerCount: { type: 'integer', example: 35 },
+                                                        adminCount: { type: 'integer', example: 2 },
+                                                        totalRevenue: { type: 'number', example: 125430.50 }
+                                                    }
+                                                },
                                                 recentEvents: {
                                                     type: 'array',
                                                     items: { $ref: '#/components/schemas/EventListItem' },
                                                     maxItems: 5
+                                                },
+                                                recentRegistrations: {
+                                                    type: 'array',
+                                                    items: { type: 'object' }
+                                                },
+                                                admin: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        _id: { type: 'string' },
+                                                        user: { type: 'object' },
+                                                        createdAt: { type: 'string', format: 'date-time' }
+                                                    }
                                                 }
                                             }
                                         }
@@ -2550,43 +2765,14 @@ const swaggerDocument = {
                 tags: ['Admin Dashboard'],
                 summary: 'Get all users (admin)',
                 security: [{ sessionCookie: [] }],
-                parameters: [
-                    {
-                        in: 'query',
-                        name: 'page',
-                        schema: { type: 'integer', minimum: 1, default: 1 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'limit',
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'search',
-                        schema: { type: 'string', description: 'Search by name or email' }
-                    }
-                ],
                 responses: {
                     200: {
                         description: 'Users fetched.',
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                users: {
-                                                    type: 'array',
-                                                    items: { $ref: '#/components/schemas/UserProfile' }
-                                                },
-                                                pagination: { $ref: '#/components/schemas/PaginationMeta' }
-                                            }
-                                        }
-                                    }
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/UserProfile' }
                                 }
                             }
                         }
@@ -2603,11 +2789,15 @@ const swaggerDocument = {
                         'application/json': {
                             schema: {
                                 type: 'object',
-                                required: ['name', 'email', 'password'],
+                                required: ['name', 'email', 'passwordHash'],
                                 properties: {
                                     name: { type: 'string', example: 'New User' },
                                     email: { type: 'string', format: 'email', example: 'newuser@example.com' },
-                                    password: { type: 'string', example: 'SecurePass@123' },
+                                    passwordHash: {
+                                        type: 'string',
+                                        example: '$2b$10$S2n8qDk9Nwz4gQ0t5v8r6eF3QjP3YlT5lW6jAqHqz4n0lC7g1f9i2',
+                                        description: 'Controller currently expects hashed password in `passwordHash`.'
+                                    },
                                     phone: { type: 'string', nullable: true, example: '+91-9876543210' },
                                     role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'], default: 'user' }
                                 }
@@ -2623,9 +2813,8 @@ const swaggerDocument = {
                                 schema: {
                                     type: 'object',
                                     properties: {
-                                        success: { type: 'boolean', example: true },
                                         message: { type: 'string', example: 'User created successfully' },
-                                        data: { $ref: '#/components/schemas/UserProfile' }
+                                        user: { $ref: '#/components/schemas/UserProfile' }
                                     }
                                 }
                             }
@@ -2640,44 +2829,18 @@ const swaggerDocument = {
                 tags: ['Admin Dashboard'],
                 summary: 'Get users revenue data',
                 security: [{ sessionCookie: [] }],
-                parameters: [
-                    {
-                        in: 'query',
-                        name: 'page',
-                        schema: { type: 'integer', minimum: 1, default: 1 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'limit',
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }
-                    }
-                ],
                 responses: {
                     200: {
                         description: 'User revenues fetched.',
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                userRevenue: {
-                                                    type: 'array',
-                                                    items: {
-                                                        type: 'object',
-                                                        properties: {
-                                                            userId: { type: 'string' },
-                                                            userName: { type: 'string', example: 'John Doe' },
-                                                            spentAmount: { type: 'number', example: 1240.50 },
-                                                            eventCount: { type: 'integer', example: 8 }
-                                                        }
-                                                    }
-                                                },
-                                                pagination: { $ref: '#/components/schemas/PaginationMeta' }
-                                            }
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            _id: { type: 'string', description: 'User id' },
+                                            totalRevenue: { type: 'number', example: 1240.50 }
                                         }
                                     }
                                 }
@@ -2724,9 +2887,8 @@ const swaggerDocument = {
                                 schema: {
                                     type: 'object',
                                     properties: {
-                                        success: { type: 'boolean', example: true },
                                         message: { type: 'string', example: 'User updated successfully' },
-                                        data: { $ref: '#/components/schemas/UserProfile' }
+                                        user: { $ref: '#/components/schemas/UserProfile' }
                                     }
                                 }
                             }
@@ -2748,7 +2910,19 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'User deleted.' },
+                    200: {
+                        description: 'User deleted.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'User deleted successfully' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'User not found.' }
                 }
             }
@@ -2779,15 +2953,8 @@ const swaggerDocument = {
                                             type: 'object',
                                             properties: {
                                                 user: { $ref: '#/components/schemas/UserProfile' },
-                                                stats: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        totalBookings: { type: 'integer', example: 8 },
-                                                        totalSpent: { type: 'number', example: 1240.50 },
-                                                        lastActivity: { type: 'string', format: 'date-time' },
-                                                        joinDate: { type: 'string', format: 'date-time' }
-                                                    }
-                                                }
+                                                events: { type: 'array', items: { type: 'object' } },
+                                                totalRevenue: { type: 'number', example: 1240.50 }
                                             }
                                         }
                                     }
@@ -2804,48 +2971,14 @@ const swaggerDocument = {
                 tags: ['Admin Dashboard'],
                 summary: 'Get all events (admin moderation list)',
                 security: [{ sessionCookie: [] }],
-                parameters: [
-                    {
-                        in: 'query',
-                        name: 'page',
-                        schema: { type: 'integer', minimum: 1, default: 1 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'limit',
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'status',
-                        schema: { type: 'string', enum: ['start_selling', 'upcoming', 'over'] }
-                    },
-                    {
-                        in: 'query',
-                        name: 'search',
-                        schema: { type: 'string' }
-                    }
-                ],
                 responses: {
                     200: {
                         description: 'Events fetched.',
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                events: {
-                                                    type: 'array',
-                                                    items: { $ref: '#/components/schemas/EventDetail' }
-                                                },
-                                                pagination: { $ref: '#/components/schemas/PaginationMeta' }
-                                            }
-                                        }
-                                    }
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/EventDetail' }
                                 }
                             }
                         }
@@ -2864,16 +2997,6 @@ const swaggerDocument = {
                         name: 'eventId',
                         required: true,
                         schema: { type: 'string' }
-                    },
-                    {
-                        in: 'query',
-                        name: 'page',
-                        schema: { type: 'integer', minimum: 1, default: 1 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'limit',
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 }
                     }
                 ],
                 responses: {
@@ -2888,11 +3011,24 @@ const swaggerDocument = {
                                         data: {
                                             type: 'object',
                                             properties: {
+                                                event: { type: 'object' },
                                                 attendees: {
                                                     type: 'array',
-                                                    items: { $ref: '#/components/schemas/AttendeeList' }
+                                                    items: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            odUserId: { type: 'string' },
+                                                            name: { type: 'string' },
+                                                            email: { type: 'string', format: 'email' },
+                                                            ticketCount: { type: 'integer' },
+                                                            registrationDate: { type: 'string', format: 'date-time' }
+                                                        }
+                                                    }
                                                 },
-                                                pagination: { $ref: '#/components/schemas/PaginationMeta' }
+                                                totalAttendees: { type: 'integer', example: 42 },
+                                                totalRegistrations: { type: 'integer', example: 57 },
+                                                totalTickets: { type: 'integer', example: 57 },
+                                                totalRevenue: { type: 'number', example: 2849.43 }
                                             }
                                         }
                                     }
@@ -2909,43 +3045,14 @@ const swaggerDocument = {
                 tags: ['Admin Dashboard'],
                 summary: 'Get all organizers (admin)',
                 security: [{ sessionCookie: [] }],
-                parameters: [
-                    {
-                        in: 'query',
-                        name: 'page',
-                        schema: { type: 'integer', minimum: 1, default: 1 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'limit',
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'verified',
-                        schema: { type: 'boolean', description: 'Filter by verification status' }
-                    }
-                ],
                 responses: {
                     200: {
                         description: 'Organizers fetched.',
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                organizers: {
-                                                    type: 'array',
-                                                    items: { $ref: '#/components/schemas/OrganizerProfile' }
-                                                },
-                                                pagination: { $ref: '#/components/schemas/PaginationMeta' }
-                                            }
-                                        }
-                                    }
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/OrganizerProfile' }
                                 }
                             }
                         }
@@ -2958,45 +3065,19 @@ const swaggerDocument = {
                 tags: ['Admin Dashboard'],
                 summary: 'Get organizers revenue data (admin)',
                 security: [{ sessionCookie: [] }],
-                parameters: [
-                    {
-                        in: 'query',
-                        name: 'page',
-                        schema: { type: 'integer', minimum: 1, default: 1 }
-                    },
-                    {
-                        in: 'query',
-                        name: 'limit',
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }
-                    }
-                ],
                 responses: {
                     200: {
                         description: 'Organizer revenues fetched.',
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                organizerRevenue: {
-                                                    type: 'array',
-                                                    items: {
-                                                        type: 'object',
-                                                        properties: {
-                                                            organizerId: { type: 'string' },
-                                                            organizationName: { type: 'string', example: 'TED Organizers' },
-                                                            totalEvents: { type: 'integer', example: 12 },
-                                                            totalAttendees: { type: 'integer', example: 342 },
-                                                            totalRevenue: { type: 'number', example: 15234.50 }
-                                                        }
-                                                    }
-                                                },
-                                                pagination: { $ref: '#/components/schemas/PaginationMeta' }
-                                            }
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            _id: { type: 'string', description: 'Organizer id' },
+                                            organizationName: { type: 'string', example: 'TED Organizers' },
+                                            totalRevenue: { type: 'number', example: 15234.50 }
                                         }
                                     }
                                 }
@@ -3024,13 +3105,7 @@ const swaggerDocument = {
                         description: 'Organizer fetched.',
                         content: {
                             'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: { $ref: '#/components/schemas/OrganizerProfile' }
-                                    }
-                                }
+                                schema: { $ref: '#/components/schemas/OrganizerProfile' }
                             }
                         }
                     },
@@ -3064,15 +3139,8 @@ const swaggerDocument = {
                                             type: 'object',
                                             properties: {
                                                 organizer: { $ref: '#/components/schemas/OrganizerProfile' },
-                                                user: { $ref: '#/components/schemas/UserProfile' },
-                                                stats: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        totalEvents: { type: 'integer', example: 12 },
-                                                        totalAttendees: { type: 'integer', example: 342 },
-                                                        totalRevenue: { type: 'number', example: 15234.50 }
-                                                    }
-                                                }
+                                                events: { type: 'array', items: { type: 'object' } },
+                                                totalRevenue: { type: 'number', example: 15234.50 }
                                             }
                                         }
                                     }
@@ -3097,19 +3165,6 @@ const swaggerDocument = {
                         schema: { type: 'string' }
                     }
                 ],
-                requestBody: {
-                    required: false,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    notes: { type: 'string', example: 'Organizer verified by admin' }
-                                }
-                            }
-                        }
-                    }
-                },
                 responses: {
                     200: {
                         description: 'Organizer verified.',
@@ -3118,9 +3173,8 @@ const swaggerDocument = {
                                 schema: {
                                     type: 'object',
                                     properties: {
-                                        success: { type: 'boolean', example: true },
                                         message: { type: 'string', example: 'Organizer verified successfully' },
-                                        data: { $ref: '#/components/schemas/OrganizerProfile' }
+                                        organizer: { $ref: '#/components/schemas/OrganizerProfile' }
                                     }
                                 }
                             }
@@ -3143,20 +3197,6 @@ const swaggerDocument = {
                         schema: { type: 'string' }
                     }
                 ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: 'object',
-                                required: ['reason'],
-                                properties: {
-                                    reason: { type: 'string', minLength: 10, maxLength: 500, example: 'Document verification failed - Details not clear' }
-                                }
-                            }
-                        }
-                    }
-                },
                 responses: {
                     200: {
                         description: 'Organizer rejected.',
@@ -3165,9 +3205,8 @@ const swaggerDocument = {
                                 schema: {
                                     type: 'object',
                                     properties: {
-                                        success: { type: 'boolean', example: true },
-                                        message: { type: 'string', example: 'Organizer rejected successfully' },
-                                        data: { $ref: '#/components/schemas/OrganizerProfile' }
+                                        message: { type: 'string', example: 'Organizer rejected' },
+                                        organizer: { $ref: '#/components/schemas/OrganizerProfile' }
                                     }
                                 }
                             }
@@ -3188,10 +3227,14 @@ const swaggerDocument = {
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: { $ref: '#/components/schemas/ChartData' }
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            month: { type: 'string', example: 'Mar' },
+                                            year: { type: 'integer', example: 2026 },
+                                            count: { type: 'integer', example: 12 }
+                                        }
                                     }
                                 }
                             }
@@ -3211,18 +3254,12 @@ const swaggerDocument = {
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'array',
-                                            items: {
-                                                type: 'object',
-                                                properties: {
-                                                    category: { type: 'string', example: 'TEDx' },
-                                                    count: { type: 'integer', example: 12 }
-                                                }
-                                            }
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            category: { type: 'string', example: 'TEDx' },
+                                            count: { type: 'integer', example: 12 }
                                         }
                                     }
                                 }
@@ -3243,16 +3280,13 @@ const swaggerDocument = {
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                monthlyRevenue: { $ref: '#/components/schemas/ChartData' },
-                                                totalRevenue: { type: 'number', example: 125430.50 },
-                                                commissionRevenue: { type: 'number', example: 6271.53 }
-                                            }
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            month: { type: 'string', example: 'Mar' },
+                                            year: { type: 'integer', example: 2026 },
+                                            revenue: { type: 'number', example: 12543.05 }
                                         }
                                     }
                                 }
@@ -3273,16 +3307,12 @@ const swaggerDocument = {
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'object',
-                                    properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                verified: { type: 'integer', example: 35 },
-                                                pending: { type: 'integer', example: 2 },
-                                                rejected: { type: 'integer', example: 5 }
-                                            }
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            status: { type: 'string', example: 'Verified' },
+                                            count: { type: 'integer', example: 35 }
                                         }
                                     }
                                 }
@@ -3305,16 +3335,9 @@ const swaggerDocument = {
                                 schema: {
                                     type: 'object',
                                     properties: {
-                                        success: { type: 'boolean', example: true },
-                                        data: {
-                                            type: 'object',
-                                            properties: {
-                                                totalPlatformRevenue: { type: 'number', example: 125430.50 },
-                                                commissionPercentage: { type: 'number', example: 5.0 },
-                                                totalCommission: { type: 'number', example: 6271.53 },
-                                                organizersEarnings: { type: 'number', example: 119158.97 }
-                                            }
-                                        }
+                                        totalAdminCommission: { type: 'number', example: 6271.53 },
+                                        netAdminCommission: { type: 'number', example: 6150.12 },
+                                        refundedCommission: { type: 'number', example: 121.41 }
                                     }
                                 }
                             }
@@ -3335,8 +3358,26 @@ const swaggerDocument = {
                                 schema: {
                                     type: 'object',
                                     properties: {
+                                        success: { type: 'boolean', example: true },
                                         message: { type: 'string', example: 'Event Management API' },
-                                        version: { type: 'string', example: '1.0.0' }
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                version: { type: 'string', example: '1.0.0' },
+                                                description: { type: 'string', example: 'Backend API for Event Management System' },
+                                                endpoints: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        events: { type: 'string', example: '/events' },
+                                                        auth: { type: 'string', example: '/login, /sign-up, /logout' },
+                                                        user: { type: 'string', example: '/user/dashboard' },
+                                                        organizer: { type: 'string', example: '/organizer/dashboard' },
+                                                        admin: { type: 'string', example: '/admin/dashboard' },
+                                                        payments: { type: 'string', example: '/payments' }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
