@@ -157,6 +157,103 @@ const swaggerDocument = {
                     promotionalEmails: { type: 'boolean', example: false }
                 },
                 required: ['emailUpdates', 'eventReminders', 'promotionalEmails']
+            },
+            UserProfile: {
+                type: 'object',
+                properties: {
+                    _id: { type: 'string', example: '67fa7a1f0c551c9170b9bf01' },
+                    name: { type: 'string', example: 'Aarav Sharma' },
+                    email: { type: 'string', format: 'email', example: 'aarav@example.com' },
+                    phone: { type: 'string', nullable: true, example: '+91-9876543210' },
+                    username: { type: 'string', example: 'aaravsharma' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                    role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'], example: 'user' }
+                }
+            },
+            EventDetail: {
+                type: 'object',
+                properties: {
+                    _id: { type: 'string', example: '67fa7a1f0c551c9170b9bfe1' },
+                    title: { type: 'string', example: 'TEDx Future of AI' },
+                    category: { type: 'string', example: 'TEDx' },
+                    description: { type: 'string', example: 'Ideas worth spreading on AI and ethics.' },
+                    startDateTime: { type: 'string', format: 'date-time' },
+                    endDateTime: { type: 'string', format: 'date-time' },
+                    venue: { type: 'string', example: 'Convention Center Hall A' },
+                    capacity: { type: 'integer', example: 500 },
+                    ticketPrice: { type: 'number', example: 49.99 },
+                    status: { type: 'string', enum: ['start_selling', 'upcoming', 'over'], example: 'start_selling' },
+                    organizerId: { type: 'string' },
+                    organizerName: { type: 'string', example: 'TED Organizers' },
+                    image: { type: 'string', nullable: true },
+                    registrationCount: { type: 'integer', example: 42 },
+                    ticketsLeft: { type: 'integer', example: 458 }
+                }
+            },
+            UserSessionData: {
+                type: 'object',
+                properties: {
+                    _id: { type: 'string' },
+                    email: { type: 'string', format: 'email' },
+                    role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'] },
+                    name: { type: 'string' },
+                    isAuthenticated: { type: 'boolean', example: true }
+                }
+            },
+            OrganizerProfile: {
+                type: 'object',
+                properties: {
+                    _id: { type: 'string' },
+                    userId: { type: 'string' },
+                    organizationName: { type: 'string', example: 'TED Organizers' },
+                    description: { type: 'string' },
+                    contactNo: { type: 'string', example: '+91-9999988888' },
+                    verified: { type: 'boolean', example: false },
+                    verificationStatus: { type: 'string', enum: ['pending', 'approved', 'rejected'], example: 'pending' },
+                    orgType: { type: 'string', example: 'Company' }
+                }
+            },
+            AttendeeList: {
+                type: 'object',
+                properties: {
+                    name: { type: 'string', example: 'John Doe' },
+                    email: { type: 'string', format: 'email', example: 'john@example.com' },
+                    phone: { type: 'string', nullable: true },
+                    registrationDate: { type: 'string', format: 'date-time' },
+                    ticketsCount: { type: 'integer', example: 2 },
+                    status: { type: 'string', enum: ['active', 'cancelled'], example: 'active' }
+                }
+            },
+            AdminDashboardStats: {
+                type: 'object',
+                properties: {
+                    totalUsers: { type: 'integer', example: 1250 },
+                    totalEvents: { type: 'integer', example: 94 },
+                    totalOrganizers: { type: 'integer', example: 42 },
+                    verifiedOrganizers: { type: 'integer', example: 35 },
+                    pendingVerifications: { type: 'integer', example: 7 },
+                    totalRevenue: { type: 'number', example: 125430.50 },
+                    commissionEarned: { type: 'number', example: 6271.53 }
+                }
+            },
+            ManagerDashboardStats: {
+                type: 'object',
+                properties: {
+                    totalOrganizers: { type: 'integer', example: 42 },
+                    approvedCount: { type: 'integer', example: 35 },
+                    rejectedCount: { type: 'integer', example: 5 },
+                    pendingCount: { type: 'integer', example: 2 }
+                }
+            },
+            ChartData: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        month: { type: 'string', example: '2026-03' },
+                        value: { type: 'number', example: 42 }
+                    }
+                }
             }
         }
     },
@@ -252,6 +349,67 @@ const swaggerDocument = {
                             }
                         }
                     }
+                }
+            }
+        },
+        '/events/search/smart': {
+            get: {
+                tags: ['Homepage'],
+                summary: 'Semantic smart search across upcoming events',
+                description:
+                    'Performs vector search on embedded event content and returns matching events with an AI-generated recommendation message.',
+                parameters: [
+                    {
+                        in: 'query',
+                        name: 'query',
+                        required: true,
+                        schema: { type: 'string', minLength: 1 },
+                        description: 'Natural language search query.'
+                    }
+                ],
+                responses: {
+                    200: {
+                        description: 'Smart search results returned.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                query: { type: 'string', example: 'AI events in Delhi this month' },
+                                                aiMessage: {
+                                                    type: 'string',
+                                                    example: 'You might like TEDx Future of AI this weekend. It best matches your query and still has tickets available.'
+                                                },
+                                                events: {
+                                                    type: 'array',
+                                                    items: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            _id: { type: 'string' },
+                                                            title: { type: 'string' },
+                                                            description: { type: 'string' },
+                                                            startDateTime: { type: 'string', format: 'date-time' },
+                                                            venue: { type: 'string' },
+                                                            category: { type: 'string' },
+                                                            image: { type: 'string', nullable: true },
+                                                            ticketPrice: { type: 'number' },
+                                                            score: { type: 'number', example: 0.87 }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    400: { description: 'Missing search query.' },
+                    500: { description: 'Smart search failed (for example missing Gemini key or vector search failure).' }
                 }
             }
         },
@@ -483,12 +641,144 @@ const swaggerDocument = {
                 }
             }
         },
+        '/payments/create-order': {
+            post: {
+                tags: ['Payment Pages'],
+                summary: 'Create Razorpay order and pending payment record',
+                description:
+                    'Validates ticket availability, creates Razorpay order, and stores a pending payment before checkout completion.',
+                security: [{ sessionCookie: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['eventId', 'tickets'],
+                                properties: {
+                                    eventId: { type: 'string', example: '67fa7a1f0c551c9170b9bfe1' },
+                                    tickets: { type: 'integer', minimum: 1, example: 2 },
+                                    paymentMethod: { type: 'string', enum: ['card', 'upi'], example: 'upi' },
+                                    leadName: { type: 'string', example: 'Aarav Sharma' },
+                                    leadEmail: { type: 'string', format: 'email', example: 'aarav@example.com' },
+                                    additionalEmails: {
+                                        type: 'array',
+                                        items: { type: 'string', format: 'email' },
+                                        example: ['friend1@example.com']
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'Razorpay order created successfully.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        order: {
+                                            type: 'object',
+                                            properties: {
+                                                id: { type: 'string', example: 'order_PfG2a0abc12345' },
+                                                amount: { type: 'integer', example: 9998 },
+                                                currency: { type: 'string', example: 'INR' }
+                                            }
+                                        },
+                                        key: { type: 'string', example: 'rzp_test_xxxxxxxxx' },
+                                        paymentId: { type: 'string', example: '67fa7d4b73ad15ec184eb71a' },
+                                        event: {
+                                            type: 'object',
+                                            properties: {
+                                                title: { type: 'string', example: 'TEDx Future of AI' },
+                                                ticketPrice: { type: 'number', example: 49.99 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    400: { description: 'Invalid payload, invalid event id, or insufficient tickets.' },
+                    401: { description: 'Unauthorized.' },
+                    404: { description: 'Event not found.' },
+                    500: { description: 'Payment gateway configuration error.' }
+                }
+            }
+        },
+        '/payments/verify-payment': {
+            post: {
+                tags: ['Payment Pages'],
+                summary: 'Verify Razorpay payment and create registrations',
+                description:
+                    'Verifies payment signature, marks payment completed, creates registrations atomically, and returns generated registration ids.',
+                security: [{ sessionCookie: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['eventId', 'razorpayOrderId', 'razorpayPaymentId', 'razorpaySignature'],
+                                properties: {
+                                    eventId: { type: 'string', example: '67fa7a1f0c551c9170b9bfe1' },
+                                    tickets: { type: 'integer', minimum: 1, example: 2 },
+                                    razorpayOrderId: { type: 'string', example: 'order_PfG2a0abc12345' },
+                                    razorpayPaymentId: { type: 'string', example: 'pay_PfG2wxyz123456' },
+                                    razorpaySignature: { type: 'string', example: '4a7f5ed68b83f....' },
+                                    paymentMethod: { type: 'string', enum: ['card', 'upi'], example: 'card' },
+                                    leadName: { type: 'string', example: 'Aarav Sharma' },
+                                    leadEmail: { type: 'string', format: 'email', example: 'aarav@example.com' },
+                                    additionalEmails: {
+                                        type: 'array',
+                                        items: { type: 'string', format: 'email' },
+                                        example: ['friend1@example.com']
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'Payment verified and registrations finalized.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        ticketsLeft: { type: 'integer', example: 39 },
+                                        paymentId: { type: 'string', example: '67fa7d4b73ad15ec184eb71a' },
+                                        transactionId: { type: 'string', example: 'pay_PfG2wxyz123456' },
+                                        totalPrice: { type: 'number', example: 99.98 },
+                                        registrationIds: {
+                                            type: 'array',
+                                            items: { type: 'string' },
+                                            example: ['67fa7d4b73ad15ec184eb72a', '67fa7d4b73ad15ec184eb72b']
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    400: { description: 'Invalid payload, failed signature verification, or ticket mismatch.' },
+                    401: { description: 'Unauthorized.' },
+                    404: { description: 'Event or payment order not found.' },
+                    409: { description: 'Payment conflict or tickets sold out during confirmation.' },
+                    500: { description: 'Server-side verification failure.' }
+                }
+            }
+        },
         '/payments/process-payment': {
             post: {
                 tags: ['Payment Pages'],
-                summary: 'Process payment and create registrations',
+                summary: 'Deprecated legacy payment endpoint',
                 description:
-                    'Validates capacity, creates payment record, creates one registration per ticket, and returns transaction details plus updated availability.',
+                    'Backward compatibility route. Always returns deprecation error. Use `/payments/create-order` and `/payments/verify-payment`.',
                 security: [{ sessionCookie: [] }],
                 requestBody: {
                     required: true,
@@ -519,49 +809,20 @@ const swaggerDocument = {
                     }
                 },
                 responses: {
-                    200: {
-                        description: 'Payment processed successfully.',
+                    410: {
+                        description: 'Deprecated endpoint.',
                         content: {
                             'application/json': {
                                 schema: {
                                     type: 'object',
                                     properties: {
-                                        success: { type: 'boolean', example: true },
-                                        ticketsLeft: { type: 'integer', example: 39 },
-                                        paymentId: { type: 'string', example: '67fa7d4b73ad15ec184eb71a' },
-                                        transactionId: { type: 'string', example: 'TXN-1764851214358-ab12cd34e' },
-                                        totalPrice: { type: 'number', example: 99.98 },
-                                        registrationIds: {
-                                            type: 'array',
-                                            items: { type: 'string' },
-                                            example: ['67fa7d4b73ad15ec184eb72a', '67fa7d4b73ad15ec184eb72b']
+                                        success: { type: 'boolean', example: false },
+                                        message: {
+                                            type: 'string',
+                                            example: 'Deprecated endpoint. Use /payments/create-order and /payments/verify-payment.'
                                         }
                                     }
                                 }
-                            }
-                        }
-                    },
-                    400: {
-                        description: 'Validation failure (invalid event/tickets or insufficient capacity).',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorEnvelope' }
-                            }
-                        }
-                    },
-                    401: {
-                        description: 'Not logged in.',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorEnvelope' }
-                            }
-                        }
-                    },
-                    404: {
-                        description: 'Event not found.',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/ErrorEnvelope' }
                             }
                         }
                     }
@@ -931,7 +1192,20 @@ const swaggerDocument = {
                 summary: 'Get current user profile',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'User profile fetched.' },
+                    200: {
+                        description: 'User profile fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        user: { $ref: '#/components/schemas/UserProfile' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'User not authenticated.' },
                     404: { description: 'User not found.' }
                 }
@@ -1154,7 +1428,23 @@ const swaggerDocument = {
                 summary: 'Get events from user registrations',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'User events fetched.' },
+                    200: {
+                        description: 'User events fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        events: {
+                                            type: 'array',
+                                            items: { $ref: '#/components/schemas/EventListItem' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'User not authenticated.' }
                 }
             }
@@ -1179,7 +1469,21 @@ const swaggerDocument = {
                     }
                 },
                 responses: {
-                    200: { description: 'Event saved.' },
+                    200: {
+                        description: 'Event saved or already saved.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        alreadySaved: { type: 'boolean', example: false },
+                                        message: { type: 'string', example: 'Event saved successfully!' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'Already saved or invalid payload.' },
                     401: { description: 'User not authenticated.' }
                 }
@@ -1199,9 +1503,22 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Saved status fetched.' },
+                    200: {
+                        description: 'Saved status fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        isSaved: { type: 'boolean', example: false }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'eventId is required.' },
-                    401: { description: 'User not authenticated.' }
+                    500: { description: 'Server error while checking saved status.' }
                 }
             }
         },
@@ -1222,6 +1539,7 @@ const swaggerDocument = {
                     200: { description: 'Refund preview fetched.' },
                     400: { description: 'Invalid registration id.' },
                     401: { description: 'User not authenticated.' },
+                    403: { description: 'Booking does not belong to current user.' },
                     404: { description: 'Registration not found.' }
                 }
             }
@@ -1239,7 +1557,30 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Event detail fetched with related events.' },
+                    200: {
+                        description: 'Event detail fetched with related events.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                event: { $ref: '#/components/schemas/EventDetail' },
+                                                relatedEvents: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/EventListItem' },
+                                                    description: 'Similar events from same category'
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'Event not found.' }
                 }
             },
@@ -1256,7 +1597,20 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Event deleted.' },
+                    200: {
+                        description: 'Event deleted.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Event deleted successfully.' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'Unauthorized.' },
                     404: { description: 'Event not found.' }
                 }
@@ -1272,12 +1626,12 @@ const swaggerDocument = {
                         'application/json': {
                             schema: {
                                 type: 'object',
-                                required: ['name', 'email', 'password'],
+                                required: ['name', 'email', 'password1', 'password2'],
                                 properties: {
                                     name: { type: 'string', example: 'Aarav Sharma' },
                                     email: { type: 'string', format: 'email', example: 'aarav@example.com' },
-                                    password: { type: 'string', example: 'StrongPass@123' },
-                                    phone: { type: 'string', example: '+91-9876543210' }
+                                    password1: { type: 'string', example: 'StrongPass@123' },
+                                    password2: { type: 'string', example: 'StrongPass@123' }
                                 }
                             }
                         }
@@ -1309,7 +1663,35 @@ const swaggerDocument = {
                     }
                 },
                 responses: {
-                    200: { description: 'Login success and session created.' },
+                    200: {
+                        description: 'Login success and session created.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Login successful.' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                userId: { type: 'string' },
+                                                name: { type: 'string' },
+                                                email: { type: 'string', format: 'email' },
+                                                role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'] },
+                                                adminId: { type: 'string', nullable: true },
+                                                managerId: { type: 'string', nullable: true },
+                                                organizerId: { type: 'string', nullable: true },
+                                                organizationName: { type: 'string', nullable: true },
+                                                verified: { type: 'boolean', nullable: true },
+                                                verificationStatus: { type: 'string', nullable: true }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'Invalid credentials.' }
                 }
             }
@@ -1319,16 +1701,71 @@ const swaggerDocument = {
                 tags: ['Authentication'],
                 summary: 'Check active session and role info',
                 responses: {
-                    200: { description: 'Session status returned.' }
+                    200: {
+                        description: 'Session status returned.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        isAuthenticated: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'No active session.' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                userId: { type: 'string' },
+                                                name: { type: 'string' },
+                                                email: { type: 'string', format: 'email' },
+                                                role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'] },
+                                                adminId: { type: 'string', nullable: true },
+                                                managerId: { type: 'string', nullable: true },
+                                                organizerId: { type: 'string', nullable: true },
+                                                organizationName: { type: 'string', nullable: true },
+                                                verified: { type: 'boolean', nullable: true },
+                                                verificationStatus: { type: 'string', nullable: true }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
         '/organizer-login': {
             get: {
                 tags: ['Authentication'],
-                summary: 'Get organizer login status/entry endpoint',
+                summary: 'Check organizer login status',
                 responses: {
-                    200: { description: 'Organizer login endpoint response.' }
+                    200: {
+                        description: 'Organizer login endpoint response.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string' },
+                                        isOrganizer: { type: 'boolean', example: false },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizerId: { type: 'string', nullable: true },
+                                                organizationName: { type: 'string', nullable: true },
+                                                verified: { type: 'boolean', nullable: true },
+                                                userId: { type: 'string', nullable: true },
+                                                name: { type: 'string', nullable: true },
+                                                email: { type: 'string', format: 'email', nullable: true }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    401: { description: 'Please log in to continue.' }
                 }
             }
         },
@@ -1343,16 +1780,17 @@ const swaggerDocument = {
                             schema: {
                                 type: 'object',
                                 properties: {
-                                    organizationName: { type: 'string' },
-                                    contactNo: { type: 'string' },
+                                    orgName: { type: 'string', example: 'TEDx Delhi Organizers' },
+                                    mobile: { type: 'string', example: '+91-9999988888' },
                                     description: { type: 'string' }
-                                }
+                                },
+                                required: ['orgName', 'mobile']
                             }
                         }
                     }
                 },
                 responses: {
-                    200: { description: 'Organizer registration submitted.' },
+                    201: { description: 'Organizer registration submitted.' },
                     400: { description: 'Invalid payload.' },
                     401: { description: 'Unauthorized.' }
                 }
@@ -1363,7 +1801,20 @@ const swaggerDocument = {
                 tags: ['Authentication'],
                 summary: 'Logout current user session',
                 responses: {
-                    200: { description: 'Logged out.' }
+                    200: {
+                        description: 'Logged out successfully.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Logged out successfully' }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1373,7 +1824,56 @@ const swaggerDocument = {
                 summary: 'Get organizer dashboard overview',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Organizer dashboard fetched.' },
+                    200: {
+                        description: 'Organizer dashboard fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' },
+                                                user: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        name: { type: 'string', example: 'Aarav Sharma' },
+                                                        email: { type: 'string', format: 'email', example: 'aarav@example.com' }
+                                                    }
+                                                },
+                                                events: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/EventDetail' }
+                                                },
+                                                stats: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        totalEvents: { type: 'integer', example: 12 },
+                                                        totalActiveEvents: { type: 'integer', example: 5 },
+                                                        totalAttendees: { type: 'integer', example: 342 },
+                                                        totalRevenue: { type: 'number', example: 15234.50 },
+                                                        revenueChange: { type: 'number', example: 12 },
+                                                        attendeeChange: { type: 'number', example: 8 },
+                                                        totalTicketsSold: { type: 'integer', example: 420 },
+                                                        ticketsSoldChange: { type: 'number', example: 8 },
+                                                        avgTicketPrice: { type: 'number', example: 299 },
+                                                        topSellingEvent: { type: 'object', nullable: true }
+                                                    }
+                                                },
+                                                upcomingEvents: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/EventListItem' },
+                                                    maxItems: 5
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'Unauthorized.' }
                 }
             }
@@ -1381,10 +1881,61 @@ const swaggerDocument = {
         '/organizer/events': {
             get: {
                 tags: ['Organizer Dashboard'],
-                summary: 'Get organizer events listing payload',
+                summary: 'Get organizer dashboard payload (alias route)',
+                description: 'This route is currently mapped to the same controller as `/organizer/dashboard`.',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Organizer events fetched.' }
+                    200: {
+                        description: 'Organizer dashboard fetched via alias route.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' },
+                                                user: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        name: { type: 'string', example: 'Aarav Sharma' },
+                                                        email: { type: 'string', format: 'email', example: 'aarav@example.com' }
+                                                    }
+                                                },
+                                                events: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/EventDetail' }
+                                                },
+                                                stats: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        totalEvents: { type: 'integer', example: 12 },
+                                                        totalActiveEvents: { type: 'integer', example: 5 },
+                                                        totalAttendees: { type: 'integer', example: 342 },
+                                                        totalRevenue: { type: 'number', example: 15234.50 },
+                                                        revenueChange: { type: 'number', example: 12 },
+                                                        attendeeChange: { type: 'number', example: 8 },
+                                                        totalTicketsSold: { type: 'integer', example: 420 },
+                                                        ticketsSoldChange: { type: 'number', example: 8 },
+                                                        avgTicketPrice: { type: 'number', example: 299 },
+                                                        topSellingEvent: { type: 'object', nullable: true }
+                                                    }
+                                                },
+                                                upcomingEvents: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/EventListItem' },
+                                                    maxItems: 5
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    401: { description: 'Unauthorized.' }
                 }
             },
             post: {
@@ -1397,17 +1948,58 @@ const swaggerDocument = {
                         'multipart/form-data': {
                             schema: {
                                 type: 'object',
-                                required: ['title', 'category', 'startDateTime', 'endDateTime', 'venue', 'capacity', 'ticketPrice'],
+                                required: ['category', 'title', 'description', 'startDateTime', 'endDateTime', 'venue', 'capacity', 'price'],
                                 properties: {
-                                    title: { type: 'string' },
-                                    category: { type: 'string' },
-                                    description: { type: 'string' },
-                                    startDateTime: { type: 'string', format: 'date-time' },
-                                    endDateTime: { type: 'string', format: 'date-time' },
-                                    venue: { type: 'string' },
-                                    capacity: { type: 'integer' },
-                                    ticketPrice: { type: 'number' },
-                                    image: { type: 'string', format: 'binary' }
+                                    category: { type: 'string', example: 'TEDx' },
+                                    title: { type: 'string', example: 'TEDx Future of AI' },
+                                    description: { type: 'string', example: 'Ideas worth spreading on AI and ethics.' },
+                                    startDateTime: { type: 'string', format: 'date-time', example: '2026-04-10T09:00:00.000Z' },
+                                    endDateTime: { type: 'string', format: 'date-time', example: '2026-04-10T16:00:00.000Z' },
+                                    venue: { type: 'string', example: 'Convention Center Hall A' },
+                                    capacity: { type: 'integer', minimum: 1, example: 500 },
+                                    price: { type: 'number', minimum: 0, example: 49.99 },
+                                    status: { type: 'string', enum: ['start_selling', 'upcoming', 'over'], example: 'start_selling' },
+                                    image: { type: 'string', format: 'binary' },
+                                    orgType: {
+                                        type: 'string',
+                                        enum: ['Individual', 'Company', 'NGO', 'College/University', 'Government', 'Hospital', 'Clinic', 'Event Company', 'Artist Management']
+                                    },
+                                    registeredAddressLine1: { type: 'string' },
+                                    registeredAddressLine2: { type: 'string' },
+                                    registeredCity: { type: 'string' },
+                                    registeredState: { type: 'string' },
+                                    registeredPostalCode: { type: 'string' },
+                                    registeredCountry: { type: 'string' },
+                                    website: { type: 'string' },
+                                    registrationNumber: { type: 'string' },
+                                    yearEstablished: { type: 'integer' },
+                                    facebook: { type: 'string' },
+                                    instagram: { type: 'string' },
+                                    twitter: { type: 'string' },
+                                    linkedin: { type: 'string' },
+                                    youtube: { type: 'string' },
+                                    tedxLicenseId: { type: 'string' },
+                                    tedxLicenseOwnerName: { type: 'string' },
+                                    tedxLicenseOwnerEmail: { type: 'string', format: 'email' },
+                                    tedxLicenseScope: { type: 'string' },
+                                    tedxLicenseExpiryDate: { type: 'string', format: 'date' },
+                                    tedxDocumentLinks: { type: 'string' },
+                                    healthOrganizerType: { type: 'string', enum: ['Hospital', 'Clinic', 'NGO', 'Individual Doctor Group'] },
+                                    healthDirectorName: { type: 'string' },
+                                    healthRegistrationNumber: { type: 'string' },
+                                    healthPartnerHospitalName: { type: 'string' },
+                                    healthEmergencyContact: { type: 'string' },
+                                    healthDocumentLinks: { type: 'string' },
+                                    concertOrganizerType: { type: 'string', enum: ['Event Company', 'Artist Management', 'Individual'] },
+                                    concertPrimaryArtists: { type: 'string' },
+                                    concertVenueNameConfirm: { type: 'string' },
+                                    concertVenueCapacityConfirm: { type: 'string' },
+                                    concertAgeRestrictions: { type: 'string' },
+                                    concertDocumentLinks: { type: 'string' },
+                                    exhibitionVenueDetails: { type: 'string' },
+                                    exhibitionHallDetails: { type: 'string' },
+                                    exhibitionKeyExhibitors: { type: 'string' },
+                                    exhibitionDocumentLinks: { type: 'string' }
                                 }
                             }
                         }
@@ -1439,14 +2031,55 @@ const swaggerDocument = {
                             schema: {
                                 type: 'object',
                                 properties: {
-                                    title: { type: 'string' },
                                     category: { type: 'string' },
+                                    title: { type: 'string' },
                                     description: { type: 'string' },
                                     startDateTime: { type: 'string', format: 'date-time' },
                                     endDateTime: { type: 'string', format: 'date-time' },
                                     venue: { type: 'string' },
-                                    capacity: { type: 'integer' },
-                                    ticketPrice: { type: 'number' },
+                                    capacity: { type: 'integer', minimum: 1 },
+                                    price: { type: 'number', minimum: 0 },
+                                    status: { type: 'string', enum: ['start_selling', 'upcoming', 'over'] },
+                                    orgType: {
+                                        type: 'string',
+                                        enum: ['Individual', 'Company', 'NGO', 'College/University', 'Government', 'Hospital', 'Clinic', 'Event Company', 'Artist Management']
+                                    },
+                                    registeredAddressLine1: { type: 'string' },
+                                    registeredAddressLine2: { type: 'string' },
+                                    registeredCity: { type: 'string' },
+                                    registeredState: { type: 'string' },
+                                    registeredPostalCode: { type: 'string' },
+                                    registeredCountry: { type: 'string' },
+                                    website: { type: 'string' },
+                                    registrationNumber: { type: 'string' },
+                                    yearEstablished: { type: 'integer' },
+                                    facebook: { type: 'string' },
+                                    instagram: { type: 'string' },
+                                    twitter: { type: 'string' },
+                                    linkedin: { type: 'string' },
+                                    youtube: { type: 'string' },
+                                    tedxLicenseId: { type: 'string' },
+                                    tedxLicenseOwnerName: { type: 'string' },
+                                    tedxLicenseOwnerEmail: { type: 'string', format: 'email' },
+                                    tedxLicenseScope: { type: 'string' },
+                                    tedxLicenseExpiryDate: { type: 'string', format: 'date' },
+                                    tedxDocumentLinks: { type: 'string' },
+                                    healthOrganizerType: { type: 'string', enum: ['Hospital', 'Clinic', 'NGO', 'Individual Doctor Group'] },
+                                    healthDirectorName: { type: 'string' },
+                                    healthRegistrationNumber: { type: 'string' },
+                                    healthPartnerHospitalName: { type: 'string' },
+                                    healthEmergencyContact: { type: 'string' },
+                                    healthDocumentLinks: { type: 'string' },
+                                    concertOrganizerType: { type: 'string', enum: ['Event Company', 'Artist Management', 'Individual'] },
+                                    concertPrimaryArtists: { type: 'string' },
+                                    concertVenueNameConfirm: { type: 'string' },
+                                    concertVenueCapacityConfirm: { type: 'string' },
+                                    concertAgeRestrictions: { type: 'string' },
+                                    concertDocumentLinks: { type: 'string' },
+                                    exhibitionVenueDetails: { type: 'string' },
+                                    exhibitionHallDetails: { type: 'string' },
+                                    exhibitionKeyExhibitors: { type: 'string' },
+                                    exhibitionDocumentLinks: { type: 'string' },
                                     image: { type: 'string', format: 'binary' }
                                 }
                             }
@@ -1481,8 +2114,39 @@ const swaggerDocument = {
                 tags: ['Organizer Dashboard'],
                 summary: 'Update organizer profile',
                 security: [{ sessionCookie: [] }],
+                requestBody: {
+                    required: false,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    organizationName: { type: 'string', example: 'TED Organizers' },
+                                    description: { type: 'string', example: 'We organize TEDx events globally' },
+                                    contactNo: { type: 'string', example: '+91-9999988888' },
+                                    orgType: { type: 'string', enum: ['Individual', 'Company', 'NGO', 'College/University', 'Government', 'Hospital'], example: 'Company' }
+                                }
+                            }
+                        }
+                    }
+                },
                 responses: {
-                    200: { description: 'Organizer profile updated.' },
+                    200: {
+                        description: 'Organizer profile updated.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Profile updated successfully' },
+                                        data: { $ref: '#/components/schemas/OrganizerProfile' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    400: { description: 'Invalid payload or validation error.' },
                     401: { description: 'Unauthorized.' }
                 }
             }
@@ -1492,8 +2156,36 @@ const swaggerDocument = {
                 tags: ['Organizer Dashboard'],
                 summary: 'Change organizer account password',
                 security: [{ sessionCookie: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['currentPassword', 'newPassword'],
+                                properties: {
+                                    currentPassword: { type: 'string', example: 'OldPass@123' },
+                                    newPassword: { type: 'string', example: 'NewPass@123' }
+                                }
+                            }
+                        }
+                    }
+                },
                 responses: {
-                    200: { description: 'Password updated.' },
+                    200: {
+                        description: 'Password updated.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Password changed successfully' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'Invalid payload or old password mismatch.' },
                     401: { description: 'Unauthorized.' }
                 }
@@ -1513,7 +2205,48 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Attendees fetched.' },
+                    200: {
+                        description: 'Attendees fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                event: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        _id: { type: 'string' },
+                                                        title: { type: 'string' },
+                                                        startDateTime: { type: 'string', format: 'date-time' }
+                                                    }
+                                                },
+                                                attendees: {
+                                                    type: 'array',
+                                                    items: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            userId: { type: 'string' },
+                                                            name: { type: 'string' },
+                                                            email: { type: 'string', format: 'email' },
+                                                            ticketCount: { type: 'integer' },
+                                                            firstRegistrationDate: { type: 'string', format: 'date-time' },
+                                                            lastRegistrationDate: { type: 'string', format: 'date-time' }
+                                                        }
+                                                    }
+                                                },
+                                                totalAttendees: { type: 'integer', example: 42 },
+                                                totalTickets: { type: 'integer', example: 57 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'Event not found.' }
                 }
             }
@@ -1529,10 +2262,44 @@ const swaggerDocument = {
                         name: 'eventId',
                         required: true,
                         schema: { type: 'string' }
+                    },
+                    {
+                        in: 'query',
+                        name: 'format',
+                        schema: { type: 'string', enum: ['csv', 'xlsx'], default: 'csv' }
                     }
                 ],
                 responses: {
-                    200: { description: 'Export file generated.' }
+                    200: {
+                        description: 'CSV file generated, or JSON data returned for non-csv format.',
+                        content: {
+                            'text/csv': {
+                                schema: { type: 'string', format: 'binary' }
+                            },
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'array',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    name: { type: 'string' },
+                                                    email: { type: 'string', format: 'email' },
+                                                    ticketCount: { type: 'integer' },
+                                                    registrationDate: { type: 'string', format: 'date-time' }
+                                                }
+                                            }
+                                        },
+                                        eventTitle: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    404: { description: 'Event not found.' }
                 }
             }
         },
@@ -1549,9 +2316,45 @@ const swaggerDocument = {
                         schema: { type: 'string' }
                     }
                 ],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['subject', 'message', 'recipientEmails'],
+                                properties: {
+                                    subject: { type: 'string', minLength: 3, maxLength: 200, example: 'Event Reminder: TEDx Future of AI' },
+                                    message: { type: 'string', minLength: 10, maxLength: 5000, example: 'Dear attendee, we are glad to have you at our event!' },
+                                    recipientEmails: {
+                                        type: 'array',
+                                        minItems: 1,
+                                        items: { type: 'string', format: 'email' },
+                                        example: ['john@example.com', 'riya@example.com']
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 responses: {
-                    200: { description: 'Bulk email sent.' },
-                    400: { description: 'Invalid payload.' }
+                    200: {
+                        description: 'Bulk email sent successfully.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Email sent to 42 attendees' },
+                                        emailsSent: { type: 'integer', example: 42 }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    400: { description: 'Invalid payload.' },
+                    404: { description: 'Event not found.' }
                 }
             }
         },
@@ -1587,7 +2390,30 @@ const swaggerDocument = {
                 summary: 'Get organizer verification status',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Verification status fetched.' },
+                    200: {
+                        description: 'Verification status fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                verificationStatus: { type: 'string', enum: ['not_submitted', 'pending', 'approved', 'rejected'], example: 'pending' },
+                                                verified: { type: 'boolean', example: false },
+                                                verificationRequestDate: { type: 'string', format: 'date-time', nullable: true },
+                                                verificationReviewDate: { type: 'string', format: 'date-time', nullable: true },
+                                                rejectionReason: { type: 'string', nullable: true, example: 'Document not clear' },
+                                                hasDocument: { type: 'boolean', example: true }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'Unauthorized.' }
                 }
             }
@@ -1598,7 +2424,50 @@ const swaggerDocument = {
                 summary: 'Get manager dashboard overview',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Manager dashboard fetched.' },
+                    200: {
+                        description: 'Manager dashboard fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                stats: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        totalOrganizers: { type: 'integer', example: 42 },
+                                                        pendingVerifications: { type: 'integer', example: 2 },
+                                                        approvedOrganizers: { type: 'integer', example: 35 },
+                                                        rejectedOrganizers: { type: 'integer', example: 5 },
+                                                        notSubmitted: { type: 'integer', example: 3 }
+                                                    }
+                                                },
+                                                recentRequests: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/OrganizerProfile' },
+                                                    maxItems: 10
+                                                },
+                                                recentReviews: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/OrganizerProfile' }
+                                                },
+                                                manager: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        name: { type: 'string', example: 'Manager Name' },
+                                                        email: { type: 'string', format: 'email', example: 'manager@example.com' }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'Unauthorized.' }
                 }
             }
@@ -1608,8 +2477,61 @@ const swaggerDocument = {
                 tags: ['Manager Dashboard'],
                 summary: 'Get organizer list for manager',
                 security: [{ sessionCookie: [] }],
+                parameters: [
+                    {
+                        in: 'query',
+                        name: 'page',
+                        schema: { type: 'integer', minimum: 1, default: 1 }
+                    },
+                    {
+                        in: 'query',
+                        name: 'limit',
+                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }
+                    },
+                    {
+                        in: 'query',
+                        name: 'status',
+                        schema: { type: 'string', enum: ['all', 'pending', 'approved', 'rejected', 'not_submitted'] }
+                    },
+                    {
+                        in: 'query',
+                        name: 'search',
+                        schema: { type: 'string' },
+                        description: 'Case-insensitive search by organization name.'
+                    }
+                ],
                 responses: {
-                    200: { description: 'Organizers fetched.' }
+                    200: {
+                        description: 'Organizers fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizers: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/OrganizerProfile' }
+                                                },
+                                                pagination: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        total: { type: 'integer', example: 42 },
+                                                        page: { type: 'integer', example: 1 },
+                                                        limit: { type: 'integer', example: 10 },
+                                                        totalPages: { type: 'integer', example: 5 }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1627,7 +2549,26 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Organizer detail fetched.' },
+                    200: {
+                        description: 'Organizer detail fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' },
+                                                eventCount: { type: 'integer', example: 12 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'Organizer not found.' }
                 }
             }
@@ -1646,7 +2587,26 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Organizer approved.' },
+                    200: {
+                        description: 'Organizer approved.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Organizer approved and notified via email.' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'Invalid state transition.' },
                     404: { description: 'Organizer not found.' }
                 }
@@ -1679,7 +2639,26 @@ const swaggerDocument = {
                     }
                 },
                 responses: {
-                    200: { description: 'Organizer rejected.' },
+                    200: {
+                        description: 'Organizer rejected.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Organizer rejected and notified via email.' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'Invalid state transition.' },
                     404: { description: 'Organizer not found.' }
                 }
@@ -1691,7 +2670,36 @@ const swaggerDocument = {
                 summary: 'Get manager verification statistics chart data',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Verification stats fetched.' }
+                    200: {
+                        description: 'Verification stats fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'array',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    _id: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            month: { type: 'integer', example: 3 },
+                                                            year: { type: 'integer', example: 2026 },
+                                                            status: { type: 'string', example: 'approved' }
+                                                        }
+                                                    },
+                                                    count: { type: 'integer', example: 5 }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1701,7 +2709,53 @@ const swaggerDocument = {
                 summary: 'Get admin dashboard overview',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Admin dashboard fetched.' },
+                    200: {
+                        description: 'Admin dashboard fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Admin dashboard data retrieved successfully' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                statistics: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        userCount: { type: 'integer', example: 1250 },
+                                                        eventCount: { type: 'integer', example: 94 },
+                                                        organizerCount: { type: 'integer', example: 42 },
+                                                        verifiedOrganizerCount: { type: 'integer', example: 35 },
+                                                        adminCount: { type: 'integer', example: 2 },
+                                                        totalRevenue: { type: 'number', example: 125430.50 }
+                                                    }
+                                                },
+                                                recentEvents: {
+                                                    type: 'array',
+                                                    items: { $ref: '#/components/schemas/EventListItem' },
+                                                    maxItems: 5
+                                                },
+                                                recentRegistrations: {
+                                                    type: 'array',
+                                                    items: { type: 'object' }
+                                                },
+                                                admin: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        _id: { type: 'string' },
+                                                        user: { type: 'object' },
+                                                        createdAt: { type: 'string', format: 'date-time' }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     401: { description: 'Unauthorized.' }
                 }
             }
@@ -1712,15 +2766,60 @@ const swaggerDocument = {
                 summary: 'Get all users (admin)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Users fetched.' }
+                    200: {
+                        description: 'Users fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/UserProfile' }
+                                }
+                            }
+                        }
+                    }
                 }
             },
             post: {
                 tags: ['Admin Dashboard'],
                 summary: 'Create user (admin)',
                 security: [{ sessionCookie: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['name', 'email', 'passwordHash'],
+                                properties: {
+                                    name: { type: 'string', example: 'New User' },
+                                    email: { type: 'string', format: 'email', example: 'newuser@example.com' },
+                                    passwordHash: {
+                                        type: 'string',
+                                        example: '$2b$10$S2n8qDk9Nwz4gQ0t5v8r6eF3QjP3YlT5lW6jAqHqz4n0lC7g1f9i2',
+                                        description: 'Controller currently expects hashed password in `passwordHash`.'
+                                    },
+                                    phone: { type: 'string', nullable: true, example: '+91-9876543210' },
+                                    role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'], default: 'user' }
+                                }
+                            }
+                        }
+                    }
+                },
                 responses: {
-                    201: { description: 'User created.' },
+                    201: {
+                        description: 'User created.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'User created successfully' },
+                                        user: { $ref: '#/components/schemas/UserProfile' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     400: { description: 'Invalid payload.' }
                 }
             }
@@ -1731,7 +2830,23 @@ const swaggerDocument = {
                 summary: 'Get users revenue data',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'User revenues fetched.' }
+                    200: {
+                        description: 'User revenues fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            _id: { type: 'string', description: 'User id' },
+                                            totalRevenue: { type: 'number', example: 1240.50 }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1748,8 +2863,37 @@ const swaggerDocument = {
                         schema: { type: 'string' }
                     }
                 ],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    name: { type: 'string', example: 'Updated Name' },
+                                    email: { type: 'string', format: 'email', example: 'updated@example.com' },
+                                    phone: { type: 'string', nullable: true, example: '+91-9876543210' },
+                                    role: { type: 'string', enum: ['user', 'organizer', 'manager', 'admin'] }
+                                }
+                            }
+                        }
+                    }
+                },
                 responses: {
-                    200: { description: 'User updated.' },
+                    200: {
+                        description: 'User updated.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'User updated successfully' },
+                                        user: { $ref: '#/components/schemas/UserProfile' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'User not found.' }
                 }
             },
@@ -1766,7 +2910,19 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'User deleted.' },
+                    200: {
+                        description: 'User deleted.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'User deleted successfully' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'User not found.' }
                 }
             }
@@ -1785,7 +2941,27 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'User details fetched.' },
+                    200: {
+                        description: 'User details fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                user: { $ref: '#/components/schemas/UserProfile' },
+                                                events: { type: 'array', items: { type: 'object' } },
+                                                totalRevenue: { type: 'number', example: 1240.50 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'User not found.' }
                 }
             }
@@ -1796,7 +2972,17 @@ const swaggerDocument = {
                 summary: 'Get all events (admin moderation list)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Events fetched.' }
+                    200: {
+                        description: 'Events fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/EventDetail' }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1814,7 +3000,42 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Attendees fetched.' },
+                    200: {
+                        description: 'Attendees fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                event: { type: 'object' },
+                                                attendees: {
+                                                    type: 'array',
+                                                    items: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            odUserId: { type: 'string' },
+                                                            name: { type: 'string' },
+                                                            email: { type: 'string', format: 'email' },
+                                                            ticketCount: { type: 'integer' },
+                                                            registrationDate: { type: 'string', format: 'date-time' }
+                                                        }
+                                                    }
+                                                },
+                                                totalAttendees: { type: 'integer', example: 42 },
+                                                totalRegistrations: { type: 'integer', example: 57 },
+                                                totalTickets: { type: 'integer', example: 57 },
+                                                totalRevenue: { type: 'number', example: 2849.43 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'Event not found.' }
                 }
             }
@@ -1825,7 +3046,17 @@ const swaggerDocument = {
                 summary: 'Get all organizers (admin)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Organizers fetched.' }
+                    200: {
+                        description: 'Organizers fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/OrganizerProfile' }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1835,7 +3066,24 @@ const swaggerDocument = {
                 summary: 'Get organizers revenue data (admin)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Organizer revenues fetched.' }
+                    200: {
+                        description: 'Organizer revenues fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            _id: { type: 'string', description: 'Organizer id' },
+                                            organizationName: { type: 'string', example: 'TED Organizers' },
+                                            totalRevenue: { type: 'number', example: 15234.50 }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1853,7 +3101,14 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Organizer fetched.' },
+                    200: {
+                        description: 'Organizer fetched.',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/OrganizerProfile' }
+                            }
+                        }
+                    },
                     404: { description: 'Organizer not found.' }
                 }
             }
@@ -1872,7 +3127,27 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Organizer details fetched.' },
+                    200: {
+                        description: 'Organizer details fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                organizer: { $ref: '#/components/schemas/OrganizerProfile' },
+                                                events: { type: 'array', items: { type: 'object' } },
+                                                totalRevenue: { type: 'number', example: 15234.50 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'Organizer not found.' }
                 }
             }
@@ -1891,7 +3166,20 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Organizer verified.' },
+                    200: {
+                        description: 'Organizer verified.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'Organizer verified successfully' },
+                                        organizer: { $ref: '#/components/schemas/OrganizerProfile' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'Organizer not found.' }
                 }
             }
@@ -1910,7 +3198,20 @@ const swaggerDocument = {
                     }
                 ],
                 responses: {
-                    200: { description: 'Organizer rejected.' },
+                    200: {
+                        description: 'Organizer rejected.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', example: 'Organizer rejected' },
+                                        organizer: { $ref: '#/components/schemas/OrganizerProfile' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     404: { description: 'Organizer not found.' }
                 }
             }
@@ -1921,7 +3222,24 @@ const swaggerDocument = {
                 summary: 'Get monthly event stats (admin chart)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Monthly event stats fetched.' }
+                    200: {
+                        description: 'Monthly event stats fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            month: { type: 'string', example: 'Mar' },
+                                            year: { type: 'integer', example: 2026 },
+                                            count: { type: 'integer', example: 12 }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1931,7 +3249,23 @@ const swaggerDocument = {
                 summary: 'Get event category distribution (admin chart)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Event category stats fetched.' }
+                    200: {
+                        description: 'Event category stats fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            category: { type: 'string', example: 'TEDx' },
+                                            count: { type: 'integer', example: 12 }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1941,7 +3275,24 @@ const swaggerDocument = {
                 summary: 'Get revenue analysis chart data (admin)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Revenue analysis fetched.' }
+                    200: {
+                        description: 'Revenue analysis fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            month: { type: 'string', example: 'Mar' },
+                                            year: { type: 'integer', example: 2026 },
+                                            revenue: { type: 'number', example: 12543.05 }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1951,7 +3302,23 @@ const swaggerDocument = {
                 summary: 'Get organizer verification stats (admin chart)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Organizer verification stats fetched.' }
+                    200: {
+                        description: 'Organizer verification stats fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            status: { type: 'string', example: 'Verified' },
+                                            count: { type: 'integer', example: 35 }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1961,7 +3328,21 @@ const swaggerDocument = {
                 summary: 'Get platform commission revenue (admin)',
                 security: [{ sessionCookie: [] }],
                 responses: {
-                    200: { description: 'Commission revenue fetched.' }
+                    200: {
+                        description: 'Commission revenue fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        totalAdminCommission: { type: 'number', example: 6271.53 },
+                                        netAdminCommission: { type: 'number', example: 6150.12 },
+                                        refundedCommission: { type: 'number', example: 121.41 }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1970,7 +3351,38 @@ const swaggerDocument = {
                 tags: ['System'],
                 summary: 'Get API root metadata',
                 responses: {
-                    200: { description: 'API metadata fetched.' }
+                    200: {
+                        description: 'API metadata fetched.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        message: { type: 'string', example: 'Event Management API' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                version: { type: 'string', example: '1.0.0' },
+                                                description: { type: 'string', example: 'Backend API for Event Management System' },
+                                                endpoints: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        events: { type: 'string', example: '/events' },
+                                                        auth: { type: 'string', example: '/login, /sign-up, /logout' },
+                                                        user: { type: 'string', example: '/user/dashboard' },
+                                                        organizer: { type: 'string', example: '/organizer/dashboard' },
+                                                        admin: { type: 'string', example: '/admin/dashboard' },
+                                                        payments: { type: 'string', example: '/payments' }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1979,7 +3391,28 @@ const swaggerDocument = {
                 tags: ['System'],
                 summary: 'Get OpenAPI document JSON',
                 responses: {
-                    200: { description: 'OpenAPI JSON returned.' }
+                    200: {
+                        description: 'OpenAPI JSON returned.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    description: 'OpenAPI 3.0 specification document'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api-docs': {
+            get: {
+                tags: ['System'],
+                summary: 'Open Swagger UI page',
+                responses: {
+                    200: {
+                        description: 'Swagger UI HTML page is served.'
+                    }
                 }
             }
         },
