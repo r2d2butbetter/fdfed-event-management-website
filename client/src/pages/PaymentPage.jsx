@@ -6,80 +6,22 @@ import {
     Container,
     Grid,
     Typography,
-    Card,
     CardContent,
-    CardMedia,
     Button,
     TextField,
-    ToggleButton,
-    ToggleButtonGroup,
     Alert,
     Snackbar,
     Stack,
     Divider,
     Paper
 } from '@mui/material';
-import { CreditCard, AccountBalance } from '@mui/icons-material';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 
-// Validation schemas for different payment methods
-const cardSchema = Yup.object().shape({
-    leadName: Yup.string()
-        .min(2, 'Name must be at least 2 characters')
-        .required('Lead guest name is required'),
+const checkoutSchema = Yup.object().shape({
     leadEmail: Yup.string()
         .email('Invalid email address')
-        .required('Email address is required'),
-    cardNumber: Yup.string()
-        .matches(/^[0-9]{16}$/, 'Card number must be 16 digits')
-        .required('Card number is required'),
-    cardName: Yup.string()
-        .min(3, 'Name must be at least 3 characters')
-        .required('Cardholder name is required'),
-    cardExpiry: Yup.string()
-        .matches(/^[0-9]{4}$/, 'Expiry date must be 4 digits (MMYY)')
-        .required('Expiry date is required')
-        .test('valid-month', 'Month must be between 01 and 12', function (value) {
-            if (!value || value.length < 2) return false;
-            const month = parseInt(value.substring(0, 2), 10);
-            return month >= 1 && month <= 12;
-        })
-        .test('not-expired', 'Card has expired', function (value) {
-            if (!value || value.length !== 4) return false;
-            const month = parseInt(value.substring(0, 2), 10);
-            const year = parseInt(value.substring(2, 4), 10);
-            const currentDate = new Date();
-            const currentYear = currentDate.getFullYear() % 100; // Get last 2 digits
-            const currentMonth = currentDate.getMonth() + 1; // 0-indexed
-
-            if (year < currentYear) return false;
-            if (year === currentYear && month < currentMonth) return false;
-            return true;
-        }),
-    cardCvv: Yup.string()
-        .matches(/^[0-9]{3}$/, 'CVV must be 3 digits')
-        .required('CVV is required'),
-    tickets: Yup.number()
-        .integer('Tickets must be a whole number')
-        .min(1, 'At least 1 ticket required')
-        .required('Number of tickets is required')
-});
-
-const upiSchema = Yup.object().shape({
-    leadName: Yup.string()
-        .min(2, 'Name must be at least 2 characters')
-        .required('Lead guest name is required'),
-    leadEmail: Yup.string()
-        .email('Invalid email address')
-        .required('Email address is required'),
-    upiId: Yup.string()
-        .matches(/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/, 'Invalid UPI ID format (e.g., user@bank)')
-        .required('UPI ID is required'),
-    tickets: Yup.number()
-        .integer('Tickets must be a whole number')
-        .min(1, 'At least 1 ticket required')
-        .required('Number of tickets is required')
+        .required('Email address is required')
 });
 
 function formatDate(dateStr) {
@@ -91,37 +33,26 @@ function formatDate(dateStr) {
     }
 }
 
-// Format card number with spaces every 4 digits
-function formatCardNumber(value) {
-    if (!value) return '';
-    const v = String(value).replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || '';
-    const parts = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-        parts.push(match.substring(i, i + 4));
-    }
-    if (parts.length) {
-        return parts.join(' ');
-    }
-    return v;
-}
+function loadRazorpayScript() {
+    return new Promise((resolve) => {
+        if (window.Razorpay) {
+            resolve(true);
+            return;
+        }
 
-// Format expiry date with auto-slash (MM/YY)
-function formatExpiryDate(value) {
-    if (!value) return '';
-    const v = String(value).replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    if (v.length >= 2) {
-        return v.slice(0, 2) + '/' + v.slice(2, 4);
-    }
-    return v;
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
 }
 
 function PaymentPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [paymentData, setPaymentData] = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState('card');
     const [ticketsLeft, setTicketsLeft] = useState(null);
     const [ticketQuantity, setTicketQuantity] = useState(1);
     const [additionalEmails, setAdditionalEmails] = useState([]);
@@ -190,34 +121,81 @@ function PaymentPage() {
 
         setIsProcessing(true);
         try {
-            const resp = await api.post('/payments/process-payment', {
+            const isScriptLoaded = await loadRazorpayScript();
+            if (!isScriptLoaded) {
+                throw new Error('Unable to load Razorpay checkout. Please check your internet connection and retry.');
+            }
+
+            const createOrderResponse = await api.post('/payments/create-order', {
                 eventId: id,
-                tickets: values.tickets,
-                paymentMethod,
-                leadName: values.leadName,
+                tickets: ticketQuantity,
                 leadEmail: values.leadEmail,
-                additionalEmails: additionalEmails.filter(email => email.trim() !== ''),
-                ...(paymentMethod === 'card' ? {
-                    cardNumber: values.cardNumber,
-                    cardName: values.cardName,
-                    cardExpiry: values.cardExpiry,
-                    cardCvv: values.cardCvv
-                } : {
-                    upiId: values.upiId
-                })
+                additionalEmails: additionalEmails.filter(email => email.trim() !== '')
             });
 
-            if (resp?.success) {
-                setToast({ open: true, message: 'Payment successful! Registration confirmed.', severity: 'success' });
-                setTicketsLeft(resp.ticketsLeft);
-                resetForm();
-                // Navigate to user dashboard after 2 seconds
-                setTimeout(() => {
-                    navigate('/user/dashboard');
-                }, 2000);
-            } else {
-                setToast({ open: true, message: 'Payment failed. Please try again.', severity: 'error' });
+            if (!createOrderResponse?.success || !createOrderResponse?.order?.id) {
+                throw new Error('Failed to initialize Razorpay order.');
             }
+
+            const checkoutResult = await new Promise((resolve, reject) => {
+                const options = {
+                    key: createOrderResponse.key,
+                    amount: createOrderResponse.order.amount,
+                    currency: createOrderResponse.order.currency,
+                    name: 'Event Management',
+                    description: `Tickets for ${event.title}`,
+                    order_id: createOrderResponse.order.id,
+                    method: {
+                        upi: true,
+                        card: true,
+                        netbanking: true,
+                        wallet: true,
+                        paylater: true
+                    },
+                    prefill: {
+                        name: values.leadName,
+                        email: values.leadEmail
+                    },
+                    notes: {
+                        eventId: id,
+                        tickets: String(ticketQuantity)
+                    },
+                    theme: {
+                        color: '#1d4ed8'
+                    },
+                    modal: {
+                        ondismiss: () => reject(new Error('Payment cancelled by user'))
+                    },
+                    handler: async function (razorpayResponse) {
+                        try {
+                            const verifyResponse = await api.post('/payments/verify-payment', {
+                                eventId: id,
+                                leadEmail: values.leadEmail,
+                                additionalEmails: additionalEmails.filter(email => email.trim() !== ''),
+                                razorpayOrderId: razorpayResponse.razorpay_order_id,
+                                razorpayPaymentId: razorpayResponse.razorpay_payment_id,
+                                razorpaySignature: razorpayResponse.razorpay_signature
+                            });
+                            resolve(verifyResponse);
+                        } catch (verifyError) {
+                            reject(verifyError);
+                        }
+                    }
+                };
+
+                const rzp = new window.Razorpay(options);
+                rzp.on('payment.failed', function (response) {
+                    reject(new Error(response?.error?.description || 'Payment failed on Razorpay.'));
+                });
+                rzp.open();
+            });
+
+            setToast({ open: true, message: 'Payment successful! Registration confirmed.', severity: 'success' });
+            setTicketsLeft(checkoutResult.ticketsLeft);
+            resetForm();
+            setTimeout(() => {
+                navigate('/user/dashboard');
+            }, 2000);
         } catch (e) {
             if ((e.message || '').toLowerCase().includes('unauthorized')) {
                 navigate('/login');
@@ -289,7 +267,7 @@ function PaymentPage() {
                                             Price
                                         </Typography>
                                         <Typography variant="h6">
-                                            ${Number(event.ticketPrice || 0).toFixed(2)}
+                                            INR {Number(event.ticketPrice || 0).toFixed(2)}
                                         </Typography>
                                     </Box>
                                 </Stack>
@@ -302,225 +280,46 @@ function PaymentPage() {
                                     Payment Details
                                 </Typography>
 
-                                <ToggleButtonGroup
-                                    value={paymentMethod}
-                                    exclusive
-                                    onChange={(event, newMethod) => {
-                                        if (newMethod !== null) {
-                                            setPaymentMethod(newMethod);
-                                        }
+                                <Formik
+                                    initialValues={{
+                                        leadEmail: user?.email || ''
                                     }}
-                                    fullWidth
-                                    sx={{ mt: 2, mb: 3 }}
+                                    enableReinitialize
+                                    validationSchema={checkoutSchema}
+                                    onSubmit={handlePaymentSubmit}
                                 >
-                                    <ToggleButton value="card">
-                                        <CreditCard sx={{ mr: 1 }} />
-                                        Card
-                                    </ToggleButton>
-                                    <ToggleButton value="upi">
-                                        <AccountBalance sx={{ mr: 1 }} />
-                                        UPI
-                                    </ToggleButton>
-                                </ToggleButtonGroup>
+                                    {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (
+                                        <Form>
+                                            <Stack spacing={3}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Email Address"
+                                                    name="leadEmail"
+                                                    type="email"
+                                                    value={values.leadEmail}
+                                                    onChange={handleChange}
+                                                    onBlur={handleBlur}
+                                                    error={touched.leadEmail && Boolean(errors.leadEmail)}
+                                                    helperText={touched.leadEmail && errors.leadEmail}
+                                                />
 
-                                {/* Payment Forms */}
-                                {paymentMethod === 'card' ? (
-                                    <Formik
-                                        initialValues={{
-                                            leadName: user?.name || '',
-                                            leadEmail: user?.email || '',
-                                            cardNumber: '',
-                                            cardName: '',
-                                            cardExpiry: '',
-                                            cardCvv: '',
-                                            tickets: ticketQuantity
-                                        }}
-                                        enableReinitialize
-                                        validationSchema={cardSchema}
-                                        onSubmit={handlePaymentSubmit}
-                                    >
-                                        {({ values, errors, touched, handleChange, handleBlur, isSubmitting, setFieldValue }) => (
-                                            <Form>
-                                                <Stack spacing={3}>
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Lead Guest Name"
-                                                        name="leadName"
-                                                        value={values.leadName}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.leadName && Boolean(errors.leadName)}
-                                                        helperText={touched.leadName && errors.leadName}
-                                                    />
+                                                <Alert severity="info">
+                                                    Choose UPI/Card/NetBanking directly in Razorpay Checkout.
+                                                </Alert>
 
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Email Address"
-                                                        name="leadEmail"
-                                                        type="email"
-                                                        value={values.leadEmail}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.leadEmail && Boolean(errors.leadEmail)}
-                                                        helperText={touched.leadEmail && errors.leadEmail}
-                                                        disabled
-                                                    />
-
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Card Number"
-                                                        name="cardNumber"
-                                                        value={formatCardNumber(values.cardNumber)}
-                                                        onChange={(e) => {
-                                                            const rawValue = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-                                                            setFieldValue('cardNumber', rawValue);
-                                                        }}
-                                                        onBlur={handleBlur}
-                                                        error={touched.cardNumber && Boolean(errors.cardNumber)}
-                                                        helperText={touched.cardNumber && errors.cardNumber}
-                                                        placeholder="1234 5678 9012 3456"
-                                                        inputProps={{ maxLength: 19 }}
-                                                    />
-
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Cardholder Name"
-                                                        name="cardName"
-                                                        value={values.cardName}
-                                                        onChange={(e) => {
-                                                            const alphabeticValue = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-                                                            setFieldValue('cardName', alphabeticValue);
-                                                        }}
-                                                        onBlur={handleBlur}
-                                                        error={touched.cardName && Boolean(errors.cardName)}
-                                                        helperText={touched.cardName && errors.cardName}
-                                                        placeholder="JOHN DOE"
-                                                    />
-
-                                                    <Grid container spacing={2}>
-                                                        <Grid item xs={6}>
-                                                            <TextField
-                                                                fullWidth
-                                                                label="Expiry Date"
-                                                                name="cardExpiry"
-                                                                value={formatExpiryDate(values.cardExpiry)}
-                                                                onChange={(e) => {
-                                                                    const rawValue = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-                                                                    setFieldValue('cardExpiry', rawValue);
-                                                                }}
-                                                                onBlur={handleBlur}
-                                                                error={touched.cardExpiry && Boolean(errors.cardExpiry)}
-                                                                helperText={touched.cardExpiry && errors.cardExpiry}
-                                                                placeholder="MM/YY"
-                                                                inputProps={{ maxLength: 5 }}
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={6}>
-                                                            <TextField
-                                                                fullWidth
-                                                                label="CVV"
-                                                                name="cardCvv"
-                                                                type="password"
-                                                                value={values.cardCvv}
-                                                                onChange={(e) => {
-                                                                    const numericValue = e.target.value.replace(/[^0-9]/gi, '');
-                                                                    setFieldValue('cardCvv', numericValue);
-                                                                }}
-                                                                onBlur={handleBlur}
-                                                                error={touched.cardCvv && Boolean(errors.cardCvv)}
-                                                                helperText={touched.cardCvv && errors.cardCvv}
-                                                                placeholder="123"
-                                                                inputProps={{ maxLength: 3 }}
-                                                            />
-                                                        </Grid>
-                                                    </Grid>
-
-                                                    <Alert severity="info">
-                                                        This is a demo payment. No actual charges will be made.
-                                                    </Alert>
-
-                                                    <Button
-                                                        type="submit"
-                                                        variant="contained"
-                                                        size="large"
-                                                        fullWidth
-                                                        disabled={isSubmitting || isProcessing || ticketsLeft < ticketQuantity}
-                                                    >
-                                                        {isProcessing ? 'Processing Payment...' : `Pay $${(Number(event.ticketPrice || 0) * ticketQuantity).toFixed(2)}`}
-                                                    </Button>
-                                                </Stack>
-                                            </Form>
-                                        )}
-                                    </Formik>
-                                ) : (
-                                    <Formik
-                                        initialValues={{
-                                            leadName: user?.name || '',
-                                            leadEmail: user?.email || '',
-                                            upiId: '',
-                                            tickets: ticketQuantity
-                                        }}
-                                        enableReinitialize
-                                        validationSchema={upiSchema}
-                                        onSubmit={handlePaymentSubmit}
-                                    >
-                                        {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (
-                                            <Form>
-                                                <Stack spacing={3}>
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Lead Guest Name"
-                                                        name="leadName"
-                                                        value={values.leadName}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.leadName && Boolean(errors.leadName)}
-                                                        helperText={touched.leadName && errors.leadName}
-                                                    />
-
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Email Address"
-                                                        name="leadEmail"
-                                                        type="email"
-                                                        value={values.leadEmail}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.leadEmail && Boolean(errors.leadEmail)}
-                                                        helperText={touched.leadEmail && errors.leadEmail}
-                                                        disabled
-                                                    />
-
-                                                    <TextField
-                                                        fullWidth
-                                                        label="UPI ID"
-                                                        name="upiId"
-                                                        value={values.upiId}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        error={touched.upiId && Boolean(errors.upiId)}
-                                                        helperText={touched.upiId && errors.upiId}
-                                                        placeholder="username@bank"
-                                                    />
-
-                                                    <Alert severity="info">
-                                                        This is a demo payment. No actual charges will be made.
-                                                    </Alert>
-
-                                                    <Button
-                                                        type="submit"
-                                                        variant="contained"
-                                                        size="large"
-                                                        fullWidth
-                                                        disabled={isSubmitting || isProcessing || ticketsLeft < ticketQuantity}
-                                                    >
-                                                        {isProcessing ? 'Processing Payment...' : `Pay $${(Number(event.ticketPrice || 0) * ticketQuantity).toFixed(2)}`}
-                                                    </Button>
-                                                </Stack>
-                                            </Form>
-                                        )}
-                                    </Formik>
-                                )}
+                                                <Button
+                                                    type="submit"
+                                                    variant="contained"
+                                                    size="large"
+                                                    fullWidth
+                                                    disabled={isSubmitting || isProcessing || ticketsLeft < ticketQuantity}
+                                                >
+                                                    {isProcessing ? 'Processing Payment...' : `Pay INR ${(Number(event.ticketPrice || 0) * ticketQuantity).toFixed(2)}`}
+                                                </Button>
+                                            </Stack>
+                                        </Form>
+                                    )}
+                                </Formik>
                             </CardContent>
                         </Paper>
                     </Grid>
@@ -542,7 +341,7 @@ function PaymentPage() {
                                                 Ticket Price
                                             </Typography>
                                             <Typography variant="body2">
-                                                ${Number(event.ticketPrice || 0).toFixed(2)}
+                                                INR {Number(event.ticketPrice || 0).toFixed(2)}
                                             </Typography>
                                         </Stack>
                                     </Box>
@@ -582,7 +381,7 @@ function PaymentPage() {
                                         Total
                                     </Typography>
                                     <Typography variant="h6" color="primary">
-                                        ${(Number(event.ticketPrice || 0) * ticketQuantity).toFixed(2)}
+                                        INR {(Number(event.ticketPrice || 0) * ticketQuantity).toFixed(2)}
                                     </Typography>
                                 </Stack>
 

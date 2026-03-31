@@ -62,6 +62,8 @@ app.use(helmet({
       // Swagger UI injects inline script for runtime config.
       scriptSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http://localhost:3000"],
+      connectSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
     },
   },
   crossOriginEmbedderPolicy: false, // Disable for CORS compatibility
