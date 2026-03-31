@@ -3,8 +3,11 @@ const router = express.Router();
 import { isAuth, optionalAuth } from '../middlewares/auth.js';
 import orgController from '../controllers/orgController.js'
 import upload from '../multerConfig.js';
-router.use(optionalAuth);
-router.get('/dashboard', optionalAuth, orgController.loadDashboard);
+
+// All organizer routes require authentication
+router.use(isAuth);
+
+router.get('/dashboard', orgController.loadDashboard);
 router.get('/events', orgController.loadDashboard);
 router.post('/events', upload.single('image'), orgController.createEvents);
 router.put('/events/:id', upload.single('image'), orgController.updateEvent);
