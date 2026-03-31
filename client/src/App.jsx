@@ -24,6 +24,7 @@ import PaymentPage from './pages/PaymentPage';
 import Navbar from './components/navbar';
 import Createevent from './pages/createEvent';
 import Footer from './components/Footer';
+import Chatbot from './components/Chatbot';
 
 
 function App() {
@@ -56,6 +57,7 @@ function App() {
         <Route path='/payment/:id' element={<PaymentPage />} />
       </Routes>
       <Footer />
+      <Chatbot />
     </>
   );
 }

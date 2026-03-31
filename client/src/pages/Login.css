@@ -8,10 +8,18 @@
 
 .role-toggle-group {
     border-radius: 4px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: center !important;
 }
 
 .role-toggle-btn {
-    padding: 10px 16px !important;
+    padding: 10px 12px !important;
+    font-size: 0.9rem !important;
+    flex: 1 1 auto !important;
+    min-width: 100px !important;
+    max-width: 120px !important;
 }
 
 /* Responsive adjustments */

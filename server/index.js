@@ -134,6 +134,26 @@ app.use(
   })
 );
 
+// Swagger UI — all API specs (dropdown); register new specs in server/swagger/swaggerSpecs.js
+for (const { path: specPath, spec } of swaggerSpecs) {
+  app.get(specPath, (req, res) => res.json(spec));
+}
+// Legacy bookmark: must be registered before app.use('/api-docs', …) so it is not swallowed by Swagger static
+app.get('/api-docs/organizer', (req, res) => res.redirect(301, '/api-docs'));
+const swaggerUrls = swaggerSpecs.map(({ name, path }) => ({ url: path, name }));
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(null, {
+    customSiteTitle: 'Event Management API Docs',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+      urls: swaggerUrls,
+      ...(swaggerUrls.length > 0 && { 'urls.primaryName': swaggerUrls[0].name }),
+    },
+  })
+);
+
 // Ensure tables are created before starting the server
 // (async () => {
 //   try {
@@ -290,5 +310,6 @@ app.use(errorHandler);
 
 app.listen(port, () => {
   logger.info(`Server running at http://localhost:${port}`);
+  logger.info(`Swagger UI (all APIs): http://localhost:${port}/api-docs`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

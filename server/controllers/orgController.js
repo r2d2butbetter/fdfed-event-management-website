@@ -151,6 +151,7 @@ import { getUser } from '../services/auth.js';
 import Organizer from '../models/organizer.js';
 import Event from '../models/event.js';
 import Payment from '../models/payment.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import User from '../models/user.js';
 import { sendEmail } from '../config/emailConfig.js';
 
@@ -785,6 +786,20 @@ class orgController {
       // Check if an image was uploaded
       const imagePath = req.file ? `/events/${req.file.filename}` : null;
 
+      let embeddingVector = undefined;
+      try {
+        if (process.env.GEMINI_API_KEY) {
+          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          // Correct model name is exactly 'gemini-embedding-001'
+          const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+          const textToEmbed = `Category: ${category}. Title: ${title}. Description: ${description}. Venue: ${venue}`;
+          const result = await embeddingModel.embedContent(textToEmbed);
+          embeddingVector = result.embedding.values;
+        }
+      } catch (embError) {
+        console.error("Error generating event embedding:", embError);
+      }
+
       // Create a new event in the database
       const newEvent = new Event({
         category,
@@ -798,6 +813,8 @@ class orgController {
         status: status || 'start_selling',
         organizerId: organizer._id,
         image: imagePath, // Add the image path to the event
+        embedding: embeddingVector, // Add the AI-generated vector
+
       });
 
       const savedEvent = await newEvent.save();

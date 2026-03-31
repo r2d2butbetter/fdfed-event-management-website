@@ -10,6 +10,9 @@ router.use(updateEventStatus);
 // Get all events with optional filtering (must come before /:id)
 router.get('/', optionalAuth, eventController.getAllEvents);
 
+// Smart Event Search Endpoint
+router.get('/search/smart', eventController.searchSmartEvents);
+
 // Get events by category
 router.get('/category/:category', optionalAuth, eventController.getEventsByCategory);
 

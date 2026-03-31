@@ -147,6 +147,7 @@
 
 
 import Event from '../models/event.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 class eventController {
 
@@ -380,6 +381,100 @@ class eventController {
             return res.status(500).json({
                 success: false,
                 message: 'An error occurred while deleting the event.',
+                error: error.message
+            });
+        }
+    }
+
+    // Smart Semantic Search using Gemini Embeddings
+    async searchSmartEvents(req, res) {
+        try {
+            const { query } = req.query; // Get search query from URL params
+
+            if (!query) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Search query is required.'
+                });
+            }
+
+            if (!process.env.GEMINI_API_KEY) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Gemini API Key is not configured.'
+                });
+            }
+
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+            const queryEmbeddingResult = await embeddingModel.embedContent(query);
+            const queryVector = queryEmbeddingResult.embedding.values;
+
+            const currentDate = new Date();
+
+            const matchingEvents = await Event.aggregate([
+                {
+                    "$vectorSearch": {
+                        "index": "vector_index", // This index must be created in MongoDB Atlas
+                        "path": "embedding",
+                        "queryVector": queryVector,
+                        "numCandidates": 100,
+                        "limit": 5, // Reduced limit for RAG prompt
+                        "filter": {
+                            "startDateTime": { "$gte": currentDate },
+                            "status": { "$in": ["start_selling", "upcoming"] }
+                        }
+                    }
+                },
+                {
+                    "$project": {
+                        title: 1, 
+                        description: 1, 
+                        startDateTime: 1, 
+                        venue: 1,
+                        category: 1,
+                        image: 1,
+                        ticketPrice: 1,
+                        score: { $meta: "vectorSearchScore" }
+                    }
+                }
+            ]);
+
+            // GENERATE CONVERSATIONAL AI RESPONSE (RAG)
+            const chatModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const promptContext = matchingEvents.map(e => 
+                `- ${e.title} at ${e.venue} on ${new Date(e.startDateTime).toLocaleDateString()}. Price: $${e.ticketPrice}. Description: ${e.description.substring(0, 150)}...`
+            ).join('\n');
+            
+            const prompt = `You are a helpful, enthusiastic, and concise AI event assistant for our platform. 
+A user is searching for events with the query: "${query}". 
+
+Based on our semantic search, here are the most relevant upcoming events from our database:
+${promptContext ? promptContext : 'No matching events found.'}
+
+Task: Write a short, friendly, and conversational response (max 3-4 sentences) recommending these events to the user. 
+Rules:
+1. Do NOT invent or hallucinate any events that are not in the list above.
+2. If the list is empty, politely inform them we couldn't find exact matches but encourage them to check other categories.
+3. Highlight the most relevant event.`;
+
+            const chatResult = await chatModel.generateContent(prompt);
+            const aiMessage = chatResult.response.text();
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    events: matchingEvents,
+                    aiMessage: aiMessage,
+                    query: query
+                }
+            });
+
+        } catch (error) {
+            console.error('Error performing semantic search:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'An error occurred while performing smart search.',
                 error: error.message
             });
         }
