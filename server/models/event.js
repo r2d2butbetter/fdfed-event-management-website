@@ -40,6 +40,7 @@ const EventSchema = new mongoose.Schema({
   },
   organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organizer', required: true },
   image: { type: String, required: false },
+  embedding: { type: [Number], required: false },
 
 }, { collection: 'event', timestamps: true });
 
