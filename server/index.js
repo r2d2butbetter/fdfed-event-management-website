@@ -27,6 +27,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './config/logger.js';
+import swaggerUi from 'swagger-ui-express';
+import swaggerDocument from './docs/swagger.js';
 
 // for getting the events on home page
 import Event from './models/event.js';
@@ -57,7 +59,8 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "https://checkout.razorpay.com"],
+      // Swagger UI injects inline script for runtime config.
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http://localhost:3000"],
       connectSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
       frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
@@ -91,6 +94,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(methodOverride('_method')); // Enable method override using _method query param
+
+// API documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  explorer: false,
+  customSiteTitle: 'Event Management API Docs'
+}));
+app.get('/api-docs.json', (req, res) => {
+  res.json(swaggerDocument);
+});
 
 // Serve static files (mainly for uploaded images)
 app.use(express.static("Public"));
@@ -153,6 +165,72 @@ app.get('/contact', optionalAuth, (req, res, next) => {
     next(error);
   }
 })
+
+// Route for Contact Us form submission
+app.post('/api/contact', async (req, res, next) => {
+  try {
+    const { name, email, subject, message } = req.body;
+
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'name, email, subject and message are required'
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    const trimmedName = String(name).trim();
+    const trimmedSubject = String(subject).trim();
+    const trimmedMessage = String(message).trim();
+
+    if (trimmedName.length < 2 || trimmedSubject.length < 3 || trimmedMessage.length < 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide valid name, subject and message lengths'
+      });
+    }
+
+    const supportEmail = process.env.CONTACT_RECEIVER_EMAIL || process.env.EMAIL_USER || 'contact@eventmanagement.com';
+    const ticketId = `CNT-${uuidv4().split('-')[0]}`;
+    const submittedAt = new Date().toISOString();
+
+    const bodyText = [
+      `Ticket ID: ${ticketId}`,
+      `Submitted At: ${submittedAt}`,
+      `Name: ${trimmedName}`,
+      `Email: ${email}`,
+      `Subject: ${trimmedSubject}`,
+      '',
+      'Message:',
+      trimmedMessage
+    ].join('\n');
+
+    await sendEmail(
+      supportEmail,
+      `[Contact Us] ${trimmedSubject}`,
+      bodyText,
+      `<pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${bodyText}</pre>`
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Your message has been received. Our team will contact you shortly.',
+      data: {
+        ticketId,
+        submittedAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.use('/', authRouter);
 app.use('/payments', paymentRouter);
