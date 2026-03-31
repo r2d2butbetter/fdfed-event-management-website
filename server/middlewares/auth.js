@@ -2,7 +2,7 @@ import { getUser } from '../services/auth.js';
 import User from '../models/user.js';
 
 async function isAuth(req, res, next) {
-    const userId = req.session.userId;
+    const userId = req.session?.userId;
 
     // If no userId is found in session
     if (!userId) {

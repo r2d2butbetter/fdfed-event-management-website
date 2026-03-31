@@ -8,8 +8,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 // No authenticated user, return 401
                 console.log('No authenticated user found');
@@ -178,8 +178,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -221,8 +221,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -261,8 +261,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -332,8 +332,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -403,8 +403,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -507,8 +507,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -562,8 +562,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -606,8 +606,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(200).json({
                     success: true,
@@ -637,8 +637,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -690,8 +690,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -863,8 +863,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -969,8 +969,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -1065,8 +1065,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -1114,8 +1114,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,
@@ -1172,8 +1172,8 @@ class userController {
             let userId = null;
             if (req.user) {
                 userId = req.user._id;
-            } else if (req.session.userId) {
-                userId = req.session.userId;
+            } else if (req.session?.userId) {
+                userId = req.session?.userId;
             } else {
                 return res.status(401).json({
                     success: false,

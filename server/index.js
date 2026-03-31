@@ -29,6 +29,7 @@ import { fileURLToPath } from 'url';
 import logger from './config/logger.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from './docs/swagger.js';
+import { sendEmail } from './config/emailConfig.js';
 
 // for getting the events on home page
 import Event from './models/event.js';
@@ -111,48 +112,217 @@ app.use(express.static('uploads'));
 app.use('/uploads', express.static('uploads'));
 
 
-// Connect to MongoDB
-connectDB();
+// Initialize app with database connection and session management
+async function initializeApp() {
+  try {
+    // Connect to MongoDB first
+    await connectDB();
+    console.log('[DEBUG] MongoDB connection completed');
 
-const username = process.env.MONGO_USERNAME;
-const password = encodeURIComponent(process.env.MONGO_PASSWORD);
+    const username = process.env.MONGO_USERNAME;
+    const password = encodeURIComponent(process.env.MONGO_PASSWORD);
+    console.log('[DEBUG] Environment variables loaded');
 
-app.use(
-  session({
-    secret: "your_secret_key", // Simple hardcoded secret
-    resave: false, // Prevents session being saved repeatedly if not modified
-    saveUninitialized: false, // Don't save uninitialized sessions
-    store: MongoStore.create({
-      mongoUrl: `mongodb+srv://${username}:${password}@event-management-websit.4kvbvbt.mongodb.net/?retryWrites=true&w=majority&appName=event-management-website-db`,
-    }),
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
-      httpOnly: true, // Prevents client-side JS access
-      secure: false, // Set true in production with HTTPS
-      sameSite: 'lax' // Important for CORS: allows cookies across same-site requests
-    },
-  })
-);
+    // Set up session store after DB connection is established
+    app.use(
+      session({
+        secret: "your_secret_key",
+        resave: false,
+        saveUninitialized: false,
+        store: MongoStore.create({
+          mongoUrl: `mongodb+srv://${username}:${password}@event-management-websit.4kvbvbt.mongodb.net/?retryWrites=true&w=majority&appName=event-management-website-db`,
+        }),
+        cookie: {
+          maxAge: 1000 * 60 * 60 * 24,
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax'
+        },
+      })
+    );
+    console.log('[DEBUG] Session middleware configured');
 
-// Swagger UI — all API specs (dropdown); register new specs in server/swagger/swaggerSpecs.js
-for (const { path: specPath, spec } of swaggerSpecs) {
-  app.get(specPath, (req, res) => res.json(spec));
+    // Set up routes
+    app.use('/', authRouter);
+    console.log('[DEBUG] Auth router loaded');
+    app.use('/payments', paymentRouter);
+    console.log('[DEBUG] Payment router loaded');
+    app.use('/events', eventRouter);
+    console.log('[DEBUG] Event router loaded');
+    app.use('/admin', adminRouter);
+    console.log('[DEBUG] Admin router loaded');
+    app.use('/user', userRouter);
+    console.log('[DEBUG] User router loaded');
+    app.use('/organizer', organizerRouter);
+    console.log('[DEBUG] Organizer router loaded');
+    app.use('/manager', managerRouter);
+    console.log('[DEBUG] Manager router loaded');
+
+    // Route for Contact Us page - Simple JSON response
+    app.get('/contact', optionalAuth, (req, res, next) => {
+      try {
+        res.json({
+          success: true,
+          data: {
+            contactInfo: {
+              email: 'contact@eventmanagement.com',
+              phone: '+1-234-567-8900',
+              address: '123 Event Street, City, Country'
+            }
+          }
+        });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Route for Contact Us form submission
+    app.post('/api/contact', async (req, res, next) => {
+      try {
+        const { name, email, subject, message } = req.body;
+
+        if (!name || !email || !subject || !message) {
+          return res.status(400).json({
+            success: false,
+            message: 'name, email, subject and message are required'
+          });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid email format'
+          });
+        }
+
+        const trimmedName = String(name).trim();
+        const trimmedSubject = String(subject).trim();
+        const trimmedMessage = String(message).trim();
+
+        if (trimmedName.length < 2 || trimmedSubject.length < 3 || trimmedMessage.length < 10) {
+          return res.status(400).json({
+            success: false,
+            message: 'Please provide valid name, subject and message lengths'
+          });
+        }
+
+        const supportEmail = process.env.CONTACT_RECEIVER_EMAIL || process.env.EMAIL_USER || 'contact@eventmanagement.com';
+        const ticketId = `CNT-${uuidv4().split('-')[0]}`;
+        const submittedAt = new Date().toISOString();
+
+        const bodyText = [
+          `Ticket ID: ${ticketId}`,
+          `Submitted At: ${submittedAt}`,
+          `Name: ${trimmedName}`,
+          `Email: ${email}`,
+          `Subject: ${trimmedSubject}`,
+          '',
+          'Message:',
+          trimmedMessage
+        ].join('\n');
+
+        await sendEmail(
+          supportEmail,
+          `[Contact Us] ${trimmedSubject}`,
+          bodyText,
+          `<pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${bodyText}</pre>`
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: 'Your message has been received. Our team will contact you shortly.',
+          data: {
+            ticketId,
+            submittedAt
+          }
+        });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Stats endpoint - returns total events and organizers
+    app.get('/stats', async (req, res, next) => {
+      try {
+        const totalEvents = await Event.countDocuments();
+        const totalOrganizers = await Organizer.countDocuments();
+
+        res.json({
+          success: true,
+          data: {
+            totalEvents,
+            totalOrganizers
+          }
+        });
+      } catch (error) {
+        logger.error('Error fetching stats:', { error: error.message, stack: error.stack });
+        res.status(500).json({
+          success: false,
+          message: 'An error occurred while fetching statistics.'
+        });
+      }
+    });
+
+    // Home route - return JSON with basic API info since React handles the homepage
+    app.get('/', (req, res) => {
+      res.json({
+        success: true,
+        message: 'Event Management API',
+        data: {
+          version: '1.0.0',
+          description: 'Backend API for Event Management System',
+          endpoints: {
+            events: '/events',
+            auth: '/login, /sign-up, /logout',
+            user: '/user/dashboard',
+            organizer: '/organizer/dashboard',
+            admin: '/admin/dashboard',
+            payments: '/payments'
+          }
+        }
+      });
+    });
+
+    // 404 handler
+    app.use(handle404);
+    console.log('[DEBUG] 404 handler loaded');
+
+    // Global error handler
+    app.use(errorHandler);
+    console.log('[DEBUG] Error handler loaded');
+
+    // Start server
+    app.listen(port, () => {
+      console.log('[DEBUG] Server listening on port', port);
+      logger.info(`Server running at http://localhost:${port}`);
+      logger.info(`Swagger UI (all APIs): http://localhost:${port}/api-docs`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (error) {
+    logger.error('Failed to initialize app:', error);
+    console.error('[ERROR] Failed to initialize app:', error);
+    process.exit(1);
+  }
 }
-// Legacy bookmark: must be registered before app.use('/api-docs', …) so it is not swallowed by Swagger static
-app.get('/api-docs/organizer', (req, res) => res.redirect(301, '/api-docs'));
-const swaggerUrls = swaggerSpecs.map(({ name, path }) => ({ url: path, name }));
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(null, {
-    customSiteTitle: 'Event Management API Docs',
-    customCss: '.swagger-ui .topbar { display: none }',
-    swaggerOptions: {
-      urls: swaggerUrls,
-      ...(swaggerUrls.length > 0 && { 'urls.primaryName': swaggerUrls[0].name }),
-    },
-  })
-);
+
+// Start the application
+initializeApp().catch(err => {
+  console.error('[FATAL] Uncaught error in initializeApp:', err);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('[FATAL] Uncaught Exception:', error);
+  process.exit(1);
+});
 
 // Ensure tables are created before starting the server
 // (async () => {
@@ -166,150 +336,3 @@ app.use(
 // })();
 
 
-
-
-// Route for Contact Us page - Simple JSON response
-app.get('/contact', optionalAuth, (req, res, next) => {
-  try {
-    res.json({
-      success: true,
-      data: {
-        contactInfo: {
-          email: 'contact@eventmanagement.com',
-          phone: '+1-234-567-8900',
-          address: '123 Event Street, City, Country'
-        }
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-})
-
-// Route for Contact Us form submission
-app.post('/api/contact', async (req, res, next) => {
-  try {
-    const { name, email, subject, message } = req.body;
-
-    if (!name || !email || !subject || !message) {
-      return res.status(400).json({
-        success: false,
-        message: 'name, email, subject and message are required'
-      });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid email format'
-      });
-    }
-
-    const trimmedName = String(name).trim();
-    const trimmedSubject = String(subject).trim();
-    const trimmedMessage = String(message).trim();
-
-    if (trimmedName.length < 2 || trimmedSubject.length < 3 || trimmedMessage.length < 10) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide valid name, subject and message lengths'
-      });
-    }
-
-    const supportEmail = process.env.CONTACT_RECEIVER_EMAIL || process.env.EMAIL_USER || 'contact@eventmanagement.com';
-    const ticketId = `CNT-${uuidv4().split('-')[0]}`;
-    const submittedAt = new Date().toISOString();
-
-    const bodyText = [
-      `Ticket ID: ${ticketId}`,
-      `Submitted At: ${submittedAt}`,
-      `Name: ${trimmedName}`,
-      `Email: ${email}`,
-      `Subject: ${trimmedSubject}`,
-      '',
-      'Message:',
-      trimmedMessage
-    ].join('\n');
-
-    await sendEmail(
-      supportEmail,
-      `[Contact Us] ${trimmedSubject}`,
-      bodyText,
-      `<pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${bodyText}</pre>`
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: 'Your message has been received. Our team will contact you shortly.',
-      data: {
-        ticketId,
-        submittedAt
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.use('/', authRouter);
-app.use('/payments', paymentRouter);
-app.use('/events', eventRouter);
-app.use('/admin', adminRouter);
-app.use('/user', userRouter);
-app.use('/organizer', organizerRouter);
-app.use('/manager', managerRouter);
-
-// Stats endpoint - returns total events and organizers
-app.get('/stats', async (req, res, next) => {
-  try {
-    const totalEvents = await Event.countDocuments();
-    const totalOrganizers = await Organizer.countDocuments();
-
-    res.json({
-      success: true,
-      data: {
-        totalEvents,
-        totalOrganizers
-      }
-    });
-  } catch (error) {
-    logger.error('Error fetching stats:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      message: 'An error occurred while fetching statistics.'
-    });
-  }
-});
-
-// Home route - return JSON with basic API info since React handles the homepage
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Event Management API',
-    data: {
-      version: '1.0.0',
-      description: 'Backend API for Event Management System',
-      endpoints: {
-        events: '/events',
-        auth: '/login, /sign-up, /logout',
-        user: '/user/dashboard',
-        organizer: '/organizer/dashboard',
-        admin: '/admin/dashboard',
-        payments: '/payments'
-      }
-    }
-  });
-});
-
-// 404 handler - must come after all routes
-app.use(handle404);
-
-// Global error handler - must be the last middleware
-app.use(errorHandler);
-
-app.listen(port, () => {
-  logger.info(`Server running at http://localhost:${port}`);
-  logger.info(`Swagger UI (all APIs): http://localhost:${port}/api-docs`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
