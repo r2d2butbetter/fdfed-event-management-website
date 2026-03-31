@@ -27,6 +27,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './config/logger.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpecs } from './swagger/swaggerSpecs.js';
 
 // for getting the events on home page
 import Event from './models/event.js';
@@ -57,7 +59,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http://localhost:3000"],
     },
   },
@@ -116,6 +118,26 @@ app.use(
       httpOnly: true, // Prevents client-side JS access
       secure: false, // Set true in production with HTTPS
       sameSite: 'lax' // Important for CORS: allows cookies across same-site requests
+    },
+  })
+);
+
+// Swagger UI — all API specs (dropdown); register new specs in server/swagger/swaggerSpecs.js
+for (const { path: specPath, spec } of swaggerSpecs) {
+  app.get(specPath, (req, res) => res.json(spec));
+}
+// Legacy bookmark: must be registered before app.use('/api-docs', …) so it is not swallowed by Swagger static
+app.get('/api-docs/organizer', (req, res) => res.redirect(301, '/api-docs'));
+const swaggerUrls = swaggerSpecs.map(({ name, path }) => ({ url: path, name }));
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(null, {
+    customSiteTitle: 'Event Management API Docs',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+      urls: swaggerUrls,
+      ...(swaggerUrls.length > 0 && { 'urls.primaryName': swaggerUrls[0].name }),
     },
   })
 );
@@ -210,5 +232,6 @@ app.use(errorHandler);
 
 app.listen(port, () => {
   logger.info(`Server running at http://localhost:${port}`);
+  logger.info(`Swagger UI (all APIs): http://localhost:${port}/api-docs`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
