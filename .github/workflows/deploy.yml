@@ -44,9 +44,9 @@ jobs:
             # Write the ENV variables payload securely directly into docker-compose's context
             echo "$PROD_ENV_FILE" > $HOME/fdfed_project/.env
 
-            # Dynamically attach URL bindings into .env so the frontend can reach the backend
-            echo "FRONTEND_URL=http://${{ secrets.DO_HOST }}" >> $HOME/fdfed_project/.env
-            echo "VITE_API_URL=http://${{ secrets.DO_HOST }}:3000" >> $HOME/fdfed_project/.env
+            # Dynamically attach URL bindings into .env so the frontend can reach the backend over Cloudflare Proxying safely
+            echo "FRONTEND_URL=https://wbd.shriansh.me" >> $HOME/fdfed_project/.env
+            echo "VITE_API_URL=/api" >> $HOME/fdfed_project/.env
 
             # Shut down existing containers using the modern compose plugin
             docker compose down || true
