@@ -19,12 +19,19 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
+            # Auto-install Docker if it isn't installed natively on the droplet
+            if ! command -v docker &> /dev/null; then
+              echo "Docker not found! Installing Docker..."
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sh get-docker.sh
+            fi
+
             # Navigate to the project directory, clone if it doesn't exist
             if [ -d "$HOME/fdfed_project/.git" ]; then
               cd $HOME/fdfed_project
-              # Ensure we are fully tracking origin/main cleanly without conflicts
-              git fetch origin main
-              git reset --hard origin/main
+              # Ensure we are fully tracking origin/master cleanly without conflicts
+              git fetch origin master
+              git reset --hard origin/master
             else
               mkdir -p $HOME/fdfed_project
               cd $HOME/fdfed_project
