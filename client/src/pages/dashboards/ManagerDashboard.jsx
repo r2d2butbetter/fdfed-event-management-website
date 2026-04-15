@@ -758,7 +758,7 @@ function ManagerDashboardContent() {
                                         </Typography>
                                         <Button
                                             variant="outlined"
-                                            href={`http://localhost:3000/${selectedOrganizer.organizer.verificationDocument}`}
+                                            href={(selectedOrganizer.organizer.verificationDocument?.startsWith('http') ? selectedOrganizer.organizer.verificationDocument : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/${selectedOrganizer.organizer.verificationDocument}`)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             startIcon={<ViewIcon />}

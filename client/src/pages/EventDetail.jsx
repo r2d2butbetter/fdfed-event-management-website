@@ -25,7 +25,7 @@ function EventDetail() {
 	const imageUrl = useMemo(() => {
 		if (!event?.image) return '';
 		// server serves uploads statically
-		return `http://localhost:3000/${event.image}`;
+		return (event.image?.startsWith('http') ? event.image : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/${event.image}`);
 	}, [event]);
 
 	useEffect(() => {
@@ -177,7 +177,7 @@ function EventDetail() {
 								{ev.image && (
 									<CardMedia
 										component="img"
-										image={`http://localhost:3000/${ev.image}`}
+										image={(ev.image?.startsWith('http') ? ev.image : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/${ev.image}`)}
 										alt={ev.title}
 										sx={{
 											width: '100%',

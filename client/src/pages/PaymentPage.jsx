@@ -61,7 +61,7 @@ function PaymentPage() {
 
     const imageUrl = useMemo(() => {
         if (!paymentData?.event?.image) return '';
-        return `http://localhost:3000/${paymentData.event.image}`;
+        return (paymentData.event.image?.startsWith('http') ? paymentData.event.image : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/${paymentData.event.image}`);
     }, [paymentData]);
 
     // Fetch initial payment data
