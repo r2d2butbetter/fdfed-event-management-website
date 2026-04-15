@@ -26,7 +26,7 @@ jobs:
             else
               mkdir -p ~/fdfed_project
               cd ~/fdfed_project
-              git clone https://github.com/kvermaaii/event-management-website.git .
+              git clone https://github.com/r2d2butbetter/fdfed-event-management-website/ .
             fi
             
             # Switch to the correct branch if testing dockerize_and_deploy
