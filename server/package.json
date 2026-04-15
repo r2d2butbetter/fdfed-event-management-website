@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kvermaaii/event-management-website.git"
+    "url": "git+https://github.com/r2d2butbetter/fdfed-event-management-website/"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/kvermaaii/event-management-website/issues"
+    "url": "https://github.com/r2d2butbetter/fdfed-event-management-website/"
   },
-  "homepage": "https://github.com/kvermaaii/event-management-website#readme",
+  "homepage": "https://github.com/r2d2butbetter/fdfed-event-management-website#readme",
   "description": "",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
