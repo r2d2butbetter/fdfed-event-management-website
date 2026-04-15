@@ -14,10 +14,13 @@ jobs:
     steps:
       - name: Deploy to DigitalOcean Droplet via SSH
         uses: appleboy/ssh-action@v0.1.10
+        env:
+          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
+          envs: PROD_ENV_FILE
           script: |
             # Auto-install Docker if it isn't installed natively on the droplet
             if ! command -v docker &> /dev/null; then
@@ -38,6 +41,9 @@ jobs:
               git clone https://github.com/r2d2butbetter/fdfed-event-management-website/ .
             fi
             
+            # Write the ENV variables payload securely directly into docker-compose's context
+            echo "$PROD_ENV_FILE" > $HOME/fdfed_project/.env
+
             # Shut down existing containers using the modern compose plugin
             docker compose down || true
 
