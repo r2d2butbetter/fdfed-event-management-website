@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - dockerize_and_deploy
 
 jobs:
   deploy:
@@ -20,22 +19,19 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
             # Navigate to the project directory, clone if it doesn't exist
-            if [ -d "~/fdfed_project/.git" ]; then
-              cd ~/fdfed_project
-              git pull origin main
+            if [ -d "$HOME/fdfed_project/.git" ]; then
+              cd $HOME/fdfed_project
+              # Ensure we are fully tracking origin/main cleanly without conflicts
+              git fetch origin main
+              git reset --hard origin/main
             else
-              mkdir -p ~/fdfed_project
-              cd ~/fdfed_project
+              mkdir -p $HOME/fdfed_project
+              cd $HOME/fdfed_project
               git clone https://github.com/r2d2butbetter/fdfed-event-management-website/ .
             fi
             
-            # Switch to the correct branch if testing dockerize_and_deploy
-            git pull origin dockerize_and_deploy || echo "Branch not found on origin yet"
-            git checkout dockerize_and_deploy || git checkout main
-            git pull
-
-            # Shut down existing containers
-            docker-compose down || true
+            # Shut down existing containers using the modern compose plugin
+            docker compose down || true
 
             # Build and spin up the new containers
-            docker-compose up -d --build
+            docker compose up -d --build
