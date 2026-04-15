@@ -1,0 +1,41 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+      - dockerize_and_deploy
+
+jobs:
+  deploy:
+    name: Deploy API and Web App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to DigitalOcean Droplet via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script: |
+            # Navigate to the project directory, clone if it doesn't exist
+            if [ -d "~/fdfed_project/.git" ]; then
+              cd ~/fdfed_project
+              git pull origin main
+            else
+              mkdir -p ~/fdfed_project
+              cd ~/fdfed_project
+              git clone https://github.com/kvermaaii/event-management-website.git .
+            fi
+            
+            # Switch to the correct branch if testing dockerize_and_deploy
+            git pull origin dockerize_and_deploy || echo "Branch not found on origin yet"
+            git checkout dockerize_and_deploy || git checkout main
+            git pull
+
+            # Shut down existing containers
+            docker-compose down || true
+
+            # Build and spin up the new containers
+            docker-compose up -d --build
