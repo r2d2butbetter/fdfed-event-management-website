@@ -71,9 +71,9 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resource sharing
 }));
 
-// CORS configuration for React frontend
+// CORS configuration for React frontend and independent deployments
 app.use(cors({
-  origin: 'http://localhost:5173', // React dev server (Vite default port)
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // React dev server (Vite default port)
   credentials: true // Allow cookies to be sent
 }));
 

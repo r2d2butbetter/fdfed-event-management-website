@@ -81,7 +81,7 @@ function EventAttendees() {
     const handleExportCSV = async () => {
         try {
             setExporting(true);
-            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const apiBaseUrl = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`;
             const response = await fetch(`${apiBaseUrl}/organizer/events/${eventId}/attendees/export?format=csv`, {
                 credentials: 'include'
             });

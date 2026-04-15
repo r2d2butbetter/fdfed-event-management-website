@@ -37,7 +37,7 @@ const Chatbot = () => {
         setIsLoading(true);
 
         try {
-            const res = await fetch(`http://localhost:3000/events/search/smart?query=${encodeURIComponent(userMsg)}`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/events/search/smart?query=${encodeURIComponent(userMsg)}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -152,7 +152,7 @@ const Chatbot = () => {
                                                         <CardMedia
                                                             component="img"
                                                             height="120"
-                                                            image={`http://localhost:3000${event.image}`}
+                                                            image={(event.image?.startsWith('http') ? event.image : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}${event.image}`)}
                                                             alt={event.title}
                                                         />
                                                     ) : (

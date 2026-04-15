@@ -93,7 +93,7 @@ const SavedEventCard = ({
 
     const status = getEventStatus(event.startDateTime, event.status);
     const imageUrl = event.image
-        ? `http://localhost:3000/${event.image}`
+        ? (event.image?.startsWith('http') ? event.image : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/${event.image}`)
         : '/placeholder-event.jpg';
 
     return (

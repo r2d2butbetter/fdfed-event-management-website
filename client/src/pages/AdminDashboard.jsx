@@ -24,7 +24,7 @@
 //   const [selectedOrganizer, setSelectedOrganizer] = useState(null);
 //   const [showModal, setShowModal] = useState(false);
 
-//   const API = "http://localhost:3000/admin";
+//   const API = `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}/admin`;
 
 //   // Fetch Dashboard Data
 //   useEffect(() => {
@@ -307,7 +307,7 @@
 //     if (!confirm('Are you sure you want to delete this event?')) return;
 
 //     try {
-//       const response = await fetch(`http://localhost:3000/events/${eventId}`, {
+//       const response = await fetch(`${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/events/${eventId}`, {
 //         method: 'DELETE',
 //         credentials: 'include',
 //         headers: {
@@ -944,7 +944,7 @@ function AdminDashboard() {
   const organizerVerificationCanvasRef = useRef(null);
   const organizerVerificationChartRef = useRef(null);
 
-  const API = "http://localhost:3000/admin";
+  const API = `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}/admin`;
 
   // Handle section query parameter from URL (e.g., ?section=events)
   useEffect(() => {
@@ -1355,7 +1355,7 @@ function AdminDashboard() {
     if (!confirm('Are you sure you want to delete this event?')) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/events/${eventId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/events/${eventId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
@@ -1455,7 +1455,7 @@ function AdminDashboard() {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/auth/update-profile', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}/auth/update-profile`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
