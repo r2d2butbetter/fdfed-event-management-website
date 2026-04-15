@@ -784,7 +784,7 @@ class orgController {
       await organizer.save();
 
       // Check if an image was uploaded
-      const imagePath = req.file ? `/events/${req.file.filename}` : null;
+      const imagePath = req.file ? req.file.path : null;
 
       let embeddingVector = undefined;
       try {
@@ -936,7 +936,7 @@ class orgController {
 
       // If there's a new image file, update the image path
       if (req.file) {
-        event.image = `/events/${req.file.filename}`;
+        event.image = req.file.path;
       }
 
       const updatedEvent = await event.save();
@@ -1500,7 +1500,7 @@ class orgController {
         return res.status(400).json({ success: false, message: 'Please upload a verification document.' });
       }
 
-      organizer.verificationDocument = `/events/${req.file.filename}`;
+      organizer.verificationDocument = req.file.path;
       organizer.verificationStatus = 'pending';
       organizer.verificationRequestDate = new Date();
       organizer.rejectionReason = undefined;
