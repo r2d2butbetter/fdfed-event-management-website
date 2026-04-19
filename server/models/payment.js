@@ -29,6 +29,12 @@ const PaymentSchema = new mongoose.Schema({
   collection: 'payments'
 });
 
+// --- Indexes ---
+// Organizer dashboard aggregations: match by event + status + date range
+PaymentSchema.index({ eventId: 1, status: 1, paymentDate: -1 });
+// User payment history page
+PaymentSchema.index({ userId: 1, paymentDate: -1 });
+
 const Payment = mongoose.model('Payment', PaymentSchema);
 
 export default Payment;
