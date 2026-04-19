@@ -147,7 +147,7 @@
 
 
 import Event from '../models/event.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 
 class eventController {
 
@@ -198,7 +198,8 @@ class eventController {
             }
 
             if (categoryQuery) {
-                baseFilter.category = { $regex: categoryQuery, $options: 'i' };
+                // category is an enum field — use exact match (indexable, no regex overhead)
+                baseFilter.category = categoryQuery;
             }
 
             // Get selling events
@@ -267,7 +268,7 @@ class eventController {
 
             // Build filter - show selling, upcoming, and over events on category pages
             const filter = {
-                category: { $regex: category, $options: 'i' },
+                category: category, // exact match — category is an enum
                 status: { $in: ['start_selling', 'upcoming', 'over'] }
             };
 
@@ -386,7 +387,7 @@ class eventController {
         }
     }
 
-    // Smart Semantic Search using Gemini Embeddings
+    // Smart Semantic Search using OpenAI Embeddings
     async searchSmartEvents(req, res) {
         try {
             const { query } = req.query; // Get search query from URL params
@@ -398,17 +399,21 @@ class eventController {
                 });
             }
 
-            if (!process.env.GEMINI_API_KEY) {
+            if (!process.env.OPENAI_API_KEY) {
                 return res.status(500).json({
                     success: false,
-                    message: 'Gemini API Key is not configured.'
+                    message: 'OpenAI API Key is not configured.'
                 });
             }
 
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
-            const queryEmbeddingResult = await embeddingModel.embedContent(query);
-            const queryVector = queryEmbeddingResult.embedding.values;
+            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+            // Generate embedding for the search query
+            const embeddingResponse = await openai.embeddings.create({
+                model: 'text-embedding-3-small',
+                input: query,
+            });
+            const queryVector = embeddingResponse.data[0].embedding;
 
             const currentDate = new Date();
 
@@ -440,14 +445,21 @@ class eventController {
                 }
             ]);
 
-            // GENERATE CONVERSATIONAL AI RESPONSE (RAG)
-            const chatModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            // GENERATE CONVERSATIONAL AI RESPONSE (RAG) using OpenAI
             const promptContext = matchingEvents.map(e => 
                 `- ${e.title} at ${e.venue} on ${new Date(e.startDateTime).toLocaleDateString()}. Price: $${e.ticketPrice}. Description: ${e.description.substring(0, 150)}...`
             ).join('\n');
             
-            const prompt = `You are a helpful, enthusiastic, and concise AI event assistant for our platform. 
-A user is searching for events with the query: "${query}". 
+            const chatCompletion = await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a helpful, enthusiastic, and concise AI event assistant for our platform.'
+                    },
+                    {
+                        role: 'user',
+                        content: `A user is searching for events with the query: "${query}". 
 
 Based on our semantic search, here are the most relevant upcoming events from our database:
 ${promptContext ? promptContext : 'No matching events found.'}
@@ -456,10 +468,12 @@ Task: Write a short, friendly, and conversational response (max 3-4 sentences) r
 Rules:
 1. Do NOT invent or hallucinate any events that are not in the list above.
 2. If the list is empty, politely inform them we couldn't find exact matches but encourage them to check other categories.
-3. Highlight the most relevant event.`;
-
-            const chatResult = await chatModel.generateContent(prompt);
-            const aiMessage = chatResult.response.text();
+3. Highlight the most relevant event.`
+                    }
+                ],
+                max_tokens: 200,
+            });
+            const aiMessage = chatCompletion.choices[0].message.content;
 
             return res.status(200).json({
                 success: true,

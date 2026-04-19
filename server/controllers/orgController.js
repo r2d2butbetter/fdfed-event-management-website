@@ -151,7 +151,7 @@ import { getUser } from '../services/auth.js';
 import Organizer from '../models/organizer.js';
 import Event from '../models/event.js';
 import Payment from '../models/payment.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import User from '../models/user.js';
 import { sendEmail } from '../config/emailConfig.js';
 
@@ -192,11 +192,17 @@ class orgController {
       // Get upcoming events and populate with registration counts
       const upcomingEvents = events.filter(event => event.status === 'start_selling');
 
-      // Add registration counts to each upcoming event
-      for (let event of upcomingEvents) {
-        const registrationCount = await Registration.countDocuments({ eventId: event._id });
-        event.registrationCount = registrationCount;
-        event.ticketsLeft = event.capacity - registrationCount;
+      // --- OPTIMIZED: single aggregate replaces N countDocuments calls ---
+      const regCountsPerEvent = await Registration.aggregate([
+        { $match: { eventId: { $in: upcomingEvents.map(e => e._id) } } },
+        { $group: { _id: '$eventId', count: { $sum: 1 } } }
+      ]);
+      const regCountMap = Object.fromEntries(
+        regCountsPerEvent.map(r => [r._id.toString(), r.count])
+      );
+      for (const event of upcomingEvents) {
+        event.registrationCount = regCountMap[event._id.toString()] || 0;
+        event.ticketsLeft = event.capacity - event.registrationCount;
       }
 
       // Calculate total revenue from Payment model (organizerRevenue is 95% of ticket sales)
@@ -232,12 +238,12 @@ class orgController {
 
       // Get total number of attendees (registrations)
       const totalAttendees = await Registration.countDocuments({
-        eventId: { $in: events.map(event => event._id) }
+        eventId: { $in: eventIds }
       });
 
       // Get last month's attendees
       const lastMonthAttendees = await Registration.countDocuments({
-        eventId: { $in: events.map(event => event._id) },
+        eventId: { $in: eventIds },
         registrationDate: { $gte: twoMonthsAgo, $lt: lastMonth }
       });
 
@@ -251,226 +257,195 @@ class orgController {
       // Calculate ticket sales change percentage
       const ticketsSoldChange = attendeeChange; // Same as attendee change
 
-      // Find the top selling event
+      // --- OPTIMIZED: top-selling event via aggregate (replaces find + JS loop) ---
       let topSellingEvent = null;
       if (events.length > 0) {
-        // Create an object to track ticket sales per event
-        const eventSales = {};
-
-        // Get all registrations for this organizer's events
-        const allRegistrations = await Registration.find({
-          eventId: { $in: events.map(event => event._id) }
-        });
-
-        // Count registrations per event
-        for (const reg of allRegistrations) {
-          const eventId = reg.eventId.toString();
-          if (!eventSales[eventId]) {
-            eventSales[eventId] = 0;
-          }
-          eventSales[eventId]++;
-        }
-
-        // Find the event with the most sales
-        if (Object.keys(eventSales).length > 0) {
-          const topEventId = Object.keys(eventSales).reduce((a, b) =>
-            eventSales[a] > eventSales[b] ? a : b
-          );
-
-          const topEvent = events.find(event => event._id.toString() === topEventId);
+        const topSalesAgg = await Registration.aggregate([
+          { $match: { eventId: { $in: eventIds } } },
+          { $group: { _id: '$eventId', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 1 }
+        ]);
+        if (topSalesAgg.length > 0) {
+          const topEvent = events.find(e => e._id.toString() === topSalesAgg[0]._id.toString());
           if (topEvent) {
-            topSellingEvent = {
-              title: topEvent.title,
-              ticketsSold: eventSales[topEventId]
-            };
+            topSellingEvent = { title: topEvent.title, ticketsSold: topSalesAgg[0].count };
           }
         }
       }
 
-      // Calculate average ticket price
-      let avgTicketPrice = 0;
-      let totalTickets = 0;
-      let totalPrice = 0;
+      // Calculate average ticket price (pure JS, no extra DB call needed)
+      const eventsWithPrice = events.filter(e => e.ticketPrice);
+      const avgTicketPrice = eventsWithPrice.length > 0
+        ? Math.round(eventsWithPrice.reduce((s, e) => s + e.ticketPrice, 0) / eventsWithPrice.length)
+        : 0;
 
-      if (events.length > 0) {
-        // Sum up all ticket prices and number of events with prices
-        for (const event of events) {
-          if (event.ticketPrice) {
-            totalPrice += event.ticketPrice;
-            totalTickets++;
+      // --- OPTIMIZED: 5 weekly aggregate calls → 1 aggregate grouped by ISO week ---
+      const fiveWeeksAgo = new Date();
+      fiveWeeksAgo.setDate(fiveWeeksAgo.getDate() - 35);
+      fiveWeeksAgo.setHours(0, 0, 0, 0);
+
+      const weeklyRaw = await Payment.aggregate([
+        {
+          $match: {
+            eventId: { $in: eventIds },
+            paymentDate: { $gte: fiveWeeksAgo },
+            status: 'completed'
           }
-        }
+        },
+        {
+          $group: {
+            _id: { $isoWeek: '$paymentDate' },
+            weekTickets: { $sum: '$tickets' },
+            weekRevenue: { $sum: '$organizerRevenue' }
+          }
+        },
+        { $sort: { '_id': 1 } }
+      ]);
 
-        // Calculate average
-        avgTicketPrice = totalTickets > 0 ? Math.round(totalPrice / totalTickets) : 0;
-      }
-
-      // Calculate weekly sales data for the last 5 weeks
+      // Map aggregate results into a week-keyed lookup
+      const weeklyMap = Object.fromEntries(weeklyRaw.map(w => [w._id, w]));
       const weeklySalesData = [];
       for (let i = 4; i >= 0; i--) {
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - (i * 7 + 6));
-        startOfWeek.setHours(0, 0, 0, 0);
-
-        const endOfWeek = new Date();
-        endOfWeek.setDate(endOfWeek.getDate() - (i * 7));
-        endOfWeek.setHours(23, 59, 59, 999);
-
-        const weekPayments = await Payment.aggregate([
-          {
-            $match: {
-              eventId: { $in: eventIds },
-              paymentDate: { $gte: startOfWeek, $lte: endOfWeek },
-              status: 'completed'
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              weekTickets: { $sum: '$tickets' },
-              weekRevenue: { $sum: '$organizerRevenue' }
-            }
-          }
-        ]);
-
-        const weekTickets = weekPayments.length > 0 ? weekPayments[0].weekTickets : 0;
-        const weekRevenue = weekPayments.length > 0 ? weekPayments[0].weekRevenue : 0;
-
+        const refDate = new Date();
+        refDate.setDate(refDate.getDate() - i * 7);
+        // ISO week number for this reference date
+        const jan4 = new Date(refDate.getFullYear(), 0, 4);
+        const isoWeek = Math.ceil(((refDate - jan4) / 86400000 + jan4.getDay() + 1) / 7);
+        const entry = weeklyMap[isoWeek];
         weeklySalesData.push({
           name: `Week ${5 - i}`,
-          tickets: weekTickets,
-          revenue: weekRevenue
+          tickets: entry ? entry.weekTickets : 0,
+          revenue: entry ? entry.weekRevenue : 0
         });
       }
 
-      // Calculate monthly revenue trends (last 12 months)
+      // --- OPTIMIZED: 12 monthly aggregate calls → 1 aggregate grouped by year+month ---
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+      twelveMonthsAgo.setDate(1);
+      twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+      const monthlyRaw = await Payment.aggregate([
+        {
+          $match: {
+            eventId: { $in: eventIds },
+            paymentDate: { $gte: twelveMonthsAgo },
+            status: 'completed'
+          }
+        },
+        {
+          $group: {
+            _id: { year: { $year: '$paymentDate' }, month: { $month: '$paymentDate' } },
+            monthTickets: { $sum: '$tickets' },
+            monthRevenue: { $sum: '$organizerRevenue' }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]);
+
+      const monthlyMap = Object.fromEntries(
+        monthlyRaw.map(m => [`${m._id.year}-${m._id.month}`, m])
+      );
       const monthlyRevenueData = [];
       for (let i = 11; i >= 0; i--) {
-        const monthStart = new Date();
-        monthStart.setMonth(monthStart.getMonth() - i);
-        monthStart.setDate(1);
-        monthStart.setHours(0, 0, 0, 0);
-
-        const monthEnd = new Date(monthStart);
-        monthEnd.setMonth(monthEnd.getMonth() + 1);
-        monthEnd.setDate(0);
-        monthEnd.setHours(23, 59, 59, 999);
-
-        const monthRegistrations = await Registration.find({
-          eventId: { $in: events.map(event => event._id) },
-          registrationDate: { $gte: monthStart, $lte: monthEnd }
-        }).populate('eventId');
-
-        const monthPayments = await Payment.aggregate([
-          {
-            $match: {
-              eventId: { $in: eventIds },
-              paymentDate: { $gte: monthStart, $lte: monthEnd },
-              status: 'completed'
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              monthTickets: { $sum: '$tickets' },
-              monthRevenue: { $sum: '$organizerRevenue' }
-            }
-          }
-        ]);
-
-        const monthRevenue = monthPayments.length > 0 ? monthPayments[0].monthRevenue : 0;
-        const monthTickets = monthPayments.length > 0 ? monthPayments[0].monthTickets : 0;
-
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        d.setDate(1);
+        const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+        const entry = monthlyMap[key];
         monthlyRevenueData.push({
-          name: monthStart.toLocaleString('default', { month: 'short', year: 'numeric' }),
-          revenue: monthRevenue,
-          tickets: monthTickets
+          name: d.toLocaleString('default', { month: 'short', year: 'numeric' }),
+          revenue: entry ? entry.monthRevenue : 0,
+          tickets: entry ? entry.monthTickets : 0
         });
       }
 
-      // Calculate quarterly revenue trends (last 4 quarters)
+      // --- OPTIMIZED: 4 quarterly aggregate calls → 1 aggregate grouped by year+quarter ---
+      const fourQuartersAgo = new Date();
+      fourQuartersAgo.setMonth(fourQuartersAgo.getMonth() - 12);
+      fourQuartersAgo.setDate(1);
+      fourQuartersAgo.setHours(0, 0, 0, 0);
+
+      const quarterlyRaw = await Payment.aggregate([
+        {
+          $match: {
+            eventId: { $in: eventIds },
+            paymentDate: { $gte: fourQuartersAgo },
+            status: 'completed'
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$paymentDate' },
+              quarter: { $ceil: { $divide: [{ $month: '$paymentDate' }, 3] } }
+            },
+            quarterTickets: { $sum: '$tickets' },
+            quarterRevenue: { $sum: '$organizerRevenue' }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.quarter': 1 } }
+      ]);
+
+      const quarterlyMap = Object.fromEntries(
+        quarterlyRaw.map(q => [`${q._id.year}-Q${q._id.quarter}`, q])
+      );
       const quarterlyRevenueData = [];
-      const currentQuarter = Math.floor(new Date().getMonth() / 3);
-      for (let i = 3; i >= 0; i--) {
-        const quarterMonth = (currentQuarter - i) * 3;
-        const quarterStart = new Date(new Date().getFullYear(), quarterMonth, 1);
-        const quarterEnd = new Date(new Date().getFullYear(), quarterMonth + 3, 0, 23, 59, 59, 999);
-
-        const quarterRegistrations = await Registration.find({
-          eventId: { $in: events.map(event => event._id) },
-          registrationDate: { $gte: quarterStart, $lte: quarterEnd }
-        }).populate('eventId');
-
-        const quarterPayments = await Payment.aggregate([
-          {
-            $match: {
-              eventId: { $in: eventIds },
-              paymentDate: { $gte: quarterStart, $lte: quarterEnd },
-              status: 'completed'
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              quarterTickets: { $sum: '$tickets' },
-              quarterRevenue: { $sum: '$organizerRevenue' }
-            }
-          }
-        ]);
-
-        const quarterRevenue = quarterPayments.length > 0 ? quarterPayments[0].quarterRevenue : 0;
-        const quarterTickets = quarterPayments.length > 0 ? quarterPayments[0].quarterTickets : 0;
-
-        quarterlyRevenueData.push({
-          name: `Q${Math.floor(quarterMonth / 3) + 1} ${quarterStart.getFullYear()}`,
-          revenue: quarterRevenue,
-          tickets: quarterTickets
-        });
-      }
-
-      // Calculate yearly revenue trends (last 3 years)
-      const yearlyRevenueData = [];
+      const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
       const currentYear = new Date().getFullYear();
-      for (let i = 2; i >= 0; i--) {
-        const yearStart = new Date(currentYear - i, 0, 1);
-        const yearEnd = new Date(currentYear - i, 11, 31, 23, 59, 59, 999);
-
-        const yearRegistrations = await Registration.find({
-          eventId: { $in: events.map(event => event._id) },
-          registrationDate: { $gte: yearStart, $lte: yearEnd }
-        }).populate('eventId');
-
-        const yearPayments = await Payment.aggregate([
-          {
-            $match: {
-              eventId: { $in: eventIds },
-              paymentDate: { $gte: yearStart, $lte: yearEnd },
-              status: 'completed'
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              yearTickets: { $sum: '$tickets' },
-              yearRevenue: { $sum: '$organizerRevenue' }
-            }
-          }
-        ]);
-
-        const yearRevenue = yearPayments.length > 0 ? yearPayments[0].yearRevenue : 0;
-        const yearTickets = yearPayments.length > 0 ? yearPayments[0].yearTickets : 0;
-
-        yearlyRevenueData.push({
-          name: (currentYear - i).toString(),
-          revenue: yearRevenue,
-          tickets: yearTickets
+      for (let i = 3; i >= 0; i--) {
+        let q = currentQuarter - i;
+        let y = currentYear;
+        if (q <= 0) { q += 4; y -= 1; }
+        const key = `${y}-Q${q}`;
+        const entry = quarterlyMap[key];
+        quarterlyRevenueData.push({
+          name: `Q${q} ${y}`,
+          revenue: entry ? entry.quarterRevenue : 0,
+          tickets: entry ? entry.quarterTickets : 0
         });
       }
 
+      // --- OPTIMIZED: 3 yearly aggregate calls → 1 aggregate grouped by year ---
+      const threeYearsAgo = new Date(currentYear - 2, 0, 1);
+
+      const yearlyRaw = await Payment.aggregate([
+        {
+          $match: {
+            eventId: { $in: eventIds },
+            paymentDate: { $gte: threeYearsAgo },
+            status: 'completed'
+          }
+        },
+        {
+          $group: {
+            _id: { $year: '$paymentDate' },
+            yearTickets: { $sum: '$tickets' },
+            yearRevenue: { $sum: '$organizerRevenue' }
+          }
+        },
+        { $sort: { '_id': 1 } }
+      ]);
+
+      const yearlyMap = Object.fromEntries(yearlyRaw.map(y => [y._id, y]));
+      const yearlyRevenueData = [];
+      for (let i = 2; i >= 0; i--) {
+        const y = currentYear - i;
+        const entry = yearlyMap[y];
+        yearlyRevenueData.push({
+          name: y.toString(),
+          revenue: entry ? entry.yearRevenue : 0,
+          tickets: entry ? entry.yearTickets : 0
+        });
+      }
+
+      // --- OPTIMIZED: single fetch for peak-time analysis (reused below for revenuePerEvent) ---
       // Calculate peak registration times (by hour and day of week)
-      const allRegistrations = await Registration.find({
-        eventId: { $in: events.map(event => event._id) }
-      });
+      const allRegistrations = await Registration.find(
+        { eventId: { $in: eventIds } },
+        { registrationDate: 1, eventId: 1 }  // projection — only fetch fields we need
+      ).lean();
 
       const hourlyRegistrations = Array(24).fill(0);
       const dailyRegistrations = Array(7).fill(0);
@@ -788,13 +763,14 @@ class orgController {
 
       let embeddingVector = undefined;
       try {
-        if (process.env.GEMINI_API_KEY) {
-          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-          // Correct model name is exactly 'gemini-embedding-001'
-          const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+        if (process.env.OPENAI_API_KEY) {
+          const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
           const textToEmbed = `Category: ${category}. Title: ${title}. Description: ${description}. Venue: ${venue}`;
-          const result = await embeddingModel.embedContent(textToEmbed);
-          embeddingVector = result.embedding.values;
+          const embeddingResponse = await openai.embeddings.create({
+            model: 'text-embedding-3-small',
+            input: textToEmbed,
+          });
+          embeddingVector = embeddingResponse.data[0].embedding;
         }
       } catch (embError) {
         console.error("Error generating event embedding:", embError);
