@@ -147,7 +147,7 @@
 
 
 import Event from '../models/event.js';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 class eventController {
 
@@ -399,21 +399,19 @@ class eventController {
                 });
             }
 
-            if (!process.env.OPENAI_API_KEY) {
+            if (!process.env.GEMINI_API_KEY) {
                 return res.status(500).json({
                     success: false,
-                    message: 'OpenAI API Key is not configured.'
+                    message: 'Gemini API Key is not configured.'
                 });
             }
 
-            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
             // Generate embedding for the search query
-            const embeddingResponse = await openai.embeddings.create({
-                model: 'text-embedding-3-small',
-                input: query,
-            });
-            const queryVector = embeddingResponse.data[0].embedding;
+            const embeddingResponse = await embeddingModel.embedContent(query);
+            const queryVector = embeddingResponse.embedding.values;
 
             const currentDate = new Date();
 
@@ -445,21 +443,13 @@ class eventController {
                 }
             ]);
 
-            // GENERATE CONVERSATIONAL AI RESPONSE (RAG) using OpenAI
+            // GENERATE CONVERSATIONAL AI RESPONSE (RAG) using Gemini
             const promptContext = matchingEvents.map(e => 
                 `- ${e.title} at ${e.venue} on ${new Date(e.startDateTime).toLocaleDateString()}. Price: $${e.ticketPrice}. Description: ${e.description.substring(0, 150)}...`
             ).join('\n');
             
-            const chatCompletion = await openai.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a helpful, enthusiastic, and concise AI event assistant for our platform.'
-                    },
-                    {
-                        role: 'user',
-                        content: `A user is searching for events with the query: "${query}". 
+            const prompt = `You are a helpful, enthusiastic, and concise AI event assistant for our platform.
+A user is searching for events with the query: "${query}". 
 
 Based on our semantic search, here are the most relevant upcoming events from our database:
 ${promptContext ? promptContext : 'No matching events found.'}
@@ -468,12 +458,19 @@ Task: Write a short, friendly, and conversational response (max 3-4 sentences) r
 Rules:
 1. Do NOT invent or hallucinate any events that are not in the list above.
 2. If the list is empty, politely inform them we couldn't find exact matches but encourage them to check other categories.
-3. Highlight the most relevant event.`
-                    }
-                ],
-                max_tokens: 200,
-            });
-            const aiMessage = chatCompletion.choices[0].message.content;
+3. Highlight the most relevant event.`;
+
+            let aiMessage = '';
+            try {
+                const chatModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                const chatCompletion = await chatModel.generateContent(prompt);
+                aiMessage = chatCompletion.response.text();
+            } catch (aiErr) {
+                console.warn('gemini-2.5-flash failed (likely 503 High Demand). Falling back to gemini-1.5-flash...', aiErr.message);
+                const fallbackModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const fallbackCompletion = await fallbackModel.generateContent(prompt);
+                aiMessage = fallbackCompletion.response.text();
+            }
 
             return res.status(200).json({
                 success: true,

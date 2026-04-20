@@ -151,7 +151,7 @@ import { getUser } from '../services/auth.js';
 import Organizer from '../models/organizer.js';
 import Event from '../models/event.js';
 import Payment from '../models/payment.js';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import User from '../models/user.js';
 import { sendEmail } from '../config/emailConfig.js';
 
@@ -763,14 +763,12 @@ class orgController {
 
       let embeddingVector = undefined;
       try {
-        if (process.env.OPENAI_API_KEY) {
-          const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        if (process.env.GEMINI_API_KEY) {
+          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
           const textToEmbed = `Category: ${category}. Title: ${title}. Description: ${description}. Venue: ${venue}`;
-          const embeddingResponse = await openai.embeddings.create({
-            model: 'text-embedding-3-small',
-            input: textToEmbed,
-          });
-          embeddingVector = embeddingResponse.data[0].embedding;
+          const embeddingResponse = await embeddingModel.embedContent(textToEmbed);
+          embeddingVector = embeddingResponse.embedding.values;
         }
       } catch (embError) {
         console.error("Error generating event embedding:", embError);
