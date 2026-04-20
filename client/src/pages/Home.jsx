@@ -20,17 +20,15 @@ import {
     MenuItem,
     Paper,
 } from '@mui/material';
-import {
-    ExpandMore as ExpandMoreIcon,
-    Search as SearchIcon,
-    Groups as GroupsIcon,
-    Security as SecurityIcon,
-    Speed as SpeedIcon,
-    Support as SupportIcon,
-    CalendarToday as CalendarIcon,
-    LocationOn as LocationIcon,
-    EventAvailable as EventIcon,
-} from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SearchIcon from '@mui/icons-material/Search';
+import GroupsIcon from '@mui/icons-material/Groups';
+import SecurityIcon from '@mui/icons-material/Security';
+import SpeedIcon from '@mui/icons-material/Speed';
+import SupportIcon from '@mui/icons-material/Support';
+import CalendarIcon from '@mui/icons-material/CalendarToday';
+import LocationIcon from '@mui/icons-material/LocationOn';
+import EventIcon from '@mui/icons-material/EventAvailable';
 import HeroSection from '../components/HeroSection';
 import './Home.css';
 

@@ -14,7 +14,12 @@ import {
     InputAdornment,
     IconButton
 } from '@mui/material';
-import { Visibility, VisibilityOff, Person, AdminPanelSettings, Business, SupervisorAccount } from '@mui/icons-material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import Person from '@mui/icons-material/Person';
+import AdminPanelSettings from '@mui/icons-material/AdminPanelSettings';
+import Business from '@mui/icons-material/Business';
+import SupervisorAccount from '@mui/icons-material/SupervisorAccount';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import './Login.css';

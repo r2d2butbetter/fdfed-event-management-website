@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Typography, TextField, Button, Grid, Divider } from '@mui/material';
+import { Typography, Box, Container, Button, Stack, Chip, TextField, Grid, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import PlayArrow from '@mui/icons-material/PlayArrow';
+import SearchIcon from '@mui/icons-material/Search';
 import heroImage from '../assets/images/hero_img2.png';
 
 const HeroSection = () => {
