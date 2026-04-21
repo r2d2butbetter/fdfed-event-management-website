@@ -22,7 +22,7 @@ jobs:
       - name: Install Dependencies and Prepare Frontend
         run: |
           cd client
-          npm ci
+          npm install
 
       - name: Test Frontend
         run: |
@@ -32,5 +32,5 @@ jobs:
       - name: Install Dependencies and Test Backend
         run: |
           cd server
-          npm ci
+          npm install
           npm test
