@@ -100,10 +100,10 @@ function Footer() {
                     Concerts
                   </Link>
                   <Link href="/category/exhibitions" className="footer-link">
-                    Exibhitions
+                    Exhibitions
                   </Link>
-                  <Link href="/category/health-care" className="footer-link">
-                    Health & Care
+                  <Link href="/category/health-camps" className="footer-link">
+                    Health Camps
                   </Link>
                 </Box>
               </Grid>

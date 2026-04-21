@@ -12,6 +12,7 @@ import userRouter from './routes/user.js';
 import organizerRouter from './routes/organizer.js';
 import managerRouter from './routes/manager.js';
 import connectDB from './connection.js';
+import redisService from './services/redisService.js';
 import { handle404, errorHandler } from './middlewares/errorHandler.js';
 
 import session from "express-session";
@@ -124,6 +125,10 @@ async function initializeApp() {
     const username = process.env.MONGO_USERNAME;
     const password = encodeURIComponent(process.env.MONGO_PASSWORD);
     console.log('[DEBUG] Environment variables loaded');
+
+    // Initialize Redis for caching (in-memory)
+    await redisService.connect();
+    console.log('[DEBUG] Redis service initialized');
 
     // Set up session store after DB connection is established
     app.use(
@@ -266,6 +271,56 @@ async function initializeApp() {
       }
     });
 
+    // Cache/Redis health check endpoint
+    app.get('/health/cache', (req, res) => {
+      try {
+        const isHealthy = redisService.isHealthy();
+        res.json({
+          success: true,
+          data: {
+            redis: {
+              status: isHealthy ? 'connected' : 'disconnected',
+              healthy: isHealthy
+            }
+          }
+        });
+      } catch (error) {
+        logger.error('Error checking cache health:', error);
+        res.status(500).json({
+          success: false,
+          data: {
+            redis: {
+              status: 'error',
+              healthy: false
+            }
+          }
+        });
+      }
+    });
+
+    // General health check endpoint
+    app.get('/health', (req, res) => {
+      try {
+        const redisHealthy = redisService.isHealthy();
+        res.json({
+          success: true,
+          data: {
+            server: 'healthy',
+            redis: {
+              status: redisHealthy ? 'connected' : 'disconnected',
+              healthy: redisHealthy
+            }
+          }
+        });
+      } catch (error) {
+        logger.error('Error checking health:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Health check failed'
+        });
+      }
+    });
+
     // Home route - return JSON with basic API info since React handles the homepage
     app.get('/', (req, res) => {
       res.json({
@@ -295,11 +350,29 @@ async function initializeApp() {
     console.log('[DEBUG] Error handler loaded');
 
     // Start server
-    app.listen(port, () => {
+    const server = app.listen(port, () => {
       console.log('[DEBUG] Server listening on port', port);
       logger.info(`Server running at http://localhost:${port}`);
       logger.info(`Swagger UI (all APIs): http://localhost:${port}/api-docs`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`Redis: ${redisService.isHealthy() ? 'Connected' : 'Disconnected'}`);
+    });
+
+    // Graceful shutdown handler
+    process.on('SIGTERM', async () => {
+      logger.info('SIGTERM received, shutting down gracefully...');
+      server.close(async () => {
+        await redisService.disconnect();
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', async () => {
+      logger.info('SIGINT received, shutting down gracefully...');
+      server.close(async () => {
+        await redisService.disconnect();
+        process.exit(0);
+      });
     });
   } catch (error) {
     logger.error('Failed to initialize app:', error);

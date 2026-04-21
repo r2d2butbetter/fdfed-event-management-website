@@ -59,6 +59,14 @@ const categoryConfig = {
     },
 };
 
+const categorySlugToApiCategory = {
+    tedx: 'TEDx',
+    concerts: 'Concerts',
+    exhibitions: 'Exhibitions',
+    'health-camps': 'Health Camp',
+    'health-care': 'Health Camp',
+};
+
 function CategoryPage() {
     const { category } = useParams();
     const navigate = useNavigate();
@@ -120,11 +128,12 @@ function CategoryPage() {
         setLoading(true);
         setError(null);
         try {
-            // Fetch all events without pagination
-            const categorySearch = category.replace(/-/g, ' ');
+            // Map route slug to the exact backend category value.
+            const categorySearch = categorySlugToApiCategory[category] || category;
+            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
             const response = await fetch(
-                `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/events/category/${encodeURIComponent(categorySearch)}?limit=1000`,
+                `${apiBaseUrl}/events/category/${encodeURIComponent(categorySearch)}?limit=1000`,
                 {
                     credentials: 'include',
                 }
