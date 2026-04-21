@@ -1,0 +1,37 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  validate:
+    name: Validate Code and Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies and Lint Frontend
+        run: |
+          cd client
+          npm ci
+          npm run lint
+
+      - name: Test Frontend
+        run: |
+          cd client
+          npm test
+
+      - name: Install Dependencies and Test Backend
+        run: |
+          cd server
+          npm ci
+          npm test
