@@ -17,12 +17,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '20.19.0'
 
       - name: Navigate to Server and Test
         run: |
           cd server
-          npm install
+          npm ci --include=optional
+          if [ ! -d "node_modules/@rolldown/binding-linux-x64-gnu" ]; then
+            ROLLDOWN_VERSION=$(node -p "require('./node_modules/rolldown/package.json').version")
+            npm i --no-save @rolldown/binding-linux-x64-gnu@${ROLLDOWN_VERSION}
+          fi
           npm test
 
       - name: Navigate to Client and Test
