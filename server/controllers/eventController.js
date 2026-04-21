@@ -148,6 +148,7 @@
 
 import Event from '../models/event.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import cacheInvalidator from '../utils/cacheInvalidator.js';
 
 class eventController {
 
@@ -261,10 +262,21 @@ class eventController {
     // Get events by category - JSON API
     async getEventsByCategory(req, res) {
         try {
-            const category = req.params.category;
+            const rawCategory = String(req.params.category || '').trim();
+            const normalizedCategory = rawCategory.replace(/-/g, ' ').toLowerCase();
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 12;
             const skip = (page - 1) * limit;
+
+            const categoryMap = {
+                tedx: 'TEDx',
+                concerts: 'Concerts',
+                exhibitions: 'Exhibitions',
+                'health camp': 'Health Camp',
+                'health camps': 'Health Camp'
+            };
+
+            const category = categoryMap[normalizedCategory] || rawCategory;
 
             // Build filter - show selling, upcoming, and over events on category pages
             const filter = {
@@ -373,6 +385,12 @@ class eventController {
 
             await Event.findByIdAndDelete(eventId);
 
+            // Invalidate related caches
+            await cacheInvalidator.invalidateEvents();
+            if (event.category) {
+                await cacheInvalidator.invalidateEventsByCategory(event.category);
+            }
+
             return res.status(200).json({
                 success: true,
                 message: 'Event deleted successfully.'
@@ -431,9 +449,9 @@ class eventController {
                 },
                 {
                     "$project": {
-                        title: 1, 
-                        description: 1, 
-                        startDateTime: 1, 
+                        title: 1,
+                        description: 1,
+                        startDateTime: 1,
                         venue: 1,
                         category: 1,
                         image: 1,
@@ -444,10 +462,10 @@ class eventController {
             ]);
 
             // GENERATE CONVERSATIONAL AI RESPONSE (RAG) using Gemini
-            const promptContext = matchingEvents.map(e => 
+            const promptContext = matchingEvents.map(e =>
                 `- ${e.title} at ${e.venue} on ${new Date(e.startDateTime).toLocaleDateString()}. Price: $${e.ticketPrice}. Description: ${e.description.substring(0, 150)}...`
             ).join('\n');
-            
+
             const prompt = `You are a helpful, enthusiastic, and concise AI event assistant for our platform.
 A user is searching for events with the query: "${query}". 
 

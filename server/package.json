@@ -43,6 +43,7 @@
     "openai": "^6.34.0",
     "path": "^0.12.7",
     "razorpay": "^2.9.6",
+    "redis": "^4.6.15",
     "sqlite3": "^5.1.7",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0",
