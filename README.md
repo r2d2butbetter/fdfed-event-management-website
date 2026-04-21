@@ -4,6 +4,73 @@ A full-stack web application for creating, managing, and attending events. The s
 
 ---
 
+## Deployment
+
+### Production Environment
+
+The application is hosted on a DigitalOcean Droplet and served at `https://wbd.shriansh.me` behind Cloudflare proxying.
+
+The production stack runs as two Docker containers (frontend and backend) orchestrated via Docker Compose, identical to the local Docker setup described below.
+
+### CI/CD Pipeline
+
+Deployment is automated via GitHub Actions (`.github/workflows/deploy.yml`). It triggers on every push to the `main` or `master` branch and performs the following steps:
+
+1. SSH into the DigitalOcean Droplet using `appleboy/ssh-action`.
+2. Install Docker on the droplet if it is not already present.
+3. Clone the repository into `~/fdfed_project` on first run, or `git fetch` + `git reset --hard origin/master` on subsequent runs to get a clean working tree.
+4. Write the production environment variables (stored in the `PROD_ENV_FILE` GitHub secret) to `~/fdfed_project/.env`.
+5. Append `FRONTEND_URL=https://wbd.shriansh.me` and `VITE_API_URL=/api` to the `.env` file so the containerised frontend reaches the backend via the Nginx proxy path `/api/`.
+6. Run `docker compose down` to stop existing containers.
+7. Run `docker compose up -d --build` to rebuild images and start containers.
+
+### Required GitHub Secrets
+
+| Secret          | Description                                                    |
+|-----------------|----------------------------------------------------------------|
+| `DO_HOST`       | IP address or hostname of the DigitalOcean Droplet             |
+| `DO_USERNAME`   | SSH username on the Droplet (typically `root`)                 |
+| `DO_SSH_KEY`    | SSH private key authorised on the Droplet                      |
+| `PROD_ENV_FILE` | Full contents of the production `.env` file (all variables from the Environment Variables section below) |
+
+### How the Nginx Proxy Works in Production
+
+In the production Docker Compose setup, `VITE_API_URL` is set to `/api` (a relative path). The frontend Nginx container proxies all requests matching `^~ /api/` to `http://backend:3000/`, stripping the `/api` prefix. This means the React app and the API are served on the same origin, avoiding cross-origin cookie issues with session-based auth.
+
+---
+
+## Testing
+
+There is currently no automated test suite in the project. The backend `package.json` has a placeholder `test` script that exits with an error if invoked. Frontend testing tooling (Vitest, Jest, Cypress, etc.) has not been configured.
+
+Manual API testing can be done using the included Postman collection (`Event_Management_API_Postman_Collection.json`) or via the Swagger UI available at `/api-docs` when the server is running.
+
+---
+
+## Utility Scripts
+
+The `server/scripts/` directory contains one-off Node.js scripts for bootstrapping privileged roles. Both scripts read `MONGO_USERNAME` and `MONGO_PASSWORD` from a `server/.env` file.
+
+### Promote a user to Admin
+
+```bash
+cd server
+node scripts/addAdmin.js <user-email>
+# Example: node scripts/addAdmin.js admin@example.com
+```
+
+### Promote a user to Manager
+
+```bash
+cd server
+node scripts/addManager.js <user-email>
+# Example: node scripts/addManager.js manager@example.com
+```
+
+Both scripts look up the user by email, verify they are not already in the target role, create the corresponding `admins` or `managers` document, and exit. The user account must already exist before running these scripts.
+
+---
+
 ## Tech Stack
 
 ### Frontend
