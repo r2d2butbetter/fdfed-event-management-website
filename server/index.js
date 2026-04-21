@@ -106,10 +106,10 @@ app.get('/api-docs.json', (req, res) => {
 });
 
 // Serve static files (mainly for uploaded images)
-app.use(express.static("Public"));
+app.use(express.static("Public", { redirect: false }));
 //for multer - serve uploaded files
-app.use(express.static('uploads'));
-app.use('/uploads', express.static('uploads'));
+app.use(express.static('uploads', { redirect: false }));
+app.use('/uploads', express.static('uploads', { redirect: false }));
 
 
 // Initialize app with database connection and session management
