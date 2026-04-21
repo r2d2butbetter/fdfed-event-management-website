@@ -124,7 +124,7 @@ function CategoryPage() {
             const categorySearch = category.replace(/-/g, ' ');
 
             const response = await fetch(
-                `http://localhost:3000/events/category/${encodeURIComponent(categorySearch)}?limit=1000`,
+                `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/events/category/${encodeURIComponent(categorySearch)}?limit=1000`,
                 {
                     credentials: 'include',
                 }
@@ -419,7 +419,7 @@ function CategoryPage() {
                                             {event.image ? (
                                                 <CardMedia
                                                     component="img"
-                                                    image={`http://localhost:3000/${event.image}`}
+                                                    image={(event.image?.startsWith('http') ? event.image : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/${event.image}`)}
                                                     alt={event.title}
                                                     sx={{
                                                         height: 200,

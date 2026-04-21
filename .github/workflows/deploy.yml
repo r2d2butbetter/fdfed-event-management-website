@@ -1,0 +1,80 @@
+name: Testing and Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  test:
+    name: Run Unit and Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Navigate to Server and Test
+        run: |
+          cd server
+          npm ci
+          npm test
+
+      - name: Navigate to Client and Test
+        run: |
+          cd client
+          npm ci
+          npm test
+
+  deploy:
+    name: Deploy API and Web App
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to DigitalOcean Droplet via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        env:
+          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          envs: PROD_ENV_FILE
+          script: |
+            # Auto-install Docker if it isn't installed natively on the droplet
+            if ! command -v docker &> /dev/null; then
+              echo "Docker not found! Installing Docker..."
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sh get-docker.sh
+            fi
+
+            # Navigate to the project directory, clone if it doesn't exist
+            if [ -d "$HOME/fdfed_project/.git" ]; then
+              cd $HOME/fdfed_project
+              # Ensure we are fully tracking origin/master cleanly without conflicts
+              git fetch origin master
+              git reset --hard origin/master
+            else
+              mkdir -p $HOME/fdfed_project
+              cd $HOME/fdfed_project
+              git clone https://github.com/r2d2butbetter/fdfed-event-management-website/ .
+            fi
+            
+            # Write the ENV variables payload securely directly into docker-compose's context
+            echo "$PROD_ENV_FILE" > $HOME/fdfed_project/.env
+
+            # Dynamically attach URL bindings into .env so the frontend can reach the backend over Cloudflare Proxying safely
+            echo "FRONTEND_URL=https://wbd.shriansh.me" >> $HOME/fdfed_project/.env
+            echo "VITE_API_URL=/api" >> $HOME/fdfed_project/.env
+
+            # Shut down existing containers using the modern compose plugin
+            docker compose down || true
+
+            # Build and spin up the new containers
+            docker compose up -d --build

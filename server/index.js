@@ -2,7 +2,6 @@ import express from 'express';
 const app = express();
 const port = 3000;
 import { v4 as uuidv4 } from 'uuid';
-import { setUser, getUser } from './services/auth.js';
 import cookieParser from 'cookie-parser';
 import { isAuth, optionalAuth } from './middlewares/auth.js';
 import authRouter from './routes/authentication.js';
@@ -41,6 +40,9 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
+// Trust reverse proxies (Nginx/Cloudflare) passing X-Forwarded-* headers
+app.set('trust proxy', 1);
+
 // Create logs directory if it doesn't exist (Winston will also create it, but we do it here for Morgan)
 const logsDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logsDir)) {
@@ -71,9 +73,9 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resource sharing
 }));
 
-// CORS configuration for React frontend
+// CORS configuration for React frontend and independent deployments
 app.use(cors({
-  origin: 'http://localhost:5173', // React dev server (Vite default port)
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // React dev server (Vite default port)
   credentials: true // Allow cookies to be sent
 }));
 
@@ -106,10 +108,10 @@ app.get('/api-docs.json', (req, res) => {
 });
 
 // Serve static files (mainly for uploaded images)
-app.use(express.static("Public"));
+app.use(express.static("Public", { redirect: false }));
 //for multer - serve uploaded files
-app.use(express.static('uploads'));
-app.use('/uploads', express.static('uploads'));
+app.use(express.static('uploads', { redirect: false }));
+app.use('/uploads', express.static('uploads', { redirect: false }));
 
 
 // Initialize app with database connection and session management
@@ -126,7 +128,7 @@ async function initializeApp() {
     // Set up session store after DB connection is established
     app.use(
       session({
-        secret: "your_secret_key",
+        secret: process.env.SESSION_SECRET || "fallback_secret_for_dev_only",
         resave: false,
         saveUninitialized: false,
         store: MongoStore.create({
@@ -135,7 +137,7 @@ async function initializeApp() {
         cookie: {
           maxAge: 1000 * 60 * 60 * 24,
           httpOnly: true,
-          secure: false,
+          secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax'
         },
       })

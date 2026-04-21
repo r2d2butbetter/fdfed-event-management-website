@@ -266,7 +266,6 @@ import User from "../models/user.js";
 import Organizer from "../models/organizer.js";
 import Admin from "../models/admin.js";
 import Manager from "../models/manager.js";
-import { setUser } from '../services/auth.js';
 
 class authController {
   // loadSignUpPage and loadLoginPage methods removed
@@ -359,19 +358,8 @@ class authController {
           message: "Invalid email or password."
         });
       }
-
-      // Generate a new session ID
-      const sessionId = uuidv4();
-      console.log("Generated session ID:", sessionId);
-
       req.session.userId = user._id; // Store the user's ID in the session
       console.log("User ID saved to session:", req.session.userId);
-
-      // Save session information using your session service
-      setUser(sessionId, user);
-
-      // Set the session ID in cookies
-      res.cookie("uid", sessionId, { httpOnly: true });
 
       // Check if user is an admin
       const admin = await Admin.findOne({ userId: user._id });
@@ -601,57 +589,34 @@ class authController {
     }
   }
   async logout(req, res) {
-    // Get the session ID from cookies
-    const sessionId = req.cookies.uid;
-
-    if (sessionId) {
-      try {
-        // Import the necessary function to handle the user session
-        const { setUser } = await import('../services/auth.js');
-
-        // Remove the user from the session map by setting it to null
-        setUser(sessionId, null);
-
-        // Clear the session ID cookie
-        res.clearCookie("uid");
-
-        // Clear the session data
-        if (req.session) {
-          req.session.destroy(err => {
-            if (err) {
-              console.error("Error destroying session:", err);
-              return res.status(500).json({
-                success: false,
-                message: "Error during logout."
-              });
-            }
-
-            console.log("User logged out successfully");
-            return res.status(200).json({
-              success: true,
-              message: "Logout successful."
+    try {
+      if (req.session) {
+        req.session.destroy(err => {
+          if (err) {
+            console.error("Error destroying session:", err);
+            return res.status(500).json({
+              success: false,
+              message: "Error during logout."
             });
-          });
-        } else {
+          }
+
+          console.log("User logged out successfully");
           return res.status(200).json({
             success: true,
             message: "Logout successful."
           });
-        }
-
-        console.log("User logged out successfully");
-      } catch (error) {
-        console.error("Error during logout:", error);
-        return res.status(500).json({
-          success: false,
-          message: "Error during logout."
+        });
+      } else {
+        return res.status(200).json({
+          success: true,
+          message: "No active session."
         });
       }
-    } else {
-      // No session to logout
-      return res.status(200).json({
-        success: true,
-        message: "No active session."
+    } catch (error) {
+      console.error("Error during logout:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error during logout."
       });
     }
   }

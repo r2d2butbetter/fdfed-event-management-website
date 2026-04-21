@@ -15,7 +15,7 @@ const HeroSection = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('http://localhost:3000/stats', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}/stats`, {
                     credentials: 'include',
                 });
                 if (response.ok) {

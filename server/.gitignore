@@ -18,3 +18,6 @@ Thumbs.db
 # IDE configuration files
 .vscode/
 .idea/
+
+# Test reports
+test-reports/

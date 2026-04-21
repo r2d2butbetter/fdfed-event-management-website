@@ -134,7 +134,7 @@ function Home() {
             }
 
             const response = await fetch(
-                `http://localhost:3000/events?${params.toString()}`,
+                `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/events?${params.toString()}`,
                 {
                     credentials: 'include',
                 }
@@ -340,7 +340,7 @@ function Home() {
                                                                     <CardMedia
                                                                         component="img"
                                                                         className="event-card-media"
-                                                                        image={`http://localhost:3000/${event.image}`}
+                                                                        image={(event.image?.startsWith('http') ? event.image : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/${event.image}`)}
                                                                         alt={event.title}
                                                                         sx={{
                                                                             height: 200,
@@ -491,7 +491,7 @@ function Home() {
                                                                     <CardMedia
                                                                         component="img"
                                                                         className="event-card-media"
-                                                                        image={`http://localhost:3000/${event.image}`}
+                                                                        image={(event.image?.startsWith('http') ? event.image : `${import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:3000')}`}/${event.image}`)}
                                                                         alt={event.title}
                                                                         sx={{
                                                                             height: 200,
