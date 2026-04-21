@@ -22,13 +22,13 @@ jobs:
       - name: Navigate to Server and Test
         run: |
           cd server
-          npm ci
+          npm install
           npm test
 
       - name: Navigate to Client and Test
         run: |
           cd client
-          npm ci
+          npm install
           npm test
 
   deploy:
