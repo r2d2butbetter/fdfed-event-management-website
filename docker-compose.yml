@@ -5,8 +5,6 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: fdfed_backend
-    ports:
-      - "3000:3000"
     environment:
       - PORT=3000
       - MONGO_USERNAME=${MONGO_USERNAME}
@@ -18,6 +16,7 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
       - FRONTEND_URL=${FRONTEND_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
       - NODE_ENV=production
     restart: always
 

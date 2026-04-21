@@ -1,4 +1,3 @@
-import { getUser } from '../services/auth.js';
 import User from '../models/user.js';
 
 async function isAuth(req, res, next) {
@@ -51,11 +50,11 @@ async function isAuth(req, res, next) {
 
 async function optionalAuth(req, res, next) {
     try {
-        const userId = req.cookies.uid;
+        const userId = req.session?.userId;
 
         // Try to fetch the user if the session exists
         if (userId) {
-            const user = getUser(userId);
+            const user = await User.findById(userId);
             if (user) {
                 req.user = user;
                 // res.locals.user = user; // Optional: Make user globally available in templates
