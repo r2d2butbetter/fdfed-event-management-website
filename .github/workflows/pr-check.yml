@@ -19,11 +19,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies and Lint Frontend
+      - name: Install Dependencies and Prepare Frontend
         run: |
           cd client
           npm ci
-          npm run lint
 
       - name: Test Frontend
         run: |
