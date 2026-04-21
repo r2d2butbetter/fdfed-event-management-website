@@ -29,6 +29,14 @@ const RegistrationSchema = new mongoose.Schema({
   refundAmount: { type: Number, default: 0 },
 });
 
+// --- Indexes ---
+// User dashboard: fetch all registrations for a user sorted by date
+RegistrationSchema.index({ userId: 1, registrationDate: -1 });
+// Capacity queries & attendee counts: find all registrations for an event by status
+RegistrationSchema.index({ eventId: 1, status: 1 });
+// Analytics date-range filters: registrations for a set of events within a time window
+RegistrationSchema.index({ eventId: 1, registrationDate: -1 });
+
 const Registration = mongoose.model('Registration', RegistrationSchema);
 
 export default Registration;

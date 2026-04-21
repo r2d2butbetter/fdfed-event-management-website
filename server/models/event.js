@@ -40,9 +40,20 @@ const EventSchema = new mongoose.Schema({
   },
   organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organizer', required: true },
   image: { type: String, required: false },
-  embedding: { type: [Number], required: false },
+  // select: false hides the 3072-float embedding from all normal queries.
+  // Atlas $vectorSearch accesses it directly in the aggregation pipeline,
+  // so this does NOT affect semantic search.
+  embedding: { type: [Number], required: false, select: false },
 
 }, { collection: 'event', timestamps: true });
+
+// --- Indexes ---
+// Home page: fetch selling/upcoming events sorted by startDateTime
+EventSchema.index({ status: 1, startDateTime: 1 });
+// Category page: filter by category + status, sorted by startDateTime
+EventSchema.index({ category: 1, status: 1, startDateTime: 1 });
+// Organizer dashboard: all events for an organizer, filtered by status
+EventSchema.index({ organizerId: 1, status: 1 });
 
 const Event = mongoose.model('Event', EventSchema);
 

@@ -117,6 +117,12 @@ const OrganizerSchema = new mongoose.Schema({
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Manager' },
 });
 
+// --- Indexes ---
+// Primary lookup: every organizer dashboard request does findOne({ userId })
+OrganizerSchema.index({ userId: 1 }, { unique: true });
+// Admin verification queue: filter by verificationStatus
+OrganizerSchema.index({ verificationStatus: 1 });
+
 const Organizer = mongoose.model('Organizer', OrganizerSchema);
 
 export default Organizer;

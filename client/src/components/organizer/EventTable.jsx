@@ -74,18 +74,35 @@ function EventTable({ events, onDelete }) {
                 backdropFilter: 'blur(10px)',
                 border: '1px solid rgba(147, 83, 211, 0.2)',
                 borderRadius: 3,
+                maxHeight: 480,
+                overflow: 'auto',
+                '&::-webkit-scrollbar': {
+                    width: 6,
+                },
+                '&::-webkit-scrollbar-track': {
+                    background: 'transparent',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                    background: 'rgba(147, 83, 211, 0.3)',
+                    borderRadius: 3,
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                    background: 'rgba(147, 83, 211, 0.5)',
+                },
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(147, 83, 211, 0.3) transparent',
             }}
         >
-            <Table>
+            <Table stickyHeader>
                 <TableHead>
                     <TableRow>
-                        <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Title</TableCell>
-                        <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Date</TableCell>
-                        <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Venue</TableCell>
-                        <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Capacity</TableCell>
-                        <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Price</TableCell>
-                        <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Status</TableCell>
-                        <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Actions</TableCell>
+                        <TableCell sx={{ color: '#fff', fontWeight: 600, background: '#1a1a2e' }}>Title</TableCell>
+                        <TableCell sx={{ color: '#fff', fontWeight: 600, background: '#1a1a2e' }}>Date</TableCell>
+                        <TableCell sx={{ color: '#fff', fontWeight: 600, background: '#1a1a2e' }}>Venue</TableCell>
+                        <TableCell sx={{ color: '#fff', fontWeight: 600, background: '#1a1a2e' }}>Capacity</TableCell>
+                        <TableCell sx={{ color: '#fff', fontWeight: 600, background: '#1a1a2e' }}>Price</TableCell>
+                        <TableCell sx={{ color: '#fff', fontWeight: 600, background: '#1a1a2e' }}>Status</TableCell>
+                        <TableCell sx={{ color: '#fff', fontWeight: 600, background: '#1a1a2e' }}>Actions</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
