@@ -40,9 +40,10 @@ Thumbs.db
 *.orig
 *.rej
 
-# Test coverage
+# Test coverage and reports
 coverage/
 frontend/coverage/
+test-reports/
 
 # Docker
 *.local
